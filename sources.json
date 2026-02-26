@@ -1,0 +1,42 @@
+{
+  "psrd_data": {
+    "repo_url": "https://github.com/devonjones/PSRD-Data.git",
+    "branch": "release",
+    "local_path": "data/psrd",
+    "description": "Primary data source - JSON + SQLite from Paizo PRD",
+    "books": {
+      "core_rulebook":        {"abbreviation": "CRB", "priority": 1},
+      "advanced_players_guide": {"abbreviation": "APG", "priority": 2},
+      "advanced_race_guide":  {"abbreviation": "ARG", "priority": 3},
+      "ultimate_magic":       {"abbreviation": "UM",  "priority": 4},
+      "ultimate_combat":      {"abbreviation": "UC",  "priority": 5},
+      "ultimate_equipment":   {"abbreviation": "UE",  "priority": 6},
+      "ultimate_campaign":    {"abbreviation": "UCam", "priority": 7},
+      "bestiary":             {"abbreviation": "B1",  "priority": 8},
+      "bestiary_2":           {"abbreviation": "B2",  "priority": 9},
+      "bestiary_3":           {"abbreviation": "B3",  "priority": 10},
+      "bestiary_4":           {"abbreviation": "B4",  "priority": 11},
+      "game_mastery_guide":   {"abbreviation": "GMG", "priority": 12},
+      "mythic_adventures":    {"abbreviation": "MA",  "priority": 13},
+      "technology_guide":     {"abbreviation": "TG",  "priority": 14},
+      "monster_codex":        {"abbreviation": "MC",  "priority": 15},
+      "npc_codex":            {"abbreviation": "NPC", "priority": 16}
+    }
+  },
+  "foundry_pf1e": {
+    "repo_url": "https://github.com/baileymh/pf1e-content.git",
+    "branch": "main",
+    "local_path": "data/foundry",
+    "description": "Supplementary - magic items, equipment, feats, traits"
+  },
+  "foundry_archetypes": {
+    "repo_url": "https://github.com/baileymh/pf1e-archetypes.git",
+    "branch": "main",
+    "local_path": "data/foundry-archetypes",
+    "description": "Supplementary - archetypes and class abilities"
+  },
+  "database": {
+    "path": "db/pf1e.db",
+    "schema": "schema/pf1e_schema.sql"
+  }
+}
