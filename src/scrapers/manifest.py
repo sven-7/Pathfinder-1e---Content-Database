@@ -74,8 +74,8 @@ CONTENT_INDEXES = {
     },
     "classes_occult": {
         "description": "Occult classes (OA)",
-        "index_url": f"{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes",
-        "url_prefix": f"{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes/",
+        "index_url": f"{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes",
+        "url_prefix": f"{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/",
         "tier": 1,
         "merge_into": "classes",
     },
@@ -280,15 +280,38 @@ def urlparse_path(url: str) -> str:
 
 
 def crawl_class_detail_pages(class_urls: list[str]) -> dict:
-    """For each class URL, discover archetype sub-pages.
+    """For each actual class URL, discover archetype sub-pages.
+
+    Only probes URLs that look like real class pages, not every URL
+    in the classes manifest (which includes sub-pages, features, etc.)
 
     Returns dict mapping class_url -> list of archetype URLs.
     """
+    # Filter to only actual class page URLs (top-level class, not sub-pages)
+    class_page_patterns = [
+        # /classes/<category>/<class-name> — exactly that depth
+        re.compile(r'^https://www\.d20pfsrd\.com/classes/(core-classes|base-classes|hybrid-classes|alternate-classes|unchained-classes|prestige-classes|npc-classes)/([^/]+)/?$'),
+        # Occult classes under alternative-rule-systems
+        re.compile(r'^https://www\.d20pfsrd\.com/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/([^/]+)/?$'),
+    ]
+
+    actual_class_urls = []
+    for url in class_urls:
+        clean_url = url.rstrip('/')
+        for pattern in class_page_patterns:
+            if pattern.match(clean_url):
+                actual_class_urls.append(clean_url)
+                break
+
+    print(f"  Filtered {len(class_urls)} class URLs → {len(actual_class_urls)} top-level class pages")
+
     archetypes = {}
 
-    for class_url in class_urls:
+    for class_url in actual_class_urls:
+        class_name = class_url.rstrip('/').split('/')[-1]
+
         # Check for /archetypes/ sub-page
-        archetype_index_url = class_url.rstrip('/') + '/archetypes'
+        archetype_index_url = class_url + '/archetypes'
         html = fetch_page(archetype_index_url)
 
         if html:
@@ -310,7 +333,8 @@ def crawl_class_detail_pages(class_urls: list[str]) -> dict:
 
                 if arch_urls:
                     archetypes[class_url] = sorted(arch_urls)
-                    print(f"    {class_url.split('/')[-1]}: {len(arch_urls)} archetypes")
+                    print(f"    {class_name}: {len(arch_urls)} archetypes")
+        # Silently skip classes without archetype pages (common for prestige classes)
 
     return archetypes
 
