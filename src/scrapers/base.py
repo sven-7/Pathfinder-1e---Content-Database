@@ -172,6 +172,8 @@ def is_paizo_content(url: str) -> bool:
         'en-publishing', 'radiance-house', 'purple-duck',
         'open-design', 'alluria-publishing', 'adamant-entertainment',
         'petersen-games', 'michael-mars',
+        'jon-brazer', 'everyman-gaming', 'louis-porter',
+        'bloodstone-press', 'paizo-fans-united',
     ]
 
     for marker in third_party_markers:

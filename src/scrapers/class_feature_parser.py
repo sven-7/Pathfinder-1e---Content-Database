@@ -75,14 +75,7 @@ CLASS_FEATURE_INDEXES = {
         ],
         'type': 'B',
     },
-    'ranger_combat_styles': {
-        'parent_class': 'Ranger',
-        'feature_category': 'Combat Style',
-        'index_urls': [
-            f'{BASE_URL}/classes/core-classes/ranger/ranger-combat-styles/',
-        ],
-        'type': 'B',
-    },
+    # ranger combat styles: index page only lists feats, no individual sub-pages
     'rogue_talents': {
         'parent_class': 'Rogue',
         'feature_category': 'Rogue Talent',
@@ -149,30 +142,19 @@ CLASS_FEATURE_INDEXES = {
         ],
         'type': 'B',
     },
-    'summoner_evolutions': {
-        'parent_class': 'Summoner',
-        'feature_category': 'Evolution',
-        'index_urls': [
-            f'{BASE_URL}/classes/base-classes/summoner/eidolons/',
-        ],
-        'type': 'A',
-    },
+    # summoner evolutions: all inline on the eidolons page, no individual sub-pages
     'witch_hexes': {
         'parent_class': 'Witch',
         'feature_category': 'Hex',
+        # Paizo hexes live at hexes/hexes/{common,major,grand}-hexes/<hex-name>
         'index_urls': [
-            f'{BASE_URL}/classes/base-classes/witch/hexes/',
+            f'{BASE_URL}/classes/base-classes/witch/hexes/hexes/common-hexes',
+            f'{BASE_URL}/classes/base-classes/witch/hexes/hexes/major-hexes',
+            f'{BASE_URL}/classes/base-classes/witch/hexes/hexes/grand-hexes',
         ],
         'type': 'A',
     },
-    'witch_patrons': {
-        'parent_class': 'Witch',
-        'feature_category': 'Patron',
-        'index_urls': [
-            f'{BASE_URL}/classes/base-classes/witch/witch-patrons/',
-        ],
-        'type': 'B',
-    },
+    # witch patrons: index page links only to spells, no individual patron sub-pages
 
     # --- Hybrid Classes ---
     'arcanist_exploits': {

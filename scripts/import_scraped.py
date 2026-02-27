@@ -428,6 +428,166 @@ def import_races(conn, races: list[dict], source_id: int, merge: bool = True) ->
     return stats
 
 
+def import_archetypes(conn, archetypes: list[dict], source_id: int, merge: bool = True) -> dict:
+    """Import archetype records into the database."""
+    stats = {"inserted": 0, "skipped": 0}
+
+    for arch in archetypes:
+        name = arch.get("name", "").strip()
+        class_name = arch.get("parent_class", "").strip()
+        if not name or not class_name:
+            continue
+
+        # Resolve class_id
+        class_row = conn.execute(
+            "SELECT id FROM classes WHERE name = ?", (class_name,)
+        ).fetchone()
+        if not class_row:
+            # Try case-insensitive
+            class_row = conn.execute(
+                "SELECT id FROM classes WHERE LOWER(name) = LOWER(?)", (class_name,)
+            ).fetchone()
+        if not class_row:
+            stats["skipped"] += 1
+            continue
+        class_id = class_row[0]
+
+        existing = conn.execute(
+            "SELECT id FROM archetypes WHERE name = ? AND class_id = ?",
+            (name, class_id)
+        ).fetchone()
+        if existing:
+            stats["skipped"] += 1
+            continue
+
+        try:
+            conn.execute("""
+                INSERT OR IGNORE INTO archetypes
+                (name, class_id, source_id, description, url)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                name, class_id, source_id,
+                arch.get("description", ""),
+                arch.get("url", ""),
+            ))
+
+            arch_row = conn.execute(
+                "SELECT id FROM archetypes WHERE name = ? AND class_id = ?",
+                (name, class_id)
+            ).fetchone()
+            if arch_row:
+                arch_id = arch_row[0]
+                for feat in arch.get("features", []):
+                    feat_name = feat if isinstance(feat, str) else feat.get("name", "")
+                    feat_desc = feat.get("description", "") if isinstance(feat, dict) else ""
+                    feat_level = feat.get("level") if isinstance(feat, dict) else None
+                    replaces = ", ".join(feat.get("replaces", []) + feat.get("alters", [])) if isinstance(feat, dict) else ""
+                    if feat_name:
+                        conn.execute("""
+                            INSERT OR IGNORE INTO archetype_features
+                            (archetype_id, name, level, description, replaces)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (arch_id, feat_name, feat_level, feat_desc[:2000], replaces))
+
+            stats["inserted"] += 1
+        except sqlite3.IntegrityError:
+            stats["skipped"] += 1
+
+    conn.commit()
+    return stats
+
+
+def import_traits(conn, traits: list[dict], source_id: int, merge: bool = True) -> dict:
+    """Import character trait records into the database."""
+    stats = {"inserted": 0, "skipped": 0}
+
+    for trait in traits:
+        name = trait.get("name", "").strip()
+        trait_type = trait.get("trait_type", "").strip()
+        if not name:
+            continue
+
+        existing = conn.execute(
+            "SELECT id FROM traits WHERE name = ? AND trait_type = ?",
+            (name, trait_type)
+        ).fetchone()
+        if existing:
+            stats["skipped"] += 1
+            continue
+
+        try:
+            conn.execute("""
+                INSERT OR IGNORE INTO traits
+                (name, source_id, trait_type, prerequisites, benefit, description, url)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                name, source_id, trait_type,
+                trait.get("prerequisites", ""),
+                trait.get("benefit", ""),
+                trait.get("description", ""),
+                trait.get("url", ""),
+            ))
+            stats["inserted"] += 1
+        except sqlite3.IntegrityError:
+            stats["skipped"] += 1
+
+    conn.commit()
+    return stats
+
+
+def import_class_features(conn, features: list[dict], source_id: int, merge: bool = True) -> dict:
+    """Import pickable class features (rage powers, discoveries, etc.) into class_features."""
+    stats = {"inserted": 0, "skipped": 0}
+
+    for feat in features:
+        name = feat.get("name", "").strip()
+        parent_class = feat.get("parent_class", "").strip()
+        if not name or not parent_class:
+            continue
+
+        # Resolve class_id
+        class_row = conn.execute(
+            "SELECT id FROM classes WHERE LOWER(name) = LOWER(?)", (parent_class,)
+        ).fetchone()
+        class_id = class_row[0] if class_row else None
+
+        feature_type = feat.get("feature_category", feat.get("feature_type", ""))
+        description = feat.get("benefit") or feat.get("description", "")
+
+        if not class_id:
+            # Insert without class link — still useful as reference data
+            existing = conn.execute(
+                "SELECT id FROM class_features WHERE name = ? AND feature_type = ?",
+                (name, feature_type)
+            ).fetchone()
+            if existing:
+                stats["skipped"] += 1
+                continue
+            conn.execute("""
+                INSERT OR IGNORE INTO class_features
+                (class_id, name, level, feature_type, description, url)
+                VALUES (NULL, ?, 0, ?, ?, ?)
+            """, (name, feature_type, description[:2000], feat.get("url", "")))
+        else:
+            existing = conn.execute(
+                "SELECT id FROM class_features WHERE class_id = ? AND name = ?",
+                (class_id, name)
+            ).fetchone()
+            if existing:
+                stats["skipped"] += 1
+                continue
+            conn.execute("""
+                INSERT OR IGNORE INTO class_features
+                (class_id, name, level, feature_type, description, url)
+                VALUES (?, ?, 0, ?, ?, ?)
+            """, (class_id, name, feature_type, description[:2000], feat.get("url", "")))
+
+        stats["inserted"] += 1
+
+    conn.commit()
+    return stats
+
+
 def rebuild_search_index(conn):
     """Rebuild the FTS5 search index after import."""
     print("  Rebuilding search index...")
@@ -441,6 +601,8 @@ def rebuild_search_index(conn):
         ("monster", "monsters", "m"),
         ("equipment", "equipment", "e"),
         ("magic_item", "magic_items", "mi"),
+        ("archetype", "archetypes", "a"),
+        ("trait", "traits", "t"),
     ]
 
     for content_type, table, alias in index_queries:
@@ -491,7 +653,7 @@ def main():
     merge = not args.replace
 
     # Determine which types to import
-    all_types = ['spells', 'feats', 'classes', 'races']
+    all_types = ['spells', 'feats', 'classes', 'races', 'archetypes', 'traits', 'class_features']
     types_to_import = args.content_types or all_types
 
     results = {}
@@ -512,6 +674,12 @@ def main():
             stats = import_classes(conn, data, source_id, merge)
         elif content_type == "races":
             stats = import_races(conn, data, source_id, merge)
+        elif content_type == "archetypes":
+            stats = import_archetypes(conn, data, source_id, merge)
+        elif content_type == "traits":
+            stats = import_traits(conn, data, source_id, merge)
+        elif content_type == "class_features":
+            stats = import_class_features(conn, data, source_id, merge)
         else:
             print(f"  ⚠ No importer for '{content_type}'")
             continue
@@ -545,8 +713,8 @@ def main():
     print(f"{'=' * 60}")
 
     for table in ['sources', 'classes', 'class_features', 'class_progression',
-                  'races', 'racial_traits', 'feats', 'skills',
-                  'spells', 'spell_class_levels']:
+                  'archetypes', 'races', 'racial_traits', 'traits',
+                  'feats', 'skills', 'spells', 'spell_class_levels']:
         count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         print(f"  {table:25s}: {count:,}")
 

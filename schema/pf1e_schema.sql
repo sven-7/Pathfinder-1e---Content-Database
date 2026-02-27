@@ -195,6 +195,25 @@ CREATE TABLE IF NOT EXISTS spell_class_levels (
 );
 
 -- ============================================================
+-- TRAITS (character traits, not racial traits)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS traits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    source_id INTEGER REFERENCES sources(id),
+    trait_type TEXT,                     -- e.g. "Combat", "Faith", "Magic", "Social", "Race", "Regional"
+    prerequisites TEXT,                  -- race/class requirement if any
+    benefit TEXT,
+    description TEXT,
+    url TEXT,
+    UNIQUE(name, trait_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_traits_type ON traits(trait_type);
+CREATE INDEX IF NOT EXISTS idx_traits_name ON traits(name);
+
+-- ============================================================
 -- EQUIPMENT
 -- ============================================================
 
