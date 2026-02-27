@@ -75,22 +75,6 @@ CLASS_FEATURE_INDEXES = {
         ],
         'type': 'B',
     },
-    'monk_ki_powers': {
-        'parent_class': 'Monk (Unchained)',
-        'feature_category': 'Ki Power',
-        'index_urls': [
-            f'{BASE_URL}/classes/unchained-classes/monk/ki-powers/',
-        ],
-        'type': 'A',
-    },
-    'paladin_mercies': {
-        'parent_class': 'Paladin',
-        'feature_category': 'Mercy',
-        'index_urls': [
-            f'{BASE_URL}/classes/core-classes/paladin/mercy/',
-        ],
-        'type': 'A',
-    },
     'ranger_combat_styles': {
         'parent_class': 'Ranger',
         'feature_category': 'Combat Style',
@@ -141,14 +125,6 @@ CLASS_FEATURE_INDEXES = {
         ],
         'type': 'B',
     },
-    'gunslinger_deeds': {
-        'parent_class': 'Gunslinger',
-        'feature_category': 'Deed',
-        'index_urls': [
-            f'{BASE_URL}/classes/base-classes/gunslinger/deeds/',
-        ],
-        'type': 'A',
-    },
     'inquisitor_inquisitions': {
         'parent_class': 'Inquisitor',
         'feature_category': 'Inquisition',
@@ -169,7 +145,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Oracle',
         'feature_category': 'Mystery',
         'index_urls': [
-            f'{BASE_URL}/classes/base-classes/oracle/oracle-mysteries/',
+            f'{BASE_URL}/classes/base-classes/oracle/mysteries',
         ],
         'type': 'B',
     },
@@ -203,7 +179,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Arcanist',
         'feature_category': 'Exploit',
         'index_urls': [
-            f'{BASE_URL}/classes/hybrid-classes/arcanist/arcanist-exploits/',
+            f'{BASE_URL}/classes/hybrid-classes/arcanist/arcane-exploits',
         ],
         'type': 'A',
     },
@@ -211,7 +187,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Bloodrager',
         'feature_category': 'Bloodline',
         'index_urls': [
-            f'{BASE_URL}/classes/hybrid-classes/bloodrager/bloodlines/',
+            f'{BASE_URL}/classes/hybrid-classes/bloodrager/bloodrager-bloodlines',
         ],
         'type': 'B',
     },
@@ -239,14 +215,7 @@ CLASS_FEATURE_INDEXES = {
         ],
         'type': 'A',
     },
-    'swashbuckler_deeds': {
-        'parent_class': 'Swashbuckler',
-        'feature_category': 'Deed',
-        'index_urls': [
-            f'{BASE_URL}/classes/hybrid-classes/swashbuckler/swashbuckler-deeds/',
-        ],
-        'type': 'A',
-    },
+    # swashbuckler deeds have no dedicated index page; all deeds are inline on the class page
     'warpriest_blessings': {
         'parent_class': 'Warpriest',
         'feature_category': 'Blessing',
@@ -269,7 +238,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Samurai',
         'feature_category': 'Order',
         'index_urls': [
-            f'{BASE_URL}/classes/alternate-classes/samurai/orders/',
+            f'{BASE_URL}/classes/alternate-classes/samurai/samurai-orders',
         ],
         'type': 'B',
     },
@@ -279,18 +248,12 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Kineticist',
         'feature_category': 'Wild Talent',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/kineticist/kineticist-wild-talents/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/kineticist/infusion-wild-talents',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/kineticist/utility-wild-talents',
         ],
         'type': 'A',
     },
-    'mesmerist_tricks': {
-        'parent_class': 'Mesmerist',
-        'feature_category': 'Mesmerist Trick',
-        'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/mesmerist/mesmerist-tricks/',
-        ],
-        'type': 'A',
-    },
+    # Mesmerist tricks have no dedicated index page; tricks are inline on the class page
     'medium_spirits': {
         'parent_class': 'Medium',
         'feature_category': 'Spirit',
@@ -303,7 +266,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Occultist',
         'feature_category': 'Implement School',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/occultist/implement-schools/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/occultist/occultist-implements',
         ],
         'type': 'B',
     },
@@ -738,6 +701,7 @@ _CATEGORY_FROM_URL = {
     'discoveries': 'Discovery',
     'magus-arcana': 'Magus Arcana',
     'arcanist-exploits': 'Exploit',
+    'arcane-exploits': 'Exploit',
     'hexes': 'Hex',
     'ninja-tricks': 'Ninja Trick',
     'slayer-talents': 'Slayer Talent',
@@ -745,11 +709,13 @@ _CATEGORY_FROM_URL = {
     'swashbuckler-deeds': 'Deed',
     'gunslinger-deeds': 'Deed',
     'bloodlines': 'Bloodline',
+    'bloodrager-bloodlines': 'Bloodline',
     'domains': 'Domain',
     'mysteries': 'Mystery',
     'oracle-mysteries': 'Mystery',
     'arcane-schools': 'Arcane School',
     'orders': 'Order',
+    'samurai-orders': 'Order',
     'spirits': 'Spirit',
     'blessings': 'Blessing',
     'ki-powers': 'Ki Power',
@@ -758,9 +724,12 @@ _CATEGORY_FROM_URL = {
     'bardic-masterpieces': 'Bardic Masterpiece',
     'wild-talents': 'Wild Talent',
     'kineticist-wild-talents': 'Wild Talent',
+    'infusion-wild-talents': 'Wild Talent',
+    'utility-wild-talents': 'Wild Talent',
     'inquisitions': 'Inquisition',
     'mesmerist-tricks': 'Mesmerist Trick',
     'implement-schools': 'Implement School',
+    'occultist-implements': 'Implement School',
     'psychic-disciplines': 'Discipline',
     'witch-patrons': 'Patron',
 }
