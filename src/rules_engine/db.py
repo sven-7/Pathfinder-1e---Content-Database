@@ -84,6 +84,22 @@ class RulesDB:
     def get_archetype(self, name: str) -> dict | None:
         return self._one("SELECT * FROM archetypes WHERE name = ?", (name,))
 
+    def get_archetype_for_class(self, class_name: str, archetype_name: str) -> dict | None:
+        """Look up an archetype by class + archetype name."""
+        return self._one(
+            """SELECT a.* FROM archetypes a
+               JOIN classes c ON c.id = a.class_id
+               WHERE c.name = ? AND a.name = ?""",
+            (class_name, archetype_name),
+        )
+
+    def get_archetype_features(self, archetype_id: int) -> list[dict]:
+        """Return all features for an archetype, ordered by level."""
+        return self._many(
+            "SELECT * FROM archetype_features WHERE archetype_id = ? ORDER BY level",
+            (archetype_id,),
+        )
+
     # ------------------------------------------------------------------ #
     # Skills                                                               #
     # ------------------------------------------------------------------ #

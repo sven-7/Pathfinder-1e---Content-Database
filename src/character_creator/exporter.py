@@ -98,6 +98,31 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
             "is_class_skill": sk_name.lower() in class_skill_names,
         }
 
+    # Class features from progression table
+    class_features: list[str] = []
+    if cls_levels:
+        cl = cls_levels[0]
+        class_row = db.get_class(cl.class_name)
+        if class_row:
+            progression = db.get_class_progression(class_row["id"])
+            for prog_row in progression:
+                if prog_row["level"] <= cl.level:
+                    special = prog_row.get("special") or ""
+                    for feat_name in special.split(","):
+                        feat_name = feat_name.strip()
+                        if feat_name:
+                            class_features.append(feat_name)
+        # Archetype features (if selected)
+        if cl.archetype_name:
+            arch_row = db.get_archetype_for_class(cl.class_name, cl.archetype_name)
+            if arch_row:
+                arch_features = db.get_archetype_features(arch_row["id"])
+                for af in arch_features:
+                    if af.get("level") is None or af["level"] <= cl.level:
+                        name = (af.get("name") or "").strip()
+                        if name:
+                            class_features.append(f"{name} [Archetype]")
+
     return {
         "bab": bab,
         "fort": fort,
@@ -112,6 +137,7 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         "hp_current": hp_current,
         "skill_totals": skill_totals,
         "ability_mods": mods,
+        "class_features": class_features,
     }
 
 

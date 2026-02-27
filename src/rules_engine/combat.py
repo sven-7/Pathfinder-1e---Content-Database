@@ -29,9 +29,16 @@ _SIZE_MODS = {
 }
 
 
-def _size_mod(char: "Character") -> int:
+def _size_mod(char: "Character", db: "RulesDB | None" = None) -> int:
     """AC/CMD size modifier from character's race size (default medium)."""
-    # Try to infer size from race name if it contains a size keyword
+    # Look up size from DB races table when available
+    if db is not None:
+        row = db.get_race(char.race)
+        if row and row.get("size"):
+            size_str = row["size"].lower()
+            if size_str in _SIZE_MODS:
+                return _SIZE_MODS[size_str]
+    # Fallback: infer from race name string
     race_lower = char.race.lower()
     for size, mod in _SIZE_MODS.items():
         if size in race_lower:
@@ -61,7 +68,7 @@ def ac(char: "Character", db: "RulesDB") -> ACBreakdown:
     would require a full equipment-slot system not yet implemented.
     """
     dex_mod  = char.ability_mod("dex")
-    size_mod = _size_mod(char)
+    size_mod = _size_mod(char, db)
 
     stack = BonusStack()
 
@@ -102,7 +109,7 @@ def attack_bonus(char: "Character", weapon_type: str = "melee", db: "RulesDB" | 
         ability_mod = char.ability_mod("dex")
     else:
         ability_mod = char.ability_mod("str")
-    size_mod = _size_mod(char)
+    size_mod = _size_mod(char, db)
     return bab + ability_mod + size_mod
 
 
@@ -112,12 +119,12 @@ def attack_bonus(char: "Character", weapon_type: str = "melee", db: "RulesDB" | 
 
 def cmb(char: "Character", db: "RulesDB") -> int:
     """Combat Maneuver Bonus = BAB + STR mod + size mod."""
-    return char.bab(db) + char.ability_mod("str") + _size_mod(char)
+    return char.bab(db) + char.ability_mod("str") + _size_mod(char, db)
 
 
 def cmd(char: "Character", db: "RulesDB") -> int:
     """Combat Maneuver Defense = 10 + BAB + STR mod + DEX mod + size mod."""
-    return 10 + char.bab(db) + char.ability_mod("str") + char.ability_mod("dex") + _size_mod(char)
+    return 10 + char.bab(db) + char.ability_mod("str") + char.ability_mod("dex") + _size_mod(char, db)
 
 
 # ------------------------------------------------------------------ #

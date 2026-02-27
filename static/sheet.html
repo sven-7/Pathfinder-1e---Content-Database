@@ -130,7 +130,10 @@
     <!-- Right column: feats, traits, equipment, notes -->
     <div class="sheet-col-right">
 
-      <div class="section-title">Feats</div>
+      <div class="section-title">Class Features</div>
+      <ul class="feat-list" id="s-class-features"><!-- JS --></ul>
+
+      <div class="section-title" style="margin-top:8px;">Feats</div>
       <ul class="feat-list" id="s-feats"><!-- JS --></ul>
 
       <div class="section-title" style="margin-top:8px;">Traits</div>
@@ -256,6 +259,12 @@ function init() {
       </tr>`).join('');
   document.getElementById('s-skills').innerHTML = skillRows ||
     '<tr><td colspan="5" class="text-muted" style="padding:8px;">No skills in database.</td></tr>';
+
+  // Class features
+  const classFeats = (dr.class_features || []);
+  document.getElementById('s-class-features').innerHTML = classFeats.length
+    ? classFeats.map(f => `<li>${f}</li>`).join('')
+    : '<li class="text-muted">None</li>';
 
   // Feats
   document.getElementById('s-feats').innerHTML = (d.feats||[]).length

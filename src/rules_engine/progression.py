@@ -174,21 +174,35 @@ def parse_class_progression_html(html: str) -> list[LevelRow]:
     will_col  = _col_idx(["will"])
     spec_col  = _col_idx(["special"])
 
-    # Spell column: look for 1st/2nd etc in second header row
+    # Spell column: look for 1st/2nd/0th labels in second header row.
+    # The second header row only has cells that don't span both rows, so its
+    # positional offset aligns with the *colspan* group in the first row.
+    # Find that group's start column by scanning col_names for "spells".
     spell_cols: dict[int, int] = {}   # spell_level → col_index
     if len(parser._header_rows) > 1:
         second_row = parser._header_rows[1]
-        offset = 0
+        # Find the start column of the spells group in col_names
+        spell_group_start = -1
+        for i, cname in enumerate(col_names):
+            if "spell" in cname.lower():
+                spell_group_start = i
+                break
+        # Fallback: one past "special" column
+        if spell_group_start < 0 and spec_col >= 0:
+            spell_group_start = spec_col + 1
+
+        offset = 0  # counts ALL items in second header row
         for item in second_row:
             text = item[0] if isinstance(item, tuple) else item
-            lvl = _ordinal_to_int(text)
-            if lvl is not None:
-                # Find which column in col_names this maps to
-                # The second header row only covers the spell columns
-                # They start after "special" column
-                if spec_col >= 0:
-                    spell_cols[lvl] = spec_col + 1 + offset
-                offset += 1
+            text_stripped = text.strip()
+            # Accept "0" for cantrips as well as ordinals like "1st"
+            if text_stripped == "0":
+                lvl = 0
+            else:
+                lvl = _ordinal_to_int(text_stripped)
+            if lvl is not None and spell_group_start >= 0:
+                spell_cols[lvl] = spell_group_start + offset
+            offset += 1
 
     level_rows: list[LevelRow] = []
     for row in parser.rows:
