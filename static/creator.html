@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF1e — Character Creator</title>
+<link rel="stylesheet" href="/static/css/parchment.css">
+<link rel="stylesheet" href="/static/css/creator.css">
+</head>
+<body>
+
+<div class="top-banner">
+  <div class="banner-title"><span>⚔</span> PF1e Character Creator</div>
+  <div class="banner-sub">Pathfinder 1st Edition · d20pfsrd.com Reference</div>
+</div>
+
+<div class="app-shell">
+
+  <!-- Step tracker -->
+  <div class="step-tracker" id="step-tracker">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- Step panels -->
+  <div id="step-content">
+    <div class="loading-msg"><div class="spinner"></div><br>Loading…</div>
+  </div>
+
+</div>
+
+<!-- Character list modal -->
+<div id="char-list-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--paper);border:2px solid var(--gold);padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--gold);">Saved Characters</span>
+      <button class="btn btn-sm" onclick="document.getElementById('char-list-modal').classList.add('hidden')">✕ Close</button>
+    </div>
+    <div id="char-list-content"><div class="loading-msg">Loading…</div></div>
+  </div>
+</div>
+
+<script src="/static/js/creator.js"></script>
+</body>
+</html>

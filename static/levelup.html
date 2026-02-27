@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF1e — Level Up Workshop</title>
+<link rel="stylesheet" href="/static/css/parchment.css">
+<link rel="stylesheet" href="/static/css/creator.css">
+<style>
+.drop-zone {
+  border: 2px dashed var(--gold-border);
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--paper-mid);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--gold);
+  background: var(--gold-bg);
+}
+.drop-zone-text {
+  font-family: var(--font-label);
+  font-size: 12px;
+  color: var(--fade);
+  letter-spacing: .08em;
+}
+.hp-method { display: flex; gap: 12px; margin-bottom: 12px; }
+.hp-option {
+  flex: 1; padding: 14px; text-align: center;
+  border: 2px solid var(--gold-border); background: var(--paper-mid);
+  cursor: pointer; transition: all 0.15s;
+}
+.hp-option:hover { border-color: var(--gold); background: var(--gold-bg); }
+.hp-option.selected { border-color: var(--gold); background: rgba(184,134,11,.2); }
+.hp-option-label { font-family: var(--font-label); font-size: 9px; color: var(--fade); letter-spacing: .06em; }
+.hp-option-value { font-family: var(--font-head); font-size: 28px; font-weight: 900; color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  <div class="banner-title"><span>⬆</span> Level Up Workshop</div>
+  <div class="banner-sub">Pathfinder 1st Edition · Advance your character</div>
+</div>
+
+<div class="app-shell">
+
+  <div class="step-tracker" id="step-tracker"></div>
+
+  <div id="step-content">
+    <!-- Step 0: Load character -->
+    <div class="panel">
+      <div class="panel-title">Load Character</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="drop-zone-text">
+          📂 Click or drag &amp; drop a character JSON file<br>
+          <span style="font-size:10px;margin-top:6px;display:block;">Exported from the Character Creator</span>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadFile(this)">
+
+      <div style="margin-top:16px;text-align:center;">
+        <span class="text-muted" style="font-size:12px;">— or —</span>
+      </div>
+      <div style="margin-top:12px;" id="saved-chars-section">
+        <div class="panel-title" style="font-size:11px;">From Library</div>
+        <div id="saved-chars-list"><div class="loading-msg">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// Level Up Wizard
+// ═══════════════════════════════════════════════════════════════════════
+
+const API = '/api';
+const STEPS = [
+  { label: 'Load' },
+  { label: 'HP' },
+  { label: 'Ability' },
+  { label: 'Skills' },
+  { label: 'Feat' },
+  { label: 'Features' },
+  { label: 'Review' },
+];
+
+let currentStep = 0;
+let maxReached = 0;
+let char = null;          // current character dict
+let newLevel = null;      // target level (current + 1)
+let hpChoice = null;      // 'max' | 'avg' | 'roll' | number
+let abilityChoice = null; // ability name for +1 (every 4 levels)
+let newSkillRanks = {};   // additional ranks for this level
+let newFeat = null;       // feat name chosen (if applicable)
+let classRow = null;      // class data row
+
+// ── Derived helpers ──────────────────────────────────────────────────────
+function mod(score) { return Math.floor((score - 10) / 2); }
+function fmtMod(m)  { return m >= 0 ? `+${m}` : `${m}`; }
+function esc(str)   { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const HIT_DIE_AVG = { d6:4, d8:5, d10:6, d12:7 };
+const CLASS_HIT_DIE = {
+  Barbarian:'d12','Unchained Barbarian':'d12',Bard:'d8',Cleric:'d8',Druid:'d8',
+  Fighter:'d10',Monk:'d8','Unchained Monk':'d10',Paladin:'d10',Antipaladin:'d10',
+  Ranger:'d10',Rogue:'d8','Unchained Rogue':'d8',Sorcerer:'d6',Wizard:'d6',
+  Alchemist:'d8',Cavalier:'d10',Gunslinger:'d10',Inquisitor:'d8',Magus:'d8',
+  Oracle:'d8',Summoner:'d8','Unchained Summoner':'d8',Witch:'d6',
+  Arcanist:'d6',Bloodrager:'d10',Brawler:'d10',Hunter:'d8',Investigator:'d8',
+  Shaman:'d8',Skald:'d8',Slayer:'d10',Swashbuckler:'d10',Warpriest:'d8',
+  Kineticist:'d8',Medium:'d8',Mesmerist:'d8',Occultist:'d8',Psychic:'d6',
+  Spiritualist:'d8',Ninja:'d8',Samurai:'d10',Vigilante:'d8',Shifter:'d10',Omdura:'d8',
+};
+const CLASS_SKILL_RANKS = {
+  Barbarian:4,'Unchained Barbarian':4,Bard:6,Cleric:2,Druid:4,Fighter:2,
+  Monk:4,'Unchained Monk':4,Paladin:2,Antipaladin:2,Ranger:6,Rogue:8,
+  'Unchained Rogue':8,Sorcerer:2,Wizard:2,Alchemist:4,Cavalier:4,Gunslinger:4,
+  Inquisitor:6,Magus:2,Oracle:4,Summoner:2,'Unchained Summoner':2,Witch:2,
+  Arcanist:2,Bloodrager:4,Brawler:4,Hunter:6,Investigator:6,Shaman:4,
+  Skald:4,Slayer:6,Swashbuckler:4,Warpriest:2,Kineticist:4,Medium:4,
+  Mesmerist:6,Occultist:4,Psychic:2,Spiritualist:4,Ninja:8,Samurai:4,
+  Vigilante:6,Shifter:4,Omdura:2,
+};
+
+async function apiFetch(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+// ── Tracker ───────────────────────────────────────────────────────────────
+function renderTracker() {
+  const el = document.getElementById('step-tracker');
+  let html = '';
+  STEPS.forEach((step, i) => {
+    if (i > 0) {
+      const lCls = 'step-line' + (i < currentStep ? ' done' : i === currentStep ? ' active' : '');
+      html += `<div class="${lCls}"></div>`;
+    }
+    const isDone   = i < currentStep;
+    const isActive = i === currentStep;
+    const isDisabled = i > maxReached;
+    let cls = 'step-node';
+    if (isDone)     cls += ' done';
+    if (isActive)   cls += ' active';
+    if (isDisabled) cls += ' disabled';
+    html += `<div class="${cls}">
+      <div class="step-dot">${isDone ? '✓' : i}</div>
+      <div class="step-label">${step.label}</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+async function renderStep() {
+  const c = document.getElementById('step-content');
+  switch(currentStep) {
+    case 0: await renderLoad(c); break;
+    case 1: renderHP(c); break;
+    case 2: renderAbility(c); break;
+    case 3: await renderSkills(c); break;
+    case 4: await renderFeat(c); break;
+    case 5: await renderFeatures(c); break;
+    case 6: renderReview(c); break;
+  }
+}
+
+function navBar(backFn, nextFn, nextLabel) {
+  return `<div class="nav-bar">
+    <button class="btn" onclick="(${backFn})()">← Back</button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="nav-error" id="nav-error"></span>
+      <button class="btn btn-primary" onclick="(${nextFn})()">${nextLabel || 'Next →'}</button>
+    </div>
+  </div>`;
+}
+
+function showErr(msg) {
+  const el = document.getElementById('nav-error');
+  if (el) { el.textContent = msg; setTimeout(()=>{if(el)el.textContent='';},4000); }
+}
+
+// ── Step 0: Load ──────────────────────────────────────────────────────────
+async function renderLoad(c) {
+  // Load saved characters from API
+  let savedHtml = '';
+  try {
+    const chars = await apiFetch('/characters');
+    if (chars.length > 0) {
+      savedHtml = chars.map(ch => `
+        <div class="list-item" onclick="loadCharObj(${JSON.stringify(JSON.stringify(ch))})">
+          <div>
+            <div class="list-item-name">${esc(ch.name)}</div>
+            <div class="list-item-detail">${esc(ch.race)} · ${esc(ch.class_str)} · ${esc(ch.player_name||'')}</div>
+          </div>
+        </div>`).join('');
+    } else {
+      savedHtml = '<p class="text-muted" style="padding:12px;font-size:12px;">No saved characters.</p>';
+    }
+  } catch(e) {
+    savedHtml = '<p class="text-muted" style="padding:12px;font-size:12px;">Could not load library.</p>';
+  }
+
+  c.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Load Character</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="drop-zone-text">
+          📂 Click or drag &amp; drop a character JSON file
+        </div>
+      </div>
+      <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadFile(this)">
+    </div>
+    <div class="panel">
+      <div class="panel-title">From Library</div>
+      <div class="scroll-list">${savedHtml}</div>
+    </div>`;
+
+  // Set up drag & drop
+  const dz = document.getElementById('drop-zone');
+  if (dz) {
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) readFile(file);
+    });
+  }
+}
+
+window.loadFile = function(input) {
+  const file = input.files[0];
+  if (file) readFile(file);
+};
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      loadCharObj(JSON.stringify(data));
+    } catch(err) {
+      alert('Invalid JSON file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+window.loadCharObj = async function(jsonStr) {
+  const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+  // If summary object (from list), fetch full data
+  if (data.id && !data.ability_scores) {
+    char = await apiFetch(`/characters/${data.id}`);
+  } else {
+    char = data;
+  }
+
+  // Get class data
+  const primaryClass = char.class_levels?.[0];
+  if (primaryClass) {
+    try {
+      const classes = await apiFetch('/classes');
+      classRow = classes.find(c => c.name === primaryClass.class_name) || null;
+    } catch(e) {}
+  }
+
+  newLevel = (char.class_levels?.[0]?.level || 1) + 1;
+  currentStep = 1;
+  maxReached = 1;
+  renderTracker();
+  renderStep();
+};
+
+// ── Step 1: HP ────────────────────────────────────────────────────────────
+function renderHP(c) {
+  const primaryClass = char.class_levels?.[0];
+  const className = primaryClass?.class_name || 'Fighter';
+  const hitDie = CLASS_HIT_DIE[className] || 'd8';
+  const sides = parseInt(hitDie.slice(1));
+  const avg = HIT_DIE_AVG[hitDie] || 5;
+  const conMod = mod(char.ability_scores?.con || 10);
+  const rollVal = 1 + Math.floor(Math.random() * sides);
+
+  const options = [
+    { label: 'Maximum', value: sides, desc: `${hitDie} max` },
+    { label: 'Average', value: avg,   desc: `${hitDie} avg` },
+    { label: 'Rolled',  value: rollVal, desc: `Rolled ${hitDie}: ${rollVal}` },
+  ];
+
+  c.innerHTML = `
+  <div class="panel">
+    <div class="panel-title">Hit Points at Level ${newLevel}</div>
+    <p class="text-muted" style="font-size:12px;margin-bottom:16px;">
+      Class hit die: <strong>${hitDie}</strong> &nbsp;|&nbsp; CON modifier: <strong>${fmtMod(conMod)}</strong>
+    </p>
+    <div class="hp-method">
+      ${options.map((opt,i) => `
+        <div class="hp-option${hpChoice===opt.value?' selected':''}" onclick="setHPChoice(${opt.value})">
+          <div class="hp-option-label">${opt.label}</div>
+          <div class="hp-option-value">${opt.value}</div>
+          <div class="text-muted" style="font-size:10px;">${opt.desc} ${fmtMod(conMod)} = ${opt.value+conMod}</div>
+        </div>`).join('')}
+    </div>
+    <div class="field-group">
+      <label class="field-label">Or enter custom value</label>
+      <input type="number" class="field-input" id="hp-custom" min="1" max="${sides}"
+             placeholder="1–${sides}" oninput="setHPChoice(parseInt(this.value)||null)">
+    </div>
+    <p class="text-muted" style="font-size:11px;">
+      Current HP: ${char.hp_max||'?'} → New max: ${hpChoice !== null ? (char.hp_max||0) + hpChoice + conMod : '?'}
+    </p>
+  </div>
+  ${navBar('()=>prevLU()', '()=>nextLU()', 'Next: Ability Score →')}`;
+}
+
+window.setHPChoice = function(val) {
+  hpChoice = val;
+  renderHP(document.getElementById('step-content'));
+};
+
+// ── Step 2: Ability Score ─────────────────────────────────────────────────
+function renderAbility(c) {
+  const isAbilityLevel = newLevel % 4 === 0; // 4, 8, 12, 16, 20
+  const ABILITIES = ['str','dex','con','int','wis','cha'];
+  const AB_LABELS = {str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA'};
+
+  c.innerHTML = `
+  <div class="panel">
+    <div class="panel-title">Ability Score Increase</div>
+    ${isAbilityLevel
+      ? `<p class="text-muted" style="font-size:12px;margin-bottom:16px;">
+          At level ${newLevel}, choose one ability score to permanently increase by +1.
+        </p>
+        <div class="card-grid">
+          ${ABILITIES.map(ab => {
+            const cur = char.ability_scores?.[ab] || 10;
+            return `<div class="sel-card${abilityChoice===ab?' selected':''}" onclick="abilityChoice='${ab}';renderAbility(document.getElementById('step-content'))">
+              <div class="card-name">${AB_LABELS[ab]}</div>
+              <div class="card-sub">${cur} → ${cur+1}</div>
+            </div>`;
+          }).join('')}
+        </div>`
+      : `<p class="text-muted" style="font-size:13px;">
+          No ability score increase at level ${newLevel}.<br>
+          Ability increases occur at levels 4, 8, 12, 16, and 20.
+        </p>`
+    }
+  </div>
+  ${navBar('()=>prevLU()', '()=>nextLU()', 'Next: Skills →')}`;
+}
+
+// ── Step 3: Skills ────────────────────────────────────────────────────────
+async function renderSkills(c) {
+  let skills = [];
+  let classSkills = new Set();
+  try {
+    skills = await apiFetch('/skills');
+    if (char.class_levels?.[0]) {
+      const names = await apiFetch(`/skills/class/${encodeURIComponent(char.class_levels[0].class_name)}`);
+      classSkills = new Set(names.map(n => n.toLowerCase()));
+    }
+  } catch(e) {}
+
+  const className = char.class_levels?.[0]?.class_name || 'Fighter';
+  const ranksPerLevel = CLASS_SKILL_RANKS[className] || 2;
+  const conSc = char.ability_scores?.con || 10;
+  const intSc = abilityChoice === 'int'
+    ? (char.ability_scores?.int || 10) + 1
+    : (char.ability_scores?.int || 10);
+  const intMod = mod(intSc);
+  const budget = Math.max(1, ranksPerLevel + intMod) + (char.race === 'Humans' ? 1 : 0);
+  const used = Object.values(newSkillRanks).reduce((s,v)=>s+(v||0),0);
+  const remaining = budget - used;
+  const maxRanks = newLevel;
+  const finalScores = { ...(char.ability_scores||{}), ...(abilityChoice ? {[abilityChoice]: (char.ability_scores?.[abilityChoice]||10)+1} : {}) };
+  const abMap = {str:'str',dex:'dex',con:'con',int:'int',wis:'wis',cha:'cha'};
+
+  const SKILL_ABILITY = {
+    'acrobatics':'dex','appraise':'int','bluff':'cha','climb':'str',
+    'craft':'int','diplomacy':'cha','disable device':'dex','disguise':'cha',
+    'escape artist':'dex','fly':'dex','handle animal':'cha','heal':'wis',
+    'intimidate':'cha','knowledge':'int','linguistics':'int','perception':'wis',
+    'perform':'cha','profession':'wis','ride':'dex','sense motive':'wis',
+    'sleight of hand':'dex','spellcraft':'int','stealth':'dex','survival':'wis',
+    'swim':'str','use magic device':'cha',
+  };
+  function abilForSkill(name) {
+    const lower = name.toLowerCase();
+    for (const [k,ab] of Object.entries(SKILL_ABILITY)) {
+      if (lower.startsWith(k)) return ab;
+    }
+    return 'int';
+  }
+
+  c.innerHTML = `
+  <div class="panel">
+    <div class="panel-title">Skill Ranks at Level ${newLevel}</div>
+    <div class="skill-budget-bar">
+      <span>New ranks to allocate</span>
+      <span class="skill-budget-count ${remaining<0?'depleted':''}">${remaining} / ${budget}</span>
+    </div>
+    <div style="overflow-x:auto;"><table class="skill-list-table">
+      <thead><tr><th>Skill</th><th>CS</th><th>Current</th><th>+Ranks</th><th>New Total</th></tr></thead>
+      <tbody>
+        ${skills.map(sk => {
+          const isCS = classSkills.has(sk.name.toLowerCase());
+          const existingRanks = char.skills?.[sk.name] || 0;
+          const addRanks = newSkillRanks[sk.name] || 0;
+          const totalRanks = existingRanks + addRanks;
+          if (totalRanks >= maxRanks && addRanks === 0) return ''; // hide capped
+          const ab = abilForSkill(sk.name);
+          const abilMod = mod(finalScores[ab] || 10);
+          const trained = totalRanks > 0 && isCS ? 3 : 0;
+          const total = totalRanks + abilMod + trained;
+          return `<tr class="${isCS?'class-skill':''}">
+            <td class="${isCS?'skill-cs':''}">${sk.name}</td>
+            <td>${isCS?'●':''}</td>
+            <td>${existingRanks}</td>
+            <td><div class="rank-stepper">
+              <button class="rank-btn" onclick="luRankChange('${esc(sk.name)}',-1)" ${addRanks<=0?'disabled':''}>−</button>
+              <span class="rank-val">${addRanks}</span>
+              <button class="rank-btn" onclick="luRankChange('${esc(sk.name)}',1)" ${remaining<=0||totalRanks>=maxRanks?'disabled':''}>+</button>
+            </div></td>
+            <td class="skill-total-val">${fmtMod(total)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
+  </div>
+  ${navBar('()=>prevLU()', '()=>nextLU()', 'Next: Feat →')}`;
+}
+
+window.luRankChange = function(skill, delta) {
+  const cur = newSkillRanks[skill] || 0;
+  newSkillRanks[skill] = Math.max(0, cur + delta);
+  renderSkills(document.getElementById('step-content'));
+};
+
+// ── Step 4: Feat ──────────────────────────────────────────────────────────
+async function renderFeat(c) {
+  const hasFeat = newLevel % 2 === 1; // 1,3,5,7,...
+  let feats = [];
+  if (hasFeat) {
+    try { feats = await apiFetch('/feats'); } catch(e) {}
+  }
+
+  c.innerHTML = `
+  <div class="panel">
+    <div class="panel-title">Feat at Level ${newLevel}</div>
+    ${hasFeat
+      ? `<p class="text-muted" style="font-size:12px;margin-bottom:12px;">
+          You gain a feat at level ${newLevel}. Search and select below.
+        </p>
+        ${newFeat ? `<div style="margin-bottom:10px;"><span class="tag">${newFeat} <button class="tag-remove" onclick="newFeat=null;renderFeat(document.getElementById('step-content'))">✕</button></span></div>` : ''}
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="lu-feat-search" placeholder="Search feats…" oninput="luFilterFeats()">
+        </div>
+        <div class="scroll-list" style="max-height:280px;" id="lu-feat-list">
+          ${feats.slice(0,300).map(f => `
+            <div class="list-item${newFeat===f.name?' selected':''}" data-name="${esc(f.name)}"
+                 onclick="newFeat=${JSON.stringify(f.name)};renderFeat(document.getElementById('step-content'))">
+              <div>
+                <div class="list-item-name">${f.name}</div>
+                ${f.prerequisites ? `<div class="list-item-detail">Req: ${f.prerequisites.slice(0,80)}</div>` : ''}
+              </div>
+              <div class="list-item-type">${f.feat_type}</div>
+            </div>`).join('')}
+        </div>`
+      : `<p class="text-muted" style="font-size:13px;">No feat gained at level ${newLevel}.<br>Feats are gained at odd levels (1, 3, 5, 7…).</p>`
+    }
+  </div>
+  ${navBar('()=>prevLU()', '()=>nextLU()', 'Next: Features →')}`;
+}
+
+window.luFilterFeats = function() {
+  const q = document.getElementById('lu-feat-search')?.value?.toLowerCase() || '';
+  document.querySelectorAll('#lu-feat-list .list-item').forEach(el => {
+    el.style.display = el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
+
+// ── Step 5: Class Features ────────────────────────────────────────────────
+async function renderFeatures(c) {
+  let features = [];
+  let progression = null;
+  if (char.class_levels?.[0]) {
+    const className = char.class_levels[0].class_name;
+    try {
+      const classes = await apiFetch('/classes');
+      const cls = classes.find(c => c.name === className);
+      if (cls) {
+        const prog = await apiFetch(`/classes/${encodeURIComponent(className)}/progression`);
+        progression = prog.find(p => p.level === newLevel) || null;
+      }
+    } catch(e) {}
+  }
+
+  const special = progression?.special || '';
+  const featureList = special ? special.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  c.innerHTML = `
+  <div class="panel">
+    <div class="panel-title">Class Features at Level ${newLevel}</div>
+    ${featureList.length
+      ? `<ul class="feat-list">${featureList.map(f => `<li><strong>${f}</strong></li>`).join('')}</ul>`
+      : `<p class="text-muted" style="font-size:12px;">No additional class features listed for this level in the database.</p>`
+    }
+    ${progression ? `
+      <div class="review-section" style="margin-top:16px;">
+        <div class="review-section-title">Progression at Level ${newLevel}</div>
+        <div class="review-row"><span class="review-key">BAB</span><span class="review-val">+${progression.bab}</span></div>
+        <div class="review-row"><span class="review-key">Fort</span><span class="review-val">+${progression.fort_save}</span></div>
+        <div class="review-row"><span class="review-key">Ref</span><span class="review-val">+${progression.ref_save}</span></div>
+        <div class="review-row"><span class="review-key">Will</span><span class="review-val">+${progression.will_save}</span></div>
+      </div>` : ''}
+  </div>
+  ${navBar('()=>prevLU()', '()=>nextLU()', 'Next: Review →')}`;
+}
+
+// ── Step 6: Review & Export ───────────────────────────────────────────────
+function renderReview(c) {
+  const primaryClass = char.class_levels?.[0];
+  const className = primaryClass?.class_name || 'Fighter';
+  const hitDie = CLASS_HIT_DIE[className] || 'd8';
+  const conMod = mod(char.ability_scores?.con || 10);
+  const hpGain = (hpChoice || 0) + conMod;
+  const newHPMax = (char.hp_max || 0) + Math.max(1, hpGain);
+
+  // Build updated character
+  const updatedChar = {
+    ...char,
+    hp_max: newHPMax,
+    hp_current: Math.min(char.hp_current || 0, newHPMax) + Math.max(1, hpGain),
+    class_levels: char.class_levels.map((cl, i) => i === 0 ? {...cl, level: newLevel} : cl),
+    feats: newFeat ? [...(char.feats||[]), newFeat] : (char.feats||[]),
+    skills: mergeSkills(char.skills||{}, newSkillRanks),
+  };
+  if (abilityChoice) {
+    updatedChar.ability_scores = {
+      ...(char.ability_scores||{}),
+      [abilityChoice]: (char.ability_scores?.[abilityChoice]||10) + 1,
+    };
+  }
+
+  c.innerHTML = `
+  <div class="panel">
+    <div class="panel-title">Level Up Summary — ${char.name} to Level ${newLevel}</div>
+    <div class="review-grid">
+      <div>
+        <div class="review-section-title">Changes</div>
+        <div class="review-row"><span class="review-key">New Level</span><span class="review-val">${newLevel}</span></div>
+        <div class="review-row"><span class="review-key">HP Gain</span><span class="review-val">+${Math.max(1,hpGain)} → ${newHPMax} total</span></div>
+        ${abilityChoice ? `<div class="review-row"><span class="review-key">Ability +1</span><span class="review-val">${abilityChoice.toUpperCase()} → ${updatedChar.ability_scores[abilityChoice]}</span></div>` : ''}
+        ${newFeat ? `<div class="review-row"><span class="review-key">New Feat</span><span class="review-val">${newFeat}</span></div>` : ''}
+        ${Object.entries(newSkillRanks).filter(([,v])=>v>0).map(([sk,r])=>
+          `<div class="review-row"><span class="review-key">Skill: ${sk}</span><span class="review-val">+${r} rank</span></div>`
+        ).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Export</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="exportLevelUp(${JSON.stringify(JSON.stringify(updatedChar))})">💾 Save & View New Sheet</button>
+      <button class="btn" onclick="downloadLevelUp(${JSON.stringify(JSON.stringify(updatedChar))})">⬇ Download Updated JSON</button>
+    </div>
+  </div>
+  ${navBar('()=>prevLU()', '()=>{}', '')}`;
+
+  // Remove empty next button
+  document.querySelector('.nav-bar .btn-primary:last-child').style.display = 'none';
+}
+
+function mergeSkills(existing, additions) {
+  const result = { ...existing };
+  for (const [sk, r] of Object.entries(additions)) {
+    result[sk] = (result[sk] || 0) + r;
+  }
+  return result;
+}
+
+window.exportLevelUp = async function(jsonStr) {
+  const updatedChar = JSON.parse(jsonStr);
+  try {
+    let id = updatedChar.id;
+    if (id) {
+      await fetch(`${API}/characters/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(updatedChar),
+      });
+    } else {
+      const r = await fetch(`${API}/characters`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(updatedChar),
+      });
+      const data = await r.json();
+      id = data.id;
+    }
+    window.open(`/api/characters/${id}/sheet`, '_blank');
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+};
+
+window.downloadLevelUp = function(jsonStr) {
+  const updated = JSON.parse(jsonStr);
+  const blob = new Blob([JSON.stringify(updated, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(updated.name||'character').replace(/\s+/g,'_')}_lv${newLevel}.json`;
+  a.click();
+};
+
+// ── Navigation ────────────────────────────────────────────────────────────
+window.prevLU = function() {
+  if (currentStep > 0) { currentStep--; renderTracker(); renderStep(); }
+};
+
+window.nextLU = function() {
+  // Validate
+  if (currentStep === 1 && hpChoice === null) { showErr('Choose an HP option.'); return; }
+  if (currentStep === 2) {
+    const isAbilityLevel = newLevel % 4 === 0;
+    if (isAbilityLevel && !abilityChoice) { showErr('Choose an ability score to increase.'); return; }
+  }
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+    maxReached = Math.max(maxReached, currentStep);
+    renderTracker();
+    renderStep();
+  }
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+renderTracker();
+renderStep();
+</script>
+</body>
+</html>

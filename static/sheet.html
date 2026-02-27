@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Character Sheet</title>
+<link rel="stylesheet" href="/static/css/parchment.css">
+<link rel="stylesheet" href="/static/css/sheet.css">
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-title" id="tb-name">—</span>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn" onclick="window.print()">🖨 Print</button>
+  <button class="toolbar-btn" onclick="exportSheet()">⬇ Download HTML</button>
+  <button class="toolbar-btn" onclick="window.location.href='/levelup#char='+encodeURIComponent(CHAR_ID||'')">⬆ Level Up</button>
+  <button class="toolbar-btn" onclick="window.location.href='/'">+ New Character</button>
+  <div class="toolbar-sep"></div>
+  <span class="toolbar-status" id="tb-status">—</span>
+</div>
+
+<!-- Dice bar -->
+<div class="dice-bar">
+  <span class="dice-icon">🎲</span>
+  <div class="dice-field">
+    <span class="dice-field-label">Count</span>
+    <input type="number" id="dice-count" min="1" max="20" value="1" placeholder="1">
+  </div>
+  <div class="dice-field">
+    <span class="dice-field-label">Sides</span>
+    <input type="number" id="dice-sides" min="2" max="100" value="20" placeholder="20">
+  </div>
+  <div class="dice-field">
+    <span class="dice-field-label">Mod</span>
+    <input type="number" id="dice-mod" min="-99" max="99" value="0" placeholder="0">
+  </div>
+  <button class="toolbar-btn" onclick="rollDice()">Roll</button>
+  <button class="dice-clear-btn" onclick="clearDice()">✕</button>
+  <span id="roll-result" class="roll-result-display"></span>
+</div>
+
+<!-- Sheet -->
+<div class="sheet-wrap">
+<div class="page">
+
+  <!-- Header -->
+  <div class="sheet-header">
+    <div class="char-name-block">
+      <div class="char-name" id="s-name">Character Name</div>
+      <div class="char-subtitle" id="s-subtitle">Level 1</div>
+      <div class="char-meta" id="s-meta"></div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-family:var(--font-label);font-size:8px;color:var(--fade);letter-spacing:.06em;">ALIGNMENT</div>
+      <div style="font-family:var(--font-head);font-size:13px;font-weight:700;" id="s-alignment">—</div>
+      <div style="font-family:var(--font-label);font-size:8px;color:var(--fade);margin-top:4px;">PLAYER</div>
+      <div style="font-size:12px;" id="s-player">—</div>
+    </div>
+  </div>
+
+  <!-- Ability Scores -->
+  <div class="section-title">Ability Scores</div>
+  <div class="abilities-row" id="s-abilities"><!-- JS --></div>
+
+  <!-- HP + Combat Row -->
+  <div class="section-title">Combat</div>
+  <div class="combat-row">
+    <!-- HP -->
+    <div class="hp-block">
+      <div class="hp-label">Hit Points</div>
+      <div class="hp-display"><span id="s-hp-cur">10</span><span> / </span><span id="s-hp-max">10</span></div>
+      <div class="hp-controls">
+        <input type="number" class="hp-input" id="hp-delta" placeholder="±" min="-999" max="999">
+        <button class="hp-btn" onclick="adjustHP(-1)">Dmg</button>
+        <button class="hp-btn" onclick="adjustHP(1)">Heal</button>
+      </div>
+    </div>
+
+    <div class="combat-block">
+      <div class="cb-label">AC</div>
+      <div class="cb-value large" id="s-ac">10</div>
+      <div class="cb-sub" id="s-ac-sub">touch — / ff —</div>
+    </div>
+    <div class="combat-block">
+      <div class="cb-label">Base Atk</div>
+      <div class="cb-value" id="s-bab">+0</div>
+    </div>
+    <div class="combat-block">
+      <div class="cb-label">Initiative</div>
+      <div class="cb-value" id="s-init">+0</div>
+    </div>
+    <div class="combat-block">
+      <div class="cb-label">CMB</div>
+      <div class="cb-value" id="s-cmb">+0</div>
+    </div>
+    <div class="combat-block">
+      <div class="cb-label">CMD</div>
+      <div class="cb-value" id="s-cmd">10</div>
+    </div>
+  </div>
+
+  <!-- Saves Row -->
+  <div class="saves-row" style="margin-bottom:10px;">
+    <div class="save-block"><div class="save-label">Fortitude</div><div class="save-value" id="s-fort">+0</div></div>
+    <div class="save-block"><div class="save-label">Reflex</div><div class="save-value" id="s-ref">+0</div></div>
+    <div class="save-block"><div class="save-label">Will</div><div class="save-value" id="s-will">+0</div></div>
+  </div>
+
+  <!-- Conditions -->
+  <div class="section-title">Conditions</div>
+  <div class="conditions-row" id="conditions-row">
+    <!-- JS -->
+  </div>
+
+  <div class="sheet-body">
+
+    <!-- Left column: skills -->
+    <div class="sheet-col-left">
+      <div class="section-title">Skills</div>
+      <table class="skills-table">
+        <thead><tr>
+          <th>Skill</th><th>CS</th><th>Rk</th><th>Mod</th><th>Tot</th>
+        </tr></thead>
+        <tbody id="s-skills"><!-- JS --></tbody>
+      </table>
+    </div>
+
+    <!-- Right column: feats, traits, equipment, notes -->
+    <div class="sheet-col-right">
+
+      <div class="section-title">Feats</div>
+      <ul class="feat-list" id="s-feats"><!-- JS --></ul>
+
+      <div class="section-title" style="margin-top:8px;">Traits</div>
+      <ul class="feat-list" id="s-traits"><!-- JS --></ul>
+
+      <div class="section-title" style="margin-top:8px;">Equipment</div>
+      <ul class="equip-list" id="s-equipment"><li class="text-muted">None</li></ul>
+
+      <div class="section-title" style="margin-top:8px;">Notes</div>
+      <textarea class="notes-area" id="s-notes" rows="5" onchange="saveNotes(this.value)"></textarea>
+    </div>
+
+  </div><!-- .sheet-body -->
+
+</div><!-- .page -->
+</div><!-- .sheet-wrap -->
+
+<script>
+// ── Embedded character data (replaced by exporter / injected by server) ──
+const CHAR_DATA = __CHAR_DATA__;
+let CHAR_ID = CHAR_DATA?.id || null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function mod(score) { return Math.floor((score - 10) / 2); }
+function fmtMod(m)  { return m >= 0 ? `+${m}` : `${m}`; }
+
+const AB_LABELS = { str:'STR', dex:'DEX', con:'CON', int:'INT', wis:'WIS', cha:'CHA' };
+const AB_ORDER  = ['str','dex','con','int','wis','cha'];
+
+const CONDITIONS = [
+  'Blinded','Confused','Dazed','Deafened','Entangled','Exhausted',
+  'Fatigued','Frightened','Grappled','Nauseated','Panicked','Paralyzed',
+  'Prone','Shaken','Sickened','Staggered','Stunned',
+];
+
+// ── HP state ──────────────────────────────────────────────────────────────
+let hpCurrent = CHAR_DATA?.hp_current ?? CHAR_DATA?.derived?.hp_current ?? 10;
+let hpMax     = CHAR_DATA?.hp_max     ?? CHAR_DATA?.derived?.hp_max     ?? 10;
+
+// ── Render ────────────────────────────────────────────────────────────────
+function init() {
+  if (!CHAR_DATA) {
+    document.getElementById('s-name').textContent = 'No character data loaded';
+    return;
+  }
+  const d = CHAR_DATA;
+  const dr = d.derived || {};
+
+  // Page title + toolbar
+  const classStr = (d.class_levels||[]).map(cl =>
+    `${cl.class_name} ${cl.level}${cl.archetype_name ? ` (${cl.archetype_name})` : ''}`
+  ).join(', ');
+  document.title = `${d.name} — ${classStr}`;
+  document.getElementById('page-title').textContent = `${d.name} — Sheet`;
+  document.getElementById('tb-name').textContent = d.name;
+
+  document.getElementById('s-name').textContent = d.name || '—';
+  document.getElementById('s-alignment').textContent = d.alignment || '—';
+  document.getElementById('s-player').textContent = d.player_name || '—';
+
+  const totalLevel = (d.class_levels||[]).reduce((s,cl)=>s+cl.level,0);
+  document.getElementById('s-subtitle').textContent =
+    `${d.race || '—'} · ${classStr} · Lvl ${totalLevel}`;
+  document.getElementById('s-meta').textContent = '';
+
+  const scores = d.ability_scores || {};
+
+  // Ability scores
+  const abHtml = AB_ORDER.map(ab => {
+    const score = scores[ab] || 10;
+    const m = mod(score);
+    const mCls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'zero';
+    return `<div class="ability-block">
+      <div class="ab-label">${AB_LABELS[ab]}</div>
+      <div class="ab-score">${score}</div>
+      <div class="ab-mod ${mCls}">${fmtMod(m)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('s-abilities').innerHTML = abHtml;
+
+  // Combat stats
+  hpMax     = d.hp_max     || dr.hp_max     || 10;
+  hpCurrent = d.hp_current || dr.hp_current || hpMax;
+  updateHP();
+
+  const ac  = dr.ac || {};
+  document.getElementById('s-ac').textContent      = fmtNum(ac.total ?? 10);
+  document.getElementById('s-ac-sub').textContent  = `touch ${ac.touch??10} / ff ${ac.flat_footed??10}`;
+  document.getElementById('s-bab').textContent     = fmtMod(dr.bab ?? 0);
+  document.getElementById('s-init').textContent    = fmtMod(dr.initiative ?? 0);
+  document.getElementById('s-cmb').textContent     = fmtMod(dr.cmb ?? 0);
+  document.getElementById('s-cmd').textContent     = dr.cmd ?? 10;
+  document.getElementById('s-fort').textContent    = fmtMod(dr.fort ?? 0);
+  document.getElementById('s-ref').textContent     = fmtMod(dr.ref ?? 0);
+  document.getElementById('s-will').textContent    = fmtMod(dr.will ?? 0);
+
+  document.getElementById('tb-status').textContent = `Level ${totalLevel} · ${d.race||'—'}`;
+
+  // Conditions
+  document.getElementById('conditions-row').innerHTML = CONDITIONS.map(c => `
+    <label class="condition-chip">
+      <input type="checkbox" onchange="toggleCondition('${c}',this.checked)"
+             ${(d.conditions||[]).includes(c)?'checked':''}>
+      ${c}
+    </label>`).join('');
+
+  // Skills
+  const skillTotals = dr.skill_totals || {};
+  const classSkillNames = new Set(
+    Object.entries(skillTotals)
+      .filter(([,v]) => v.is_class_skill)
+      .map(([k]) => k.toLowerCase())
+  );
+  const skillRows = Object.entries(skillTotals)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([name, sk]) => `
+      <tr>
+        <td class="${sk.is_class_skill?'skill-cs':''}">${name}</td>
+        <td>${sk.is_class_skill?'●':''}</td>
+        <td class="skill-rank-col">${sk.ranks}</td>
+        <td class="skill-rank-col">${fmtMod(sk.ability_mod)}</td>
+        <td class="skill-total-col">${fmtMod(sk.total)}</td>
+      </tr>`).join('');
+  document.getElementById('s-skills').innerHTML = skillRows ||
+    '<tr><td colspan="5" class="text-muted" style="padding:8px;">No skills in database.</td></tr>';
+
+  // Feats
+  document.getElementById('s-feats').innerHTML = (d.feats||[]).length
+    ? d.feats.map(f => `<li><strong>${f}</strong></li>`).join('')
+    : '<li class="text-muted">None</li>';
+
+  // Traits
+  document.getElementById('s-traits').innerHTML = (d.traits||[]).length
+    ? d.traits.map(t => `<li><strong>${t}</strong></li>`).join('')
+    : '<li class="text-muted">None</li>';
+
+  // Equipment
+  document.getElementById('s-equipment').innerHTML = (d.equipment||[]).length
+    ? d.equipment.map(e => `<li>${e}</li>`).join('')
+    : '<li class="text-muted">None</li>';
+
+  // Notes
+  document.getElementById('s-notes').value = d.notes || '';
+
+  // Load saved HP from localStorage
+  const saved = localStorage.getItem(`pf1e_hp_${CHAR_ID}`);
+  if (saved && CHAR_ID) {
+    const parsed = JSON.parse(saved);
+    hpCurrent = parsed.current ?? hpCurrent;
+    updateHP();
+  }
+}
+
+function fmtNum(n) { return n; }
+
+function updateHP() {
+  document.getElementById('s-hp-cur').textContent = hpCurrent;
+  document.getElementById('s-hp-max').textContent = hpMax;
+  if (CHAR_ID) {
+    localStorage.setItem(`pf1e_hp_${CHAR_ID}`, JSON.stringify({current: hpCurrent, max: hpMax}));
+  }
+}
+
+window.adjustHP = function(direction) {
+  const delta = parseInt(document.getElementById('hp-delta').value) || 0;
+  hpCurrent = Math.min(hpMax, hpCurrent + (direction * delta));
+  document.getElementById('hp-delta').value = '';
+  updateHP();
+};
+
+window.toggleCondition = function(cond, checked) {
+  if (!CHAR_DATA.conditions) CHAR_DATA.conditions = [];
+  if (checked && !CHAR_DATA.conditions.includes(cond)) CHAR_DATA.conditions.push(cond);
+  else CHAR_DATA.conditions = CHAR_DATA.conditions.filter(c => c !== cond);
+};
+
+window.saveNotes = function(text) {
+  if (CHAR_DATA) CHAR_DATA.notes = text;
+};
+
+// ── Dice roller ───────────────────────────────────────────────────────────
+window.rollDice = function() {
+  const count = parseInt(document.getElementById('dice-count').value) || 1;
+  const sides = parseInt(document.getElementById('dice-sides').value) || 20;
+  const bonus = parseInt(document.getElementById('dice-mod').value) || 0;
+
+  const rolls = Array.from({length: Math.min(count, 20)}, () => 1 + Math.floor(Math.random() * sides));
+  const total = rolls.reduce((s,v)=>s+v, 0) + bonus;
+  const rollStr = rolls.length > 1 ? `[${rolls.join('+')}]` : rolls[0];
+  const bonusStr = bonus !== 0 ? (bonus > 0 ? `+${bonus}` : `${bonus}`) : '';
+
+  document.getElementById('roll-result').textContent =
+    `${rollStr}${bonusStr} = ${total}`;
+};
+
+window.clearDice = function() {
+  document.getElementById('roll-result').textContent = '';
+  document.getElementById('dice-mod').value = '0';
+};
+
+// ── Export ────────────────────────────────────────────────────────────────
+window.exportSheet = function() {
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(CHAR_DATA?.name||'character').replace(/\s+/g,'_')}_sheet.html`;
+  a.click();
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

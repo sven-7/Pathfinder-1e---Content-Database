@@ -1,0 +1,365 @@
+/* Creator wizard-specific styles */
+
+.method-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--gold-border);
+  margin-bottom: 16px;
+}
+.method-tab {
+  flex: 1;
+  padding: 8px 6px;
+  text-align: center;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  border-right: 1px solid var(--gold-border);
+  background: var(--paper-mid);
+  color: var(--fade);
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.method-tab:last-child { border-right: none; }
+.method-tab:hover { background: var(--gold-bg); color: var(--ink); }
+.method-tab.active {
+  background: var(--gold);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Ability assignment row */
+.ability-assign-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(184,134,11,0.1);
+}
+.ability-assign-row:last-child { border-bottom: none; }
+.ability-assign-label {
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: .08em;
+  width: 30px;
+}
+.ability-assign-select {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--gold-border);
+  background: rgba(255,255,255,0.6);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+}
+.ability-assign-select:focus {
+  border-color: var(--gold);
+  background: rgba(255,255,255,0.9);
+}
+.ability-assign-mod {
+  font-family: var(--font-label);
+  font-size: 11px;
+  width: 40px;
+  text-align: right;
+  color: var(--fade);
+}
+.ability-assign-total {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  width: 32px;
+  text-align: center;
+}
+
+/* Point buy display */
+.pb-budget {
+  text-align: center;
+  padding: 10px;
+  border: 1px solid var(--gold-border);
+  background: var(--paper-mid);
+  margin-bottom: 12px;
+}
+.pb-budget-label {
+  font-family: var(--font-label);
+  font-size: 9px;
+  color: var(--fade);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.pb-budget-number {
+  font-family: var(--font-head);
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+}
+.pb-budget-number.over { color: var(--red-wax); }
+
+/* Point buy stepper */
+.pb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(184,134,11,0.1);
+}
+.pb-row:last-child { border-bottom: none; }
+.pb-label {
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  width: 30px;
+}
+.pb-stepper { display: flex; align-items: center; gap: 6px; }
+.pb-btn {
+  width: 26px; height: 26px;
+  border: 1px solid var(--gold-border);
+  background: var(--paper-mid);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.pb-btn:hover { background: var(--gold-bg); border-color: var(--gold); }
+.pb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pb-score {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  width: 32px;
+  text-align: center;
+}
+.pb-cost {
+  font-family: var(--font-label);
+  font-size: 9px;
+  color: var(--fade);
+  width: 36px;
+}
+.pb-mod {
+  font-family: var(--font-label);
+  font-size: 11px;
+  width: 36px;
+  text-align: right;
+}
+.pb-mod.positive { color: var(--green); }
+.pb-mod.negative { color: var(--red-wax); }
+.pb-total {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  width: 32px;
+  text-align: center;
+  margin-left: auto;
+}
+
+/* Rolled scores list */
+.roll-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(184,134,11,0.1);
+}
+.roll-val {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  width: 36px;
+  text-align: center;
+  color: var(--gold);
+}
+
+/* Skills step */
+.skill-budget-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--paper-mid);
+  border: 1px solid var(--gold-border);
+  margin-bottom: 12px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: .05em;
+  color: var(--fade);
+}
+.skill-budget-count {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.skill-budget-count.depleted { color: var(--red-wax); }
+
+.skill-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+.skill-list-table th {
+  font-family: var(--font-label);
+  font-size: 8px;
+  letter-spacing: .06em;
+  color: var(--fade);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--gold-border);
+  background: var(--paper-mid);
+}
+.skill-list-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(184,134,11,0.08);
+  vertical-align: middle;
+}
+.skill-list-table tr.class-skill td:first-child {
+  font-weight: 700;
+  color: var(--green);
+}
+.skill-list-table tr:hover td { background: var(--gold-bg); }
+.rank-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rank-btn {
+  width: 20px; height: 20px;
+  border: 1px solid var(--gold-border);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink);
+  transition: all 0.1s;
+}
+.rank-btn:hover { background: var(--gold-bg); border-color: var(--gold); }
+.rank-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.rank-val { width: 20px; text-align: center; font-weight: 700; }
+.skill-total-val {
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Review step */
+.review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.review-section { margin-bottom: 12px; }
+.review-section-title {
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: .08em;
+  color: var(--gold);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--gold-border);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 12px;
+  border-bottom: 1px dotted rgba(184,134,11,0.15);
+}
+.review-row:last-child { border-bottom: none; }
+.review-key { color: var(--fade); }
+.review-val { font-weight: 600; color: var(--ink); }
+
+/* Race detail preview */
+.race-detail {
+  border: 1px solid var(--gold-border);
+  background: var(--paper-mid);
+  padding: 12px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.race-detail h4 {
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.race-mods { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.race-mod-chip {
+  font-family: var(--font-label);
+  font-size: 10px;
+  padding: 2px 8px;
+  border: 1px solid var(--gold-border);
+  color: var(--ink);
+}
+.race-mod-chip.positive { border-color: var(--green-border); color: var(--green); background: var(--green-bg); }
+.race-mod-chip.negative { border-color: rgba(139,26,26,0.4); color: var(--red-wax); background: var(--red-bg); }
+
+/* Feat list */
+.feat-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.feat-slot {
+  border: 2px dashed var(--gold-border);
+  padding: 10px 12px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.feat-slot.filled { border-style: solid; border-color: var(--gold); background: var(--gold-bg); }
+.feat-slot-label {
+  font-family: var(--font-label);
+  font-size: 9px;
+  color: var(--fade);
+  text-transform: uppercase;
+}
+.feat-slot-name { font-family: var(--font-body); font-size: 13px; font-weight: 600; }
+
+/* Archetype badge */
+.archetype-badge {
+  display: inline-block;
+  font-family: var(--font-label);
+  font-size: 8px;
+  letter-spacing: .05em;
+  padding: 2px 8px;
+  border: 1px solid #9a7800;
+  background: rgba(184,134,11,0.10);
+  color: #9a7800;
+  text-transform: uppercase;
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid var(--gold-border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-msg {
+  text-align: center;
+  padding: 24px;
+  color: var(--fade);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: .06em;
+}

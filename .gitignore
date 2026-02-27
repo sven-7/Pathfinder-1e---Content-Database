@@ -1,2 +1,8 @@
 data/d20pfsrd/cache/
 .venv/
+example_content/
+characters/*.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

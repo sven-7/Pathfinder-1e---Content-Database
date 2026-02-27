@@ -12,3 +12,8 @@ lxml>=4.9.0
 # sqlite3 (stdlib)
 # json (stdlib)
 # pathlib (stdlib)
+
+# Phase 3: Web API + Character Creator
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+jinja2>=3.1.0
