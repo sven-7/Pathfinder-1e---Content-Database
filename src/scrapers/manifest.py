@@ -348,64 +348,63 @@ def crawl_class_detail_pages(class_urls: list[str]) -> dict:
 
     Returns dict mapping class_url -> list of archetype URLs.
     """
-    # Only process URLs that look like actual class pages
-    # Skip: mythic, bestiary, bloodline-disciples, bare /archetypes, etc.
-    VALID_CLASS_PREFIXES = [
-        '/classes/core-classes/',
-        '/classes/base-classes/',
-        '/classes/hybrid-classes/',
-        '/classes/alternate-classes/',
-        '/classes/unchained-classes/',
-        '/classes/prestige-classes/',
-        '/occult-adventures/occult-classes/',
+    from urllib.parse import urlparse
+
+    # For each category prefix, define the exact path depth of a class root page.
+    # Depth = number of non-empty path segments.
+    #
+    # Examples:
+    #   core/base/hybrid/alternate/unchained:
+    #     /classes/core-classes/barbarian             → depth 3
+    #   prestige CRB / APG:
+    #     /classes/prestige-classes/core-rulebook/arcane-archer → depth 4
+    #   prestige other-paizo (uses alpha sub-groupings a-b, c-d …):
+    #     /classes/prestige-classes/other-paizo/a-b/arcane-archer → depth 5
+    #   occult:
+    #     /alternative-rule-systems/.../occult-classes/kineticist → depth 5
+    #
+    # Any URL that doesn't hit exactly the expected depth for its category is a
+    # sub-feature page or a category listing page — skip it.
+    CATEGORY_DEPTH = [
+        ('/classes/core-classes/',                  3),
+        ('/classes/base-classes/',                  3),
+        ('/classes/hybrid-classes/',                3),
+        ('/classes/alternate-classes/',             3),
+        ('/classes/unchained-classes/',             3),
+        ('/classes/prestige-classes/core-rulebook/', 4),
+        ('/classes/prestige-classes/apg/',          4),
+        ('/classes/prestige-classes/other-paizo/',  5),
+        ('/occult-adventures/occult-classes/',      5),
     ]
-    SKIP_SEGMENTS = [
+
+    SKIP_SEGMENTS = {
         'mythic', 'bestiary', 'monster', 'bloodline-disciples',
         'mythic-heroes', 'mythic-magic', 'mythic-feats',
-    ]
+    }
 
     archetypes = {}
 
     for class_url in class_urls:
-        # Filter: must match a valid class URL pattern
         url_lower = class_url.lower()
-        is_valid = any(prefix in url_lower for prefix in VALID_CLASS_PREFIXES)
-        has_skip = any(seg in url_lower for seg in SKIP_SEGMENTS)
 
-        if not is_valid or has_skip:
-            continue
+        # Find which category this URL belongs to and what depth we expect
+        expected_depth = None
+        for prefix, depth in CATEGORY_DEPTH:
+            if prefix in url_lower:
+                expected_depth = depth
+                break
 
-        # Skip sub-pages (rage-powers, arcana, etc.) — only top-level class pages
-        # These have structure: /classes/<category>/<class-name>/
-        # Sub-pages have deeper paths: /classes/<category>/<class-name>/<sub-feature>/
-        from urllib.parse import urlparse
+        if expected_depth is None:
+            continue  # Not a recognized class category
+
+        # Check actual path depth
         path = urlparse(class_url).path.rstrip('/')
         parts = [p for p in path.split('/') if p]
-        # For standard classes: ['classes', 'core-classes', 'barbarian'] = 3 parts
-        # For prestige: ['classes', 'prestige-classes', 'other-paizo', 'a-b', 'arcane-archer'] = 5 parts
-        # For occult: ['alternative-rule-systems', 'paizo-rules-systems', 'occult-adventures', 'occult-classes', 'kineticist'] = 5 parts
-        # Sub-features: ['classes', 'core-classes', 'barbarian', 'rage-powers'] = 4+ parts (skip for standard)
-        # We want the class root page, so for standard classes exactly 3 parts
-        # For prestige/occult it's deeper but still a class page
-        # Simplest filter: skip if last segment is a known sub-feature name
-        FEATURE_SEGMENTS = {
-            'rage-powers', 'rogue-talents', 'archetypes', 'discoveries',
-            'magus-arcana', 'hexes', 'bloodlines', 'domains', 'mysteries',
-            'orders', 'deeds', 'talents', 'arcane-schools', 'spirits',
-            'blessings', 'ki-powers', 'mercy', 'masterpieces',
-            'bardic-masterpieces', 'animal-companions', 'eidolons',
-            'witch-patrons', 'inquisitions', 'ninja-tricks',
-            'slayer-talents', 'investigator-talents', 'arcanist-exploits',
-            'kineticist-elements', 'kineticist-wild-talents',
-            'wild-talents', 'infusion-wild-talents', 'utility-wild-talents',
-            'mesmerist-tricks', 'implement-schools', 'psychic-disciplines',
-            'ranger-combat-styles', 'swashbuckler-deeds',
-            'fighter-bravery-alternative-options',
-            'thematic-channeling', 'variant-channeling',
-            'example-paladin-codes',
-        }
-        last_segment = parts[-1] if parts else ''
-        if last_segment in FEATURE_SEGMENTS:
+        if len(parts) != expected_depth:
+            continue  # Sub-feature page or category listing — skip
+
+        # Skip mythic/bestiary content
+        if any(seg in url_lower for seg in SKIP_SEGMENTS):
             continue
 
         # Check for /archetypes/ sub-page

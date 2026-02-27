@@ -1,0 +1,1421 @@
+[
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Barbarian",
+    "feature_category": "Rage Power",
+    "feature_type": "",
+    "prerequisites": "",
+    "benefit": "from big changes to eidolons, which now have subtypes that flavor many of your choices. Occult Classes Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Ethereal Plane, and the history of the Material Plane chronicled as psychic impressions in places and objects. The six classes presented below all use psychic magic. In most cases, this means they cast psychic spells. Class Descrption Kineticist With a connection to the elements, a kineticist can bring forth energy in the form of kinetic blasts. Instead of casting psychic spells, the kineticist uses unique psychic spell-like abilities called wild talents to manipulate elemental energy and matter. Medium By contacting spirits in places of power, the medium allows the personalities of legendary heroes to overcome his own, vastly changing his abilities and spells. He holds seances to benefit himself and his allies. Mesmerist A mesmerist’s piercing stare lets him insinuate himself into other people’s minds. A master of enchantment and illusion , the mesmerist controls and influences the behavior of others. Occultist To make use of his powers, an occultist channels psychic energy into a varied collection of antiques and mementos with storied pasts. Every type of implement allows him to use a different school of magic. Psychic With her incredibly potent mind, the psychic can cast spells that are more powerful than those of members of any other occult class. She accesses these spells through a specific discipline, and can bend and amplify psychic spells as she casts them. Spiritualist",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Bard",
+    "feature_category": "Bardic Masterpiece",
+    "feature_type": "",
+    "prerequisites": "",
+    "benefit": "from big changes to eidolons, which now have subtypes that flavor many of your choices. Occult Classes Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Ethereal Plane, and the history of the Material Plane chronicled as psychic impressions in places and objects. The six classes presented below all use psychic magic. In most cases, this means they cast psychic spells. Class Descrption Kineticist With a connection to the elements, a kineticist can bring forth energy in the form of kinetic blasts. Instead of casting psychic spells, the kineticist uses unique psychic spell-like abilities called wild talents to manipulate elemental energy and matter. Medium By contacting spirits in places of power, the medium allows the personalities of legendary heroes to overcome his own, vastly changing his abilities and spells. He holds seances to benefit himself and his allies. Mesmerist A mesmerist’s piercing stare lets him insinuate himself into other people’s minds. A master of enchantment and illusion , the mesmerist controls and influences the behavior of others. Occultist To make use of his powers, an occultist channels psychic energy into a varied collection of antiques and mementos with storied pasts. Every type of implement allows him to use a different school of magic. Psychic With her incredibly potent mind, the psychic can cast spells that are more powerful than those of members of any other occult class. She accesses these spells through a specific discipline, and can bend and amplify psychic spells as she casts them. Spiritualist",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Cleric",
+    "feature_category": "Domain",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Cleric",
+    "feature_category": "Domain",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Inquisitor",
+    "url": "https://www.d20pfsrd.com/classes/base-classes/inquisitor",
+    "parent_class": "Cleric",
+    "feature_category": "Domain",
+    "description": "Contents Class Skills Class Features Weapon and Armor Proficiency Spells Domain (or Inquisition) Judgment (Su) Monster Lore (Ex) Orisons Stern Gaze (Ex) Cunning Initiative (Ex) Detect Alignment (Sp) Track (Ex) Solo Tactics (Ex) Teamwork Feat Bane (Su) Discern Lies (Sp) Second Judgment (Ex) Stalwart (Ex) Greater Bane (Su) Exploit Weakness (Ex) Third Judgment (Ex) Slayer (Ex) True Judgment (Su) Alternative Capstone Ability Team Leader (Ex) Chaotic, Evil, Good, and Lawful Spells Ex-Inquisitors Favo",
+    "source": "",
+    "selection_type": "package",
+    "class_skill": "Class Features Weapon and Armor Proficiency Spells Domain (or Inquisition) Judgment (Su) Monster Lore (Ex) Orisons Stern Gaze (Ex) Cunning Initiative (Ex) Detect Alignment (Sp) Track (Ex) Solo Tactics (Ex) Teamwork Feat Bane (Su) Discern Lies (Sp) Second Judgment (Ex) Stalwart (Ex) Greater Bane (Su) Exploit Weakness (Ex) Third Judgment (Ex) Slayer (Ex) True Judgment (Su) Alternative Capstone Ability Team Leader (Ex) Chaotic, Evil, Good, and Lawful Spells Ex-Inquisitors Favored Class",
+    "bonus_feats": [
+      "the game treats double weapons as if they were two different weapons",
+      "and an ability",
+      "spell",
+      "or the inquisitor’s bane ability)",
+      "an inquisitor can discern lies",
+      "as per the spell",
+      "whenever an inquisitor uses her judgment ability",
+      "she selects two different judgments",
+      "medium armor",
+      "whenever an inquisitor uses her bane ability",
+      "she ignores any damage reduction the target might have. In addition",
+      "if the target has regeneration",
+      "she deals +1 point of damage per die rolled. Third Judgment (Ex) At 16th level",
+      "whenever an inquisitor uses her judgment ability",
+      "she selects three different judgments",
+      "the inquisitor can make a single melee (or ranged attack",
+      "if the foe is within 30 feet) against the target. If the attack hits",
+      "she gains a powerful class feature or ability",
+      "despite not having one to begin with. Team Leader (Ex) At 20th level",
+      "the inquisitor has grown accustomed to teaching farmers to fight",
+      "Evil",
+      "Good",
+      "evil",
+      "with the GM’s permission",
+      "take the heretic archetype",
+      "some races have the option of choosing from a number of other bonuses",
+      "and unless otherwise stated",
+      "Knowledge",
+      "however",
+      "be both an undead scourge and a warrior of the holy light",
+      "LLC Rune Binder X X C C C C C C C X X X X X Everyman Gaming",
+      "(X)=optional replacement",
+      "C=changed",
+      "1 =archetype package 1",
+      "LLC Rune Binder Inquisitor Archetypes - Everyman Gaming"
+    ],
+    "powers": [
+      {
+        "name": "Class Skills",
+        "feature_type": "",
+        "level": null,
+        "description": "The inquisitorâs class skills are Bluff ( Cha ), Climb ( Str ), Craft ( Int ), Diplomacy ( Cha ), Disguise ( Cha ), Heal ( Wis ), Intimidate ( Cha ), Knowledge (arcana) ( Int ), Knowledge (dungeoneering) ( Int ), Knowledge (nature) ( Int ), Knowledge (planes) ( Int ), Knowledge (religion) ( Int ), Perception ( Wis ), Profession ( Wis ), Ride ( Dex ), Sense Motive ( Wis ), Spellcraft ( Int ), Stealth ( Dex ), Survival ( Wis ), and Swim ( Str ). Skill Ranks per Level : 6 + Int modifier. Table: I"
+      },
+      {
+        "name": "Class Features",
+        "feature_type": "",
+        "level": null,
+        "description": "The following are class features of the inquisitor."
+      },
+      {
+        "name": "Weapon and Armor Proficiency",
+        "feature_type": "",
+        "level": null,
+        "description": "An inquisitor is proficient with all simple weapons, plus the hand crossbow, longbow, repeating crossbow, shortbow, and the favored weapon of her deity. She is also proficient with light armor , medium armor , and shields (except tower shields)."
+      },
+      {
+        "name": "Spells",
+        "feature_type": "",
+        "level": null,
+        "description": "An inquisitor casts divine spells drawn from the inquisitor spell list . She can cast any spell she knows at any time without preparing it ahead of time, assuming she has not yet used up her allotment of spells per day for the spellâs level. To learn or cast a spell, an inquisitor must have a Wisdom score equal to at least 10 + the spell level. The Difficulty Class for a saving throw against an inquisitorâs spell is 10 + the spell level + the inquisitorâs Wisdom modifier. An inquisitor can"
+      },
+      {
+        "name": "Domain (or Inquisition)",
+        "feature_type": "",
+        "level": null,
+        "description": "Like a cleric’s deity, an inquisitorâs deity influences her alignment, what magic she can perform, and her values. Although not as tied to the tenets of the deity as a cleric , an inquisitor must still hold such guidelines in high regard, despite that fact she can go against them if it serves the greater good of the faith. An inquisitor can select one domain from among those belonging to her deity. She can select an alignment domain only if her alignment matches that domain. With the GMâs ap"
+      },
+      {
+        "name": "Judgment",
+        "feature_type": "Su",
+        "level": null,
+        "description": "Starting at 1st level, an inquisitor can pronounce judgment upon her foes as a swift action . Starting when the judgment is made, the inquisitor receives a bonus or special ability based on the type of judgment made. At 1st level, an inquisitor can use this ability once per day. At 4th level and every three levels thereafter, the inquisitor can use this ability one additional time per day. Once activated, this ability lasts until the combat ends, at which point all of the bonuses immediately end"
+      },
+      {
+        "name": "Monster Lore",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "The inquisitor adds her Wisdom modifier on Knowledge skill checks in addition to her Intelligence modifier, when making skill checks to identify the abilities and weaknesses of creatures."
+      },
+      {
+        "name": "Orisons",
+        "feature_type": "",
+        "level": null,
+        "description": "Inquisitors learn a number of orisons, or 0-level spells, as noted on Table: Inquisitor Spells Known . These spells are cast like any other spell, but they are not expended when cast and may be used again. Orisons prepared using other spell slots, such as those due to metamagic feats, are expended normally."
+      },
+      {
+        "name": "Stern Gaze",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "Inquisitors are skilled at sensing deception and intimidating their foes. An inquisitor receives a morale bonus on all Intimidate and Sense Motive checks equal to 1/2 her inquisitor level (minimum +1)."
+      },
+      {
+        "name": "Cunning Initiative",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 2nd level, an inquisitor adds her Wisdom modifier on initiative checks, in addition to her Dexterity modifier."
+      },
+      {
+        "name": "Detect Alignment",
+        "feature_type": "Sp",
+        "level": null,
+        "description": "At 2nd level, at will, an inquisitor can use detect chaos , detect evil , detect good , or detect law . She can only use one of these at any given time."
+      },
+      {
+        "name": "Track",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 2nd level, an inquisitor adds half her level on Survival skill checks made to follow or identify tracks."
+      },
+      {
+        "name": "Solo Tactics",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 3rd level, all of the inquisitorâs allies are treated as if they possessed the same teamwork feats as the inquisitor for the purpose of determining whether the inquisitor receives a bonus from her teamwork feats. Her allies do not receive any bonuses from these feats unless they actually possess the feats themselves. The alliesâ positioning and actions must still meet the prerequisites listed in the teamwork feat for the inquisitor to receive the listed bonus."
+      },
+      {
+        "name": "Teamwork Feat",
+        "feature_type": "",
+        "level": null,
+        "description": "At 3rd level, and every three levels thereafter, the inquisitor gains a bonus feat in addition to those gained from normal advancement. These bonus feats must be selected from those listed as teamwork feats . The inquisitor must meet the prerequisites of the selected bonus feat. As a standard action , the inquisitor can choose to learn a new bonus teamwork feat in place of the most recent bonus teamwork feat she has already learned. In effect, the inquisitor loses the bonus feat in exchange for "
+      },
+      {
+        "name": "Bane",
+        "feature_type": "Su",
+        "level": null,
+        "description": "FAQ Does an inquisitor’s bane ability affect both ends of a double weapon? No. In general, the game treats double weapons as if they were two different weapons, and an ability, spell, or effect that changes or augments “a weapon” only applies to one end of a double weapon. Sometimes the rules are redundant and specifically call out that an ability that affects “a weapon” (such as a paladin’s divine bond) only affects one end of a double weapon. Sometimes the rules aren’t redundant (such as the m"
+      },
+      {
+        "name": "Discern Lies",
+        "feature_type": "Sp",
+        "level": null,
+        "description": "At 5th level, an inquisitor can discern lies , as per the spell, for a number of rounds per day equal to her inquisitor level. These rounds do not need to be consecutive. Activating this ability is an immediate action."
+      },
+      {
+        "name": "Second Judgment",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 8th level, whenever an inquisitor uses her judgment ability, she selects two different judgments, instead of one. This only consumes one use of her judgment ability. As a swift action , she can change one of these judgments to another type."
+      },
+      {
+        "name": "Stalwart",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 11th level, an inquisitor can use mental and physical resiliency to avoid certain attacks. If she makes a Fortitude or Will saving throw against an attack that has a reduced effect on a successful save, she instead avoids the effect entirely. This ability can only be used if the inquisitor is wearing light armor , medium armor , or no armor. A helpless inquisitor does not gain the benefit of the stalwart ability."
+      },
+      {
+        "name": "Greater Bane",
+        "feature_type": "Su",
+        "level": null,
+        "description": "At 12th level, whenever an inquisitor uses her bane ability, the amount of bonus damage dealt by the weapon against creatures of the selected type increases to 4d6."
+      },
+      {
+        "name": "Exploit Weakness",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 14th level, the inquisitor learns to take advantage of any opportunity that presents itself. Whenever the inquisitor scores a critical hit, she ignores any damage reduction the target might have. In addition, if the target has regeneration, the creature loses regeneration on the round following the critical hit and can die normally during that round. Creatures whose regeneration always functions are immune to this ability. Finally, if the inquisitor deals energy damage to a creature with vuln"
+      },
+      {
+        "name": "Third Judgment",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 16th level, whenever an inquisitor uses her judgment ability, she selects three different judgments, instead of just two. This only consumes one use of her judgment ability. As a swift action , the inquisitor can change one of these judgments to another type."
+      },
+      {
+        "name": "Slayer",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 17th level, an inquisitor learns to focus her judgment. Whenever an inquisitor uses her judgment ability, she must select one type of judgment. She is treated as if she were 5 levels higher for the purposes of determining the bonus granted by this judgment. Unlike other types of judgment, the one enhanced by this ability cannot be changed for the remainder of the judgment."
+      },
+      {
+        "name": "True Judgment",
+        "feature_type": "Su",
+        "level": null,
+        "description": "At 20th level, an inquisitor can call true judgment down upon a foe during combat. Whenever an inquisitor uses her judgment ability, the inquisitor can invoke true judgment on a foe as a swift action. Once declared, the inquisitor can make a single melee (or ranged attack, if the foe is within 30 feet) against the target. If the attack hits, it deals damage normally and the target must make a Fortitude save or die. The DC of this save is equal to 10 + 1/2 the inquisitor’s level + the inquisitor’"
+      },
+      {
+        "name": "Alternative Capstone Ability",
+        "feature_type": "",
+        "level": null,
+        "description": "Source PPC:CoL When a character reaches the 20th level of a class, she gains a powerful class feature or ability, sometimes referred to as a capstone. When a character reaches 20th level in this class, the following new ability can be selected instead of the standard 20th level class ability which would normally be gained. In some cases, a capstone specifies what ability it replaces. A character canât select an alternative capstone if she has previously traded away her class capstone via an ar"
+      },
+      {
+        "name": "Team Leader",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 20th level, the inquisitor has grown accustomed to teaching farmers to fight, but what she can do with trained warriors is far more terrifying. When the inquisitor regains her spells each day, she can also spend 1 hour training a number of characters up to her Wisdom modifier in battle tactics. These characters receive three of the inquisitorâs teamwork feats (the inquisitorâs choice) as bonus feats for the next 24 hours."
+      }
+    ]
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Druid",
+    "feature_category": "Animal Companion",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Ranger",
+    "feature_category": "Combat Style",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Ranger",
+    "feature_category": "Combat Style",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Core Classes",
+    "url": "https://www.d20pfsrd.com/classes/core-classes",
+    "parent_class": "Ranger",
+    "feature_category": "Combat Style",
+    "description": "Core Classes Barbarian Archetypes Rage Powers Bard Archetypes Bardic Masterpieces Cleric Archetypes Domains, Subdomains & Gods Gods (3rd Party Publishers) Variant Channeling - Paizo Fans United Variant Channeling - Paizo, Inc. Druid Animal Companions Archetypes The Bloodbond Unique Domain Fighter Fighter Bravery Alternative Options Archetypes Monk Archetypes Paladin Example Paladin Codes Archetypes Ranger Archetypes Ranger Combat Styles Rogue Rogue Talents Archetypes Sorcerer Archetypes Bloodlin",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Rogue",
+    "feature_category": "Rogue Talent",
+    "feature_type": "",
+    "prerequisites": "",
+    "benefit": "from big changes to eidolons, which now have subtypes that flavor many of your choices. Occult Classes Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Ethereal Plane, and the history of the Material Plane chronicled as psychic impressions in places and objects. The six classes presented below all use psychic magic. In most cases, this means they cast psychic spells. Class Descrption Kineticist With a connection to the elements, a kineticist can bring forth energy in the form of kinetic blasts. Instead of casting psychic spells, the kineticist uses unique psychic spell-like abilities called wild talents to manipulate elemental energy and matter. Medium By contacting spirits in places of power, the medium allows the personalities of legendary heroes to overcome his own, vastly changing his abilities and spells. He holds seances to benefit himself and his allies. Mesmerist A mesmerist’s piercing stare lets him insinuate himself into other people’s minds. A master of enchantment and illusion , the mesmerist controls and influences the behavior of others. Occultist To make use of his powers, an occultist channels psychic energy into a varied collection of antiques and mementos with storied pasts. Every type of implement allows him to use a different school of magic. Psychic With her incredibly potent mind, the psychic can cast spells that are more powerful than those of members of any other occult class. She accesses these spells through a specific discipline, and can bend and amplify psychic spells as she casts them. Spiritualist",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Sorcerer",
+    "feature_category": "Bloodline",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Sorcerer",
+    "feature_category": "Bloodline",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Core Classes",
+    "url": "https://www.d20pfsrd.com/classes/core-classes",
+    "parent_class": "Sorcerer",
+    "feature_category": "Bloodline",
+    "description": "Core Classes Barbarian Archetypes Rage Powers Bard Archetypes Bardic Masterpieces Cleric Archetypes Domains, Subdomains & Gods Gods (3rd Party Publishers) Variant Channeling - Paizo Fans United Variant Channeling - Paizo, Inc. Druid Animal Companions Archetypes The Bloodbond Unique Domain Fighter Fighter Bravery Alternative Options Archetypes Monk Archetypes Paladin Example Paladin Codes Archetypes Ranger Archetypes Ranger Combat Styles Rogue Rogue Talents Archetypes Sorcerer Archetypes Bloodlin",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Wizard",
+    "feature_category": "Arcane School",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Wizard",
+    "feature_category": "Arcane School",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Core Classes",
+    "url": "https://www.d20pfsrd.com/classes/core-classes",
+    "parent_class": "Wizard",
+    "feature_category": "Arcane School",
+    "description": "Core Classes Barbarian Archetypes Rage Powers Bard Archetypes Bardic Masterpieces Cleric Archetypes Domains, Subdomains & Gods Gods (3rd Party Publishers) Variant Channeling - Paizo Fans United Variant Channeling - Paizo, Inc. Druid Animal Companions Archetypes The Bloodbond Unique Domain Fighter Fighter Bravery Alternative Options Archetypes Monk Archetypes Paladin Example Paladin Codes Archetypes Ranger Archetypes Ranger Combat Styles Rogue Rogue Talents Archetypes Sorcerer Archetypes Bloodlin",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Cavalier",
+    "feature_category": "Order",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Cavalier",
+    "feature_category": "Order",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Samurai",
+    "url": "https://www.d20pfsrd.com/classes/alternate-classes/samurai",
+    "parent_class": "Cavalier",
+    "feature_category": "Order",
+    "description": "Contents Class Skills Class Features Weapon and Armor Proficiency Challenge (Ex) Mount (Ex) Order (Ex) Samurai Orders Cavalier Orders Resolve (Ex) Weapon Expertise (Ex) Mounted Archer (Ex) Banner (Ex) Bonus Feat Greater Resolve (Ex) Honorable Stand (Ex) Demanding Challenge (Ex) Greater Banner (Ex) True Resolve (Ex) Last Stand (Ex) Alternative Capstone Ability Indomitable Spirit (Ex) Archetypes & Alternate Class Features Subpages",
+    "source": "Ultimate Combat",
+    "selection_type": "package",
+    "class_skill": "Class Features Weapon and Armor Proficiency Challenge (Ex) Mount (Ex) Order (Ex) Samurai Orders Cavalier Orders Resolve (Ex) Weapon Expertise (Ex) Mounted Archer (Ex) Banner (Ex)",
+    "bonus_feats": [
+      "the samurai holds a position of power and respect in many lands",
+      "learning the way of the blade (typically a katana)",
+      "the bow",
+      "and the horse. Some even learn how to effectively use firearms",
+      "the common folk see honor and sacrifice. He is an honorable warrior",
+      "samurai can sometimes be found with other adventurers",
+      "taking the fight to the enemies of their masters. Other samurai become ronin",
+      "striving to serve an ideal without paying fealty to a lord. In either case",
+      "samurai make powerful allies",
+      "Climb ( Str )",
+      "Craft ( Int )",
+      "Diplomacy ( Cha )",
+      "Handle Animal ( Cha )",
+      "Intimidate ( Cha )",
+      "Profession ( Wis )",
+      "Ride ( Dex )",
+      "Sense Motive ( Wis )",
+      "mount",
+      "order",
+      "plus the katana",
+      "naginata",
+      "and wakizashi. Samurai are proficient with all types of armor (heavy",
+      "light",
+      "and medium) and shields (except tower shields). Challenge (Ex) Once per day",
+      "a samurai can challenge a foe to combat. As a swift action",
+      "plus one additional time per day for every three levels beyond 1st",
+      "evasion",
+      "devotion",
+      "a samurai must pledge himself to a specific order",
+      "class skills",
+      "and special abilities. In addition",
+      "or who chose to abandon their lord",
+      "however",
+      "he regains one daily use of his resolve",
+      "the samurai can spend one use of his resolve to remove the fatigued",
+      "shaken",
+      "or sickened condition. If the samurai is at least 8th level",
+      "he can alternatively remove the exhausted",
+      "frightened",
+      "nauseated",
+      "this ability removes the condition for 1 hour",
+      "a samurai gains an unparalleled expertise with his chosen weapons. At 3rd level",
+      "the samurai selects either the katana",
+      "longbow",
+      "naginata",
+      "whenever he threatens a critical hit with the selected weapon",
+      "he gains a +2 bonus on the confirmation roll. Finally",
+      "such as Weapon Specialization. Mounted Archer (Ex) At 4th level",
+      "and every five levels thereafter",
+      "the bonus to speed increases by 5 feet. At 14th level",
+      "such as fireball or breath weapons. When the samurai waves this standard",
+      "the bonus on caster level checks increases by 1. At 14th level",
+      "the bonus to AC increases by 1. At 14th level",
+      "the bonus to CMD increases by +1. At 14th level",
+      "and every six levels thereafter",
+      "a samurai can make an honorable stand",
+      "deciding to fight the target of his challenge to the bitter end",
+      "no matter the cost. He can make an honorable stand once per day at 11th level",
+      "the samurai is immune to the shaken",
+      "frightened",
+      "whenever a samurai making an honorable stand must make a saving throw",
+      "whenever a samurai declares a challenge",
+      "while his banner is displayed",
+      "the samurai can spend a standard action to wave the banner through the air",
+      "he is left alive",
+      "at â1 hit points (or lower if he was already below â1)",
+      "unconscious",
+      "and stable . Last Stand (Ex) At 20th level",
+      "all melee and ranged weapons deal the minimum amount of damage to the samurai",
+      "unless the attack scored is a critical hit . In addition",
+      "environmental effects",
+      "supernatural abilities",
+      "she gains a powerful class feature or ability",
+      "despite not having one to begin with. Indomitable Spirit (Ex) At 20th level",
+      "the bonuses offered by the banner increase by 2",
+      "however",
+      "be both an undead scourge and a warrior of the holy light",
+      "(X)=optional replacement"
+    ],
+    "powers": [
+      {
+        "name": "Class Skills",
+        "feature_type": "",
+        "level": null,
+        "description": "The samuraiâs class skills are Bluff ( Cha ), Climb ( Str ), Craft ( Int ), Diplomacy ( Cha ), Handle Animal ( Cha ), Intimidate ( Cha ), Profession ( Wis ), Ride ( Dex ), Sense Motive ( Wis ), and Swim ( Str ). Skill Ranks per Level : 4 + Int modifier. Table: Samurai Level Base Attack Bonus Fort Save Ref Save Will Save Special 1st +1 +2 +0 +0 Challenge 1/day, mount , order , resolve 2nd +2 +3 +0 +0 Order ability 3rd +3 +3 +1 +1 Weapon expertise 4th +4 +4 +1 +1 Challenge 2/day, mounted archer "
+      },
+      {
+        "name": "Class Features",
+        "feature_type": "",
+        "level": null,
+        "description": "The following are the class features of the samurai."
+      },
+      {
+        "name": "Weapon and Armor Proficiency",
+        "feature_type": "",
+        "level": null,
+        "description": "Samurai are proficient with all simple and martial weapons, plus the katana, naginata, and wakizashi. Samurai are proficient with all types of armor (heavy, light, and medium) and shields (except tower shields)."
+      },
+      {
+        "name": "Challenge",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "Once per day, a samurai can challenge a foe to combat. As a swift action , the samurai chooses one target within sight to challenge. The samuraiâs melee attacks deal extra damage when made against the target of his challenge. This extra damage is equal to the samuraiâs level. The samurai can use this ability once per day at 1st level, plus one additional time per day for every three levels beyond 1st, to a maximum of seven times per day at 19th level. Challenging a foe requires much of the s"
+      },
+      {
+        "name": "Mount",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "A samurai gains the service of a loyal and trusty steed to carry him into battle. This mount functions as a druid’s animal companion , using the samuraiâs level as his effective druid level. The creature must be one that he is capable of riding and that is suitable as a mount. A Medium samurai can select a camel or a horse. A Small samurai can select a pony or a wolf , but can also select a boar or a dog if he is at least 4th level. The GM may approve other animals as suitable mounts. A samura"
+      },
+      {
+        "name": "Order",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 1st level, a samurai must pledge himself to a specific order, typically the order of the warrior. The order grants the samurai a number of bonuses, class skills, and special abilities. In addition, each order includes a number of edicts the samurai must follow. If he violates these edicts, he loses the benefits of his orderâs challenge ability for 24 hours. The violation of an edict is subject to GM interpretation. Most samurai belong to the order of the warrior and are dedicated to their l"
+      },
+      {
+        "name": "Samurai Orders",
+        "feature_type": "",
+        "level": null,
+        "description": "Subpages 3rd Party Publishers Paizo, Inc. - Samurai Orders"
+      },
+      {
+        "name": "Cavalier Orders",
+        "feature_type": "",
+        "level": null,
+        "description": "Subpages Cavalier Orders - d20pfsrd.com Publishing Cavalier Orders - Dreamscarred Press Cavalier Orders - Flaming Crab Games Cavalier Orders - Louis Porter Jr. Design Cavalier Orders - Paizo, Inc. Cavalier Orders - Radiance House Cavalier Orders - Rite Publishing Cavalier Orders - The Knotty Works Cavalier/Samurai Orders - Orphaned Bookworm Productions"
+      },
+      {
+        "name": "Resolve",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "Starting at 1st level, the samurai gains resolve that he can call upon to endure even the most devastating wounds and afflictions. He can use this ability once per day at 1st level, plus one additional time per day for every two samurai levels beyond 1st. Whenever the samurai defeats the target of his challenge, he regains one daily use of his resolve, up to his maximum number of uses per day. Defeating the target of his challenge usually involves reducing the target to 0 hit points or fewer, bu"
+      },
+      {
+        "name": "Weapon Expertise",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 3rd level, a samurai gains an unparalleled expertise with his chosen weapons. At 3rd level, the samurai selects either the katana, longbow, naginata, or wakizashi. The samurai can draw the selected weapon as a free action as if he had the Quick Draw feat. In addition, whenever he threatens a critical hit with the selected weapon, he gains a +2 bonus on the confirmation roll. Finally, his samurai levels count as fighter levels and stack with any fighter levels he possesses for the purposes of "
+      },
+      {
+        "name": "Mounted Archer",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 4th level, the samurai becomes skilled at firing ranged weapons while mounted. A samurai only takes a â2 penalty on attack rolls with ranged weapons while his mount takes a double move. This penalty increases to â4 while his mount is running."
+      },
+      {
+        "name": "Banner",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 5th level, a samuraiâs banner becomes a symbol of inspiration to his allies and companions. As long as the samuraiâs banner is clearly visible, all allies within 60 feet receive a +2 morale bonus on saving throws against fear and a +1 morale bonus on attack rolls made as part of a charge . At 10th level, and every five levels thereafter, these bonuses increase by +1. The banner must be at least Small or larger and must be carried or displayed by the samurai or his mount to function."
+      },
+      {
+        "name": "Alternate Banner Options",
+        "feature_type": "",
+        "level": null,
+        "description": "Source PPC:CoL Some knights inspire and direct their allies with specialized tactics. A samurai can select one of the following battle standards upon gaining the banner class feature, and its benefits replace the normal benefits of the banner and greater banner class features. A battle standard functions as the banner or greater banner class feature except where otherwise noted. A samurai who replaces the banner or greater banner class feature via an archetype cannot select a battle standard. Fl"
+      },
+      {
+        "name": "Bonus Feat",
+        "feature_type": "",
+        "level": null,
+        "description": "At 6th level, and every six levels thereafter, a samurai gains a bonus feat in addition to those gained from normal advancement. These bonus feats must be selected from those listed as Combat Feats . The samurai must meet the requirements of these bonus feats."
+      },
+      {
+        "name": "Greater Resolve",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 9th level, a samurai can spend his resolve to negate some of his most grievous wounds. After a critical hit is confirmed against him, the samurai can spend one use of his resolve as an immediate action to treat that critical hit as a normal hit. Effects that only trigger on a critical hit do not trigger when the samurai uses this ability."
+      },
+      {
+        "name": "Honorable Stand",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 11th level, a samurai can make an honorable stand, deciding to fight the target of his challenge to the bitter end, no matter the cost. He can make an honorable stand once per day at 11th level, plus one additional time per day at 16th level. Declaring an honorable stand is a swift action . While making an honorable stand, the samurai is immune to the shaken , frightened , and panicked conditions. He does not fall unconscious while his hit point total is below 0. Finally, whenever a samurai m"
+      },
+      {
+        "name": "Demanding Challenge",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 12th level, whenever a samurai declares a challenge, his target must pay attention to the threat he poses. As long as the target is within the threatened area of the samurai, it takes a â2 penalty to its AC on attacks made by anyone other than the samurai."
+      },
+      {
+        "name": "Greater Banner",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 14th level, a samuraiâs banner becomes a rallying call to his allies. All allies within 60 feet receive a +2 morale bonus on saving throws against charm and compulsion spells and effects. In addition, while his banner is displayed, the samurai can spend a standard action to wave the banner through the air, granting all allies within 60 feet an additional saving throw against any one spell or effect that is targeting them. This save is made at the original DC. Spells and effects that do not "
+      },
+      {
+        "name": "True Resolve",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 17th level, a samurai can spend uses of his resolve to avoid death. If he has at least two uses of his resolve remaining, he can spend all of the daily uses of his resolve that he has available to him to avoid death. Regardless of the source of the attack that would have killed him, he is left alive, at â1 hit points (or lower if he was already below â1), unconscious , and stable ."
+      },
+      {
+        "name": "Last Stand",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 20th level, a samurai can make a last stand once per day whenever he makes a challenge. While this challenge is in effect, all melee and ranged weapons deal the minimum amount of damage to the samurai, unless the attack scored is a critical hit . In addition, the samurai remains conscious and is not staggered while he is below 0 hit points . While using this ability, the samurai cannot be killed by melee or ranged weapons unless they are wielded by the target of his challenge. Attacks made by"
+      },
+      {
+        "name": "Alternative Capstone Ability",
+        "feature_type": "",
+        "level": null,
+        "description": "Source PPC:CoL When a character reaches the 20th level of a class, she gains a powerful class feature or ability, sometimes referred to as a capstone. When a character reaches 20th level in this class, the following new ability can be selected instead of the standard 20th level class ability which would normally be gained. In some cases, a capstone specifies what ability it replaces. A character canât select an alternative capstone if she has previously traded away her class capstone via an ar"
+      },
+      {
+        "name": "Indomitable Spirit",
+        "feature_type": "Ex",
+        "level": null,
+        "description": "At 20th level, the sight of the samurai on the battlefield gives heart to even the most doomed force. The range of the samuraiâs banner increases by 90 feet, the bonuses offered by the banner increase by 2, and the samurai can wave his banner to use its ability as a move action instead of a standard action ."
+      },
+      {
+        "name": "Subpages",
+        "feature_type": "",
+        "level": null,
+        "description": "Subpages Archetypes Archetypes - Orphaned Bookworm Productions Jito (Samurai Archetype) Lord-Protector (Samurai) Flaming Crab Games - Samurai Archetypes Katana Duelist Frog God Games   Samurai Archetypes Iaijutsu Master Paizo, Inc. - Samurai Archetypes Brawling Blademaster Ironbound Sword Warrior Poet Ward Speaker Sovereign Blade Sword Saint Yojimbo Rite Publishing - Samurai Archetypes Kuge NitÅjutsu Sensei Shogun Tajiya Yabusame The Knotty-Works - Samurai Archetypes Unearthed Samurai Samurai O"
+      }
+    ]
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Inquisitor",
+    "feature_category": "Inquisition",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Inquisitor",
+    "feature_category": "Inquisition",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Base Classes",
+    "url": "https://www.d20pfsrd.com/classes/base-classes",
+    "parent_class": "Inquisitor",
+    "feature_category": "Inquisition",
+    "description": "Subpages Alchemist Discoveries Archetypes Cavalier Archetypes Cavalier Orders Gunslinger Archetypes Inquisitor Archetypes Inquisitions Magus Archetypes Magus Arcana Omdura Archetypes Oracle Archetypes Mysteries Oracle Curses Shifter Archetypes Summoner Archetypes Eidolons Vampire Hunter Vampire Hunter Archetypes - Legendary Games Technique Feats Vampiric Foci â Paizo, Inc. Vigilante Archetypes Witch Archetypes Witch Hexes Redirect Witch Patrons 3rd Party Publishers Hexes Witch Patrons Witch's ",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Magus",
+    "feature_category": "Magus Arcana",
+    "feature_type": "",
+    "prerequisites": "",
+    "benefit": "from big changes to eidolons, which now have subtypes that flavor many of your choices. Occult Classes Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Ethereal Plane, and the history of the Material Plane chronicled as psychic impressions in places and objects. The six classes presented below all use psychic magic. In most cases, this means they cast psychic spells. Class Descrption Kineticist With a connection to the elements, a kineticist can bring forth energy in the form of kinetic blasts. Instead of casting psychic spells, the kineticist uses unique psychic spell-like abilities called wild talents to manipulate elemental energy and matter. Medium By contacting spirits in places of power, the medium allows the personalities of legendary heroes to overcome his own, vastly changing his abilities and spells. He holds seances to benefit himself and his allies. Mesmerist A mesmerist’s piercing stare lets him insinuate himself into other people’s minds. A master of enchantment and illusion , the mesmerist controls and influences the behavior of others. Occultist To make use of his powers, an occultist channels psychic energy into a varied collection of antiques and mementos with storied pasts. Every type of implement allows him to use a different school of magic. Psychic With her incredibly potent mind, the psychic can cast spells that are more powerful than those of members of any other occult class. She accesses these spells through a specific discipline, and can bend and amplify psychic spells as she casts them. Spiritualist",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Witch",
+    "feature_category": "Hex",
+    "feature_type": "",
+    "prerequisites": "",
+    "benefit": "from big changes to eidolons, which now have subtypes that flavor many of your choices. Occult Classes Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Ethereal Plane, and the history of the Material Plane chronicled as psychic impressions in places and objects. The six classes presented below all use psychic magic. In most cases, this means they cast psychic spells. Class Descrption Kineticist With a connection to the elements, a kineticist can bring forth energy in the form of kinetic blasts. Instead of casting psychic spells, the kineticist uses unique psychic spell-like abilities called wild talents to manipulate elemental energy and matter. Medium By contacting spirits in places of power, the medium allows the personalities of legendary heroes to overcome his own, vastly changing his abilities and spells. He holds seances to benefit himself and his allies. Mesmerist A mesmerist’s piercing stare lets him insinuate himself into other people’s minds. A master of enchantment and illusion , the mesmerist controls and influences the behavior of others. Occultist To make use of his powers, an occultist channels psychic energy into a varied collection of antiques and mementos with storied pasts. Every type of implement allows him to use a different school of magic. Psychic With her incredibly potent mind, the psychic can cast spells that are more powerful than those of members of any other occult class. She accesses these spells through a specific discipline, and can bend and amplify psychic spells as she casts them. Spiritualist",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Witch",
+    "feature_category": "Patron",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Familiar",
+    "url": "https://www.d20pfsrd.com/bestiary/monster-listings/animals/familiar",
+    "parent_class": "Witch",
+    "feature_category": "Patron",
+    "description": "A familiar is an animal chosen by spellcaster with the familiar or arcane bond class feature to aid him in his study of magic.",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Aeons",
+    "url": "https://www.d20pfsrd.com/bestiary/monster-listings/outsiders/aeon",
+    "parent_class": "Witch",
+    "feature_category": "Patron",
+    "description": "Contents Aeon Subtype Binding an Aeon Monad, the Condition of All",
+    "source": "Bestiary 2 , Â",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Aeon Subtype",
+        "feature_type": "",
+        "level": null,
+        "description": "Aeons are a race of neutral outsiders who roam the planes maintaining the balance of reality. Aeons possess the following traits. Immunity to cold, poison , and critical hits. Resistance to electricity 10 and fire 10. Envisaging (Su) Aeons communicate wordlessly, almost incomprehensibly. Caring little for the wants and desires of other creatures, they have no need to engage in exchanges of dialogue. Instead, aeons mentally scan beings for their thoughts and intentions, and then retaliate with fl"
+      },
+      {
+        "name": "Binding an Aeon",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UM ( see Binding Outsiders for further details. ) Alien, unemotional, and distant, aeons are difficult to deal with because of their strange form of communication, known as envisaging, in which they employ mental imagery and sounds instead of the symbolism of speech or writing to communicate their goals. Furthermore, aeons are often unyielding in their dichotomies, and are not swayed by argument or emotion toward any end. A spellcaster who binds an aeon had better hope his goals are"
+      },
+      {
+        "name": "Monad, the Condition of All",
+        "feature_type": "",
+        "level": null,
+        "description": "All aeons are bound in a state they know as âthe condition of allâ or âmonad,â a supreme oneness with all members of their race and the multiverse itself. Therefore, aeons exist as an extension of the multiverse; in a fashion similar to the way bones, muscle, and the various humors create a mortal, they exist as part of a greater being. When destroyed or upon accomplishing specific goals, their energies simply dissipate and become reabsorbed into the monad. They do not die, but are inste"
+      }
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Investigator",
+    "feature_category": "Investigator Talent",
+    "feature_type": "",
+    "prerequisites": "",
+    "benefit": "from big changes to eidolons, which now have subtypes that flavor many of your choices. Occult Classes Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Ethereal Plane, and the history of the Material Plane chronicled as psychic impressions in places and objects. The six classes presented below all use psychic magic. In most cases, this means they cast psychic spells. Class Descrption Kineticist With a connection to the elements, a kineticist can bring forth energy in the form of kinetic blasts. Instead of casting psychic spells, the kineticist uses unique psychic spell-like abilities called wild talents to manipulate elemental energy and matter. Medium By contacting spirits in places of power, the medium allows the personalities of legendary heroes to overcome his own, vastly changing his abilities and spells. He holds seances to benefit himself and his allies. Mesmerist A mesmerist’s piercing stare lets him insinuate himself into other people’s minds. A master of enchantment and illusion , the mesmerist controls and influences the behavior of others. Occultist To make use of his powers, an occultist channels psychic energy into a varied collection of antiques and mementos with storied pasts. Every type of implement allows him to use a different school of magic. Psychic With her incredibly potent mind, the psychic can cast spells that are more powerful than those of members of any other occult class. She accesses these spells through a specific discipline, and can bend and amplify psychic spells as she casts them. Spiritualist",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Alchemist",
+    "url": "https://www.d20pfsrd.com/classes/base-classes/alchemist",
+    "parent_class": "Investigator",
+    "feature_category": "Investigator Talent",
+    "feature_type": "",
+    "prerequisites": "for this feat. Mutagen (Su) At 1st level, an alchemist discovers how to create a mutagen that he can imbibe in order to heighten his physical prowess at the cost of his personality. It takes 1 hour to brew a dose of mutagen, and once brewed, it remains potent until used. An alchemist can only mainta",
+    "benefit": "of a mutagen, but an alchemist can gain the effects of another alchemist’s mutagen if he drinks it. (Although if the other alchemist creates a different mutagen, the effects of the âstolenâ mutagen immediately cease.) The effects of a mutagen do not stack. Whenever an alchemist drinks a mutagen, the effects of any previous mutagen immediately end. Throw Anything (Ex) All alchemists gain the Throw Anything feat as a bonus feat at 1st level. An alchemist adds his Intelligence modifier to damage done with splash weapons, including the splash damage if any. This bonus damage is already included in the bomb class feature. Discovery (Su) At 2nd level, and then again every 2 levels thereafter (up to 18th level), an alchemist makes an incredible alchemical discovery. Unless otherwise noted, an alchemist cannot select an individual discovery more than once. Some discoveries can only be made if the alchemist has met certain prerequisites first, such as uncovering other discoveries. Discoveries that modify bombs that are marked with an asterisk (*) do not stack. Only one such discovery can be applied to an individual bomb. The DC of any saving throw called for by a discovery is equal to 10 + 1/2 the alchemist’s level + the alchemist’s Intelligence modifier. A complete list of discoveries can be found here: Discoveries Poison Resistance (Ex) At 2nd level, an alchemist gains a +2 bonus on all saving throws against poison . This bonus increases to +4 at 5th level, and then again to +6 at 8th level. At 10th level, an alchemist becomes completely immune to poison . Poison Use (Ex) Alchemists are trained in the use of poison and starting at 2nd level, cannot accidentally poison themselves when applying poison to a weapon. Swift Alchemy (Ex) At 3rd level, an alchemist can create alchemical items with astounding speed. It takes an alchemist half the normal amount of time to create alchemical items , and he can apply poison to a weapon as a move action . Swift Poisoning (Ex) At 6th",
+    "description": "",
+    "source": "",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Shaman",
+    "feature_category": "Spirit",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Classes",
+    "url": "https://www.d20pfsrd.com/classes",
+    "parent_class": "Shaman",
+    "feature_category": "Spirit",
+    "description": "Contents Character Advancement Core Classes Base Classes Hybrid Classes Unchained Classes Occult Classes Alternate Classes NPC Classes Prestige Classes Archetypes 3rd Party Concepts",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Character Advancement",
+        "feature_type": "",
+        "level": null,
+        "description": "As player characters overcome challenges, they gain experience points. As these points accumulate, PCs advance in level and power."
+      },
+      {
+        "name": "Core Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "The following eleven classes represent the core classes of the game. Class Descrption Barbarian The barbarian is a brutal berserker from beyond the edge of civilized lands. Bard The bard uses skill and spell alike to bolster his allies, confound his enemies, and build upon his fame. Cleric A devout follower of a deity, the cleric can heal wounds, raise the dead, and call down the wrath of the gods. Druid The druid is a worshiper of all things natural – a spellcaster, a friend to animals, and a s"
+      },
+      {
+        "name": "Base Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:APG While most common folk have shared ale with a fighter or perhaps even seen a wizard perform an awesome act of magic, these are not the only adventurers known to legends and history. The following character classes present new options for players and greater variety for a Game Masterâs cast of nonplayer characters. The base classes are equivalent in power to the core classes. Game Masters are encouraged to allow players to choose freely from these classes, but each GM must make"
+      },
+      {
+        "name": "Hybrid Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:ACG Most heroes progress along a single pathâchoosing to become a fearsome fighter , pious cleric , or mighty wizard âbut some are drawn to many roads. For them, it can be hard to find a balance between abilities offered by disparate classes. Hybrid classes solve this dilemma by blending features from two classes, adding rules to make them work seamlessly together. Parent Classes : Each one of the following classes lists two classes that it draws upon to form the basis of its th"
+      },
+      {
+        "name": "Unchained Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:PU Your choice of class remains one of the most important parts of creating a character. This section presents four new takes on familiar classes, which have been redesigned to improve their ease of use and power relative to other classes. Class Descrption Barbarian Though rage remains similar to its original design, it’s now easier to implement, and rage powers have been rebalanced to become a more important part of the class Monk Receiving the most wide-reaching changes, the monk "
+      },
+      {
+        "name": "Occult Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:OA Beyond the worship of the divine and the studies of arcane scholars lies the mysterious terrain of the mind, accessed through psychic magic. Classes that draw upon psychic magic do so via innate mental abilities, whether they directly cast spells, create elemental effects, or focus psychic energy through objects. Members of these occult classes find themselves drawn to the strange and the hidden; they have connections to the timeless Astral Plane, the haunted bleakness of the Eth"
+      },
+      {
+        "name": "Alternate Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Source : PRG:UC Alternate classes are standalone classes whose basic ideas are very close to established base classes, yet whose required alterations would be too expansive for an archetype. An alternate class operates exactly as a base class, save that a character who takes a level in an alternate class can never take a level in its associated class – a samurai cannot also be a cavalier , and vice versa. Class Descrption Source Antipaladin Although it is a rare occurrence, paladins do sometimes"
+      },
+      {
+        "name": "NPC Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Aside from the players, every other person encountered in the game world is a nonplayer character (NPC). These characters are designed and controlled by the GM to fill every role from noble king to simple baker. While some of these characters use player classes, most rely upon basic NPC classes, allowing them to be easily generated. The following rules govern all of the NPC classes and include information on generating quick NPCs for an eveningâs game. Class Adept Aristocrat Commoner Expert Wa"
+      },
+      {
+        "name": "Prestige Classes",
+        "feature_type": "",
+        "level": null,
+        "description": "Prestige classes allow characters to become truly exceptional, gaining powers beyond the ken of their peers. Unlike the core classes, characters must meet specific requirements before they can take their first level of a prestige class. If a character does not meet the requirements for a prestige class before gaining any benefits of that level, that character cannot take that prestige class. Characters that take levels in prestige classes do not gain any favored class bonuses for those levels. S"
+      },
+      {
+        "name": "Archetypes",
+        "feature_type": "",
+        "level": null,
+        "description": "Base classes are a great place to start, but they canât cover every possible character concept and specialization. Archetypes help to fill in the gaps. These are quick, plug-and-play sets of alternate class ability substitutions arranged around specific character concepts, designed to help players customize a given base class to their individual needs."
+      },
+      {
+        "name": "3rd Party Concepts",
+        "feature_type": "",
+        "level": 3,
+        "description": "Arcane Archetypes Monster Classes"
+      }
+    ]
+  },
+  {
+    "name": "Hybrid Classes",
+    "url": "https://www.d20pfsrd.com/classes/hybrid-classes",
+    "parent_class": "Shaman",
+    "feature_category": "Spirit",
+    "description": "Subpages 3rd Party Hybrid Classes Hybrid Classes - Legendary Games Arcanist Arcanist Exploits Arcanist Greater Exploits Archetypes Bloodrager Bloodrager Archetypes Bloodrager Bloodlines Brawler Archetypes Hunter Archetypes Investigator Archetypes Investigator Talents Shaman Shaman Hexes - Samurai Sheepdog 3rd Party - Shaman Spirits Archetypes Spirits Skald Archetypes Skald Sagas Slayer Archetypes Slayer Talents Swashbuckler Archetypes Warpriest Blessings Archetypes",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Warpriest",
+    "feature_category": "Blessing",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Simple Template: Celestial (CR +0 or +1)",
+    "url": "https://www.d20pfsrd.com/bestiary/monster-listings/templates/celestial-creature-cr-special",
+    "parent_class": "Warpriest",
+    "feature_category": "Blessing",
+    "description": "Celestial creatures dwell in the higher planes, but can be summoned using spells such as summon monster and planar ally .",
+    "source": "",
+    "selection_type": "package",
+    "powers": [
+      {
+        "name": "Rebuild Rules",
+        "feature_type": "",
+        "level": null,
+        "description": "Senses The creature gains darkvision 60 ft. Defensive Abilities The creature gains damage reduction and energy resistance as noted on Table: Celestial Creature Defense . SR The creature gains spell resistance equal to its new CR +5 Special Attacks The creature may smite evil 1/day as a swift action (it adds its Cha bonus to attack rolls, and a damage bonus equal to its HD against evil foes; smite persists until the target is dead or the celestial creature rests). Table: Celestial Creature Defens"
+      }
+    ]
+  },
+  {
+    "name": "Alignment",
+    "url": "https://www.d20pfsrd.com/alignment-description/additional-rules",
+    "parent_class": "Ninja",
+    "feature_category": "Ninja Trick",
+    "feature_type": "",
+    "prerequisites": "for the feat, usually aiding you in a small way to regain that alignment . Most alignment feats also allow you to store affirmations for later use. If you shift alignment and no longer have the ability to store affirmations, any affirmations stored by that feat are lost. Champion of Anarchy (Alignme",
+    "benefit": "from the potential that its individuals have within them. Neutral Someone who is neutral with respect to law and chaos has some respect for authority and feels neither a compulsion to obey nor a compulsion to rebel. She is generally honest, but can be tempted into lying or deceiving others. Alignment Steps Occasionally the rules refer to âstepsâ when dealing with alignment. In this case, âstepsâ refers to the number of alignment shifts between the two alignments, as shown on the following diagram. Note that diagonal âstepsâ count as two steps. For example, a lawful neutral character is one step away from a lawful good alignment, and three steps away from a chaotic evil alignment. A cleric’s alignment must be within one step of the alignment of her deity. Lawful Neutral Chaotic Good Lawful Good Neutral Good Chaotic Good Neutral Lawful Neutral Neutral Chaotic Neutral Evil Lawful Evil Neutral Evil Chaotic Evil The Nine Alignments Nine distinct alignments define the possible combinations of the lawful-chaotic axis with the good-evil axis. Each description below depicts a typical character of that alignment. Remember that individuals vary from this norm, and that a given character may act more or less in accord with his alignment from day to day. Use these descriptions as guidelines, not as scripts. The first six alignments, lawful good through chaotic neutral, are standard alignments for player characters. The three evil alignments are usually for monsters and villains. With the GM’s permission, a player may assign an evil alignment to his PC, but such characters are often a source of disruption and conflict with good and neutral party members. GMs are encouraged to carefully consider how evil PCs might affect the campaign before allowing them. Alignment is a tool to aid players in creating personalities for their characters. It is a guideline for a character’s morality, and Game Masters should not use it to unduly hamper characters, nor should it be used to",
+    "description": "",
+    "source": "Ultimate Campaign",
+    "selection_type": "individual"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Medium",
+    "feature_category": "Spirit",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Alternative Rule Systems",
+    "url": "https://www.d20pfsrd.com/alternative-rule-systems",
+    "parent_class": "Medium",
+    "feature_category": "Spirit",
+    "description": "The following pages present various alternative rule systems from Paizo and multiple 3rd Party Publishers.",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Home",
+    "url": "https://www.d20pfsrd.com/",
+    "parent_class": "Psychic",
+    "feature_category": "Discipline",
+    "description": "Players Basics & Ability Scores Ability Scores Alignment Character Creation Outline Glossary Character Descriptions Core Classes Barbarian – Rage Powers Bard – Masterpieces Cleric – Domains, Subdomains & Gods Druid – Animal Companions Fighter – Bonus Combat Feats Monk – Monk’s Bonus Feats Paladin – Mercies Ranger – Animal Companions | Ranger Traps Rogue – Rogue Talents Sorcerer – Sorcerer Bloodlines Wizard – Arcane Schools | Familiars | Arcane Discoveries Base Classes Alchemist – Discoveries Cav",
+    "source": "",
+    "selection_type": "package",
+    "bonus_feats": [
+      "Reach",
+      "& Threatened Area Ship Combat Special Abilities Traps",
+      "Paper",
+      "& Writing Supplies – Clothing & Containers – Furniture",
+      "Trade Goods & Vehicles – Hirelings",
+      "Servants & Services – Locks",
+      "Keys",
+      "Tools & Kits – Religious Items"
+    ]
+  },
+  {
+    "name": "Alternative Rule Systems",
+    "url": "https://www.d20pfsrd.com/alternative-rule-systems",
+    "parent_class": "Psychic",
+    "feature_category": "Discipline",
+    "description": "The following pages present various alternative rule systems from Paizo and multiple 3rd Party Publishers.",
+    "source": "",
+    "selection_type": "package"
+  },
+  {
+    "name": "Paizo Rules Systems",
+    "url": "https://www.d20pfsrd.com/alternative-rule-systems/paizo-rules-systems",
+    "parent_class": "Psychic",
+    "feature_category": "Discipline",
+    "description": "Subpages Mythic Adventures Occult Adventures",
+    "source": "",
+    "selection_type": "package"
+  }
+]

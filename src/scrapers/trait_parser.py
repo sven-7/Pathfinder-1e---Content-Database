@@ -292,8 +292,9 @@ def parse_trait_batch(
         # Try loading from cache
         html = None
         if cache_dir:
-            from .base import url_to_cache_path
-            cache_path = url_to_cache_path(url, cache_dir)
+            import hashlib
+            url_hash = hashlib.md5(url.encode()).hexdigest()
+            cache_path = cache_dir / f"{url_hash}.html"
             if cache_path.exists():
                 html = cache_path.read_text(encoding='utf-8', errors='replace')
 

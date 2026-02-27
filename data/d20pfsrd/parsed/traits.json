@@ -1,0 +1,164 @@
+[
+  {
+    "name": "Absolute Loyalty",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/absolute-loyalty",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain the one-time ability to immediately cast atonement upon yourself as a spell-like ability upon performing an act or being subjected to an effect that spell affects. This ability can only be used while you are acting in the service of your liege (an individual of higher social standing chosen when you take this feat)",
+    "description": "Home > Traits > Combat Traits > Absolute Loyalty",
+    "source": "Knights of the Inner Sea Â"
+  },
+  {
+    "name": "Accelerated Drinker",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/accelerated-drinker",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You may drink a potion as a move action instead of a standard action as long as you start your turn with the potion in your hand",
+    "description": "Home > Traits > Combat Traits > Accelerated Drinker You know how to drink a potion efficiently, such as by not using your hands, tossing it in the air and catching it in your mouth, or opening it with your teeth.",
+    "source": "Cheliax, Empire of Devils"
+  },
+  {
+    "name": "Alert",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/alert",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "Once per day as a free action , you can take 10 on your initiative check",
+    "description": "",
+    "source": "People of the Stars Â"
+  },
+  {
+    "name": "Ambush Training",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/ambush-training",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain a +1 trait bonus on initiative checks and a +1 trait bonus on weapon damage rolls during any surprise round in which you act",
+    "description": "Home > Traits > Combat Traits > Ambush Training You’ve learned that taking an enemy by surprise can end a combat before it begins.",
+    "source": "Pathfinder Society Primer Â"
+  },
+  {
+    "name": "Anatomist",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/anatomist",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain a +1 trait bonus on all rolls made to confirm critical hits ",
+    "description": "Home > Traits > Combat Traits > Anatomist You have studied the workings of anatomy, either as a student at university or as an apprentice mortician or necromancer. You know where to aim your blows to strike vital organs.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Armed Grit",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/armed-grit-combat",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "As long as you have a firearm drawn, you gain a +2 trait bonus on saving throws against fear and the DCs of Intimidate checks to demoralize you increase by 2",
+    "description": "",
+    "source": "Weapon Master’s Handbook"
+  },
+  {
+    "name": "Armor Expert",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/armor-expert",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "When you wear armor of any sort, reduce that suit’s armor check penalty by 1, to a minimum check penalty of 0",
+    "description": "Home > Traits > Combat Traits > Armor Expert You have worn armor as long as you can remember, either as part of your training to become a knight’s squire or simply because you were seeking to emulate a hero. Your childhood armor wasn’t the real thing as far as protection, but it did encumber you as much as real armor would have, and you’ve grown used to moving in such suits with relative grace.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Axe to Grind",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/axe-to-grind",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain a +1 trait bonus on damage against foes who are threatened by only you",
+    "description": "Home > Traits > Combat Traits > Axe to Grind There is a fire in your heart that can’t be quenched.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Battlefield Disciple",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/battlefield-disciple",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain a +2 trait bonus on Heal checks made to stabilize a dying creature. In addition, when you successfully use the aid another action in combat to grant an ally a bonus on her next attack roll , the bonus you grant increases by 1",
+    "description": "Home > Traits > Combat Traits > Battlefield Disciple You are skilled at supporting your allies in the heat of battle.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Berserker of the Society",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/berserker-of-the-society-barbarian-pathfinder-society",
+    "trait_type": "Combat",
+    "prerequisites": "Barbarian, Society; of citizenship of a specific nation or membership in a specific faction",
+    "benefit": "You may use your rage ability for 3 additional rounds per day. Something Missing? This previously had a requirement or prerequisite of citizenship of a specific nation or membership in a specific faction. We are not legally allowed to reference these nations or factions. GMs should consider whether such requirements suit their campaign or not. If you wish to see the original wording it is probably available on our sister site pathfindercommunity.net ",
+    "description": "Home > Traits > Combat Traits > Berserker of the Society (Barbarian, Society) Your time spent as a society member has taught you new truths about the origins of the your rage ability.",
+    "source": ""
+  },
+  {
+    "name": "Black Powder Bravado",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/black-powder-bravado",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "Once per day, when you perform a deed that requires an attack roll and you miss with that roll, you can reroll it. You must take the second result even if it is worse",
+    "description": "Home > Traits > Combat Traits > Black Powder Bravado You are particularly successful when using deeds.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Black Powder Fortune",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/black-powder-fortune",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "As long as you are wielding a firearm , you gain a +2 trait bonus on all saving throws against curse, fear , and emotion effects",
+    "description": "Home > Traits > Combat Traits > Black Powder Fortune You have little to fear when there’s a gun in your hand.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Black Powder Interjection",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/black-powder-interjection",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "Once per day, when you interrupt the casting of a spell with a firearm attack, you may regain 1 grit point",
+    "description": "Home > Traits > Combat Traits > Black Powder Interjection Your confidence rises when you foil spellcasting.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Blade of the Society",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/blade-of-the-society-rogue-pathfinder-society",
+    "trait_type": "Combat",
+    "prerequisites": "Rogue, Society; of citizenship of a specific nation or membership in a specific faction",
+    "benefit": "You gain a +1 trait bonus to damage rolls from sneak attacks. Something Missing? This previously had a requirement or prerequisite of citizenship of a specific nation or membership in a specific faction. We are not legally allowed to reference these nations or factions. GMs should consider whether such requirements suit their campaign or not. If you wish to see the original wording it is probably available on our sister site pathfindercommunity.net ",
+    "description": "Home > Traits > Combat Traits > Blade of the Society (Rogue, Society) You have studied and learned the weak spots of many humanoids and monsters.",
+    "source": ""
+  },
+  {
+    "name": "Blightâs Bane",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/blights-bane-combat",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain a +2 trait bonus to confirm critical hits against a creature that has a template affiliated with some kind of communicable condition, such as a blighted fey or a fungal creature",
+    "description": "",
+    "source": "People of the Wastes Â"
+  },
+  {
+    "name": "Bloodthirsty",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/bloodthirsty",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "Whenever you make an attack that reduces a foe to 0 hit points or fewer or you confirm a critical hit , your attack deals 1 additional point of damage. The additional damage is a trait bonus , and is multiplied by your weapon’s critical hit multiplier",
+    "description": "Home > Traits > Combat Traits > Bloodthirsty You have a vicious streak, and nothing satisfies you more than warm blood on your hands and blade.",
+    "source": "Ultimate Campaign"
+  },
+  {
+    "name": "Bloody-Minded",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/bloody-minded-combat",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "You gain a +1 trait bonus on initiative and Intimidate checks",
+    "description": "",
+    "source": "Champions of Corruption Â"
+  },
+  {
+    "name": "Born under the Stranger",
+    "url": "https://www.d20pfsrd.com/traits/combat-traits/born-under-the-stranger",
+    "trait_type": "Combat",
+    "prerequisites": "",
+    "benefit": "When feinting against aberrations , you do not take a â4 penalty for feinting against a non- humanoid creature, and you take only a â4 penalty if you feint against an aberration of animal Intelligence instead of â8). You still cannot feint against mindless creatures",
+    "description": "",
+    "source": "People of the Stars Â"
+  }
+]

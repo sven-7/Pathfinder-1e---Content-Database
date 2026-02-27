@@ -818,6 +818,9 @@ def discover_class_feature_urls() -> dict[str, list[str]]:
                 continue
 
             # Collect all links within the content
+            from urllib.parse import urlparse as _urlparse
+            index_path = _urlparse(index_url).path.rstrip('/')
+
             for a_tag in content.find_all('a', href=True):
                 raw_url = normalize_url(a_tag['href'])
 
@@ -828,10 +831,10 @@ def discover_class_feature_urls() -> dict[str, list[str]]:
                 if not is_paizo_content(raw_url):
                     continue
 
-                # Must be a sub-page (deeper than the index)
-                index_path = index_url.rstrip('/')
-                if raw_url.rstrip('/') == index_path:
-                    continue  # Skip self-links
+                # Must be a sub-page under the index (starts with index path)
+                raw_path = _urlparse(raw_url).path.rstrip('/')
+                if not raw_path.startswith(index_path + '/'):
+                    continue  # Breadcrumb, cross-link, or self-link — skip
 
                 feature_urls.add(raw_url)
 
