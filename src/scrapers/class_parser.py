@@ -81,6 +81,15 @@ KNOWN_CLASSES = {
     'vigilante': {'hit_die': 'd8', 'bab': 'three_quarter', 'fort': 'poor', 'ref': 'good', 'will': 'good', 'skills_per_level': 6},
     # UW
     'shifter': {'hit_die': 'd10', 'bab': 'full', 'fort': 'good', 'ref': 'good', 'will': 'poor', 'skills_per_level': 4},
+    # Alternate classes
+    'antipaladin': {'hit_die': 'd10', 'bab': 'full', 'fort': 'good', 'ref': 'poor', 'will': 'poor', 'skills_per_level': 2, 'casting': 'divine', 'style': 'prepared', 'max_spell': 4},
+    # Unchained
+    'unchained barbarian': {'hit_die': 'd12', 'bab': 'full', 'fort': 'good', 'ref': 'poor', 'will': 'poor', 'skills_per_level': 4},
+    'unchained monk': {'hit_die': 'd10', 'bab': 'full', 'fort': 'good', 'ref': 'good', 'will': 'good', 'skills_per_level': 4},
+    'unchained rogue': {'hit_die': 'd8', 'bab': 'three_quarter', 'fort': 'poor', 'ref': 'good', 'will': 'poor', 'skills_per_level': 8},
+    'unchained summoner': {'hit_die': 'd8', 'bab': 'three_quarter', 'fort': 'poor', 'ref': 'poor', 'will': 'good', 'skills_per_level': 2, 'casting': 'arcane', 'style': 'spontaneous', 'max_spell': 6},
+    # Omdura
+    'omdura': {'hit_die': 'd10', 'bab': 'full', 'fort': 'good', 'ref': 'poor', 'will': 'good', 'skills_per_level': 4, 'casting': 'divine', 'style': 'spontaneous', 'max_spell': 6},
 }
 
 
@@ -171,6 +180,14 @@ def parse_class_page(url: str, html: str = None) -> dict | None:
     # Parse progression table if present
     cls["progression"] = parse_progression_table(content)
 
+    # Validation: skip pages that don't look like actual class pages
+    # Sub-pages (e.g., "Ninja Tricks") lack Hit Die and progression
+    has_hit_die = bool(cls["hit_die"])
+    has_progression = len(cls["progression"]) > 0
+    is_known = name_lower in KNOWN_CLASSES
+    if not has_hit_die and not has_progression and not is_known:
+        return None  # Not a real class page
+
     return cls
 
 
@@ -179,6 +196,9 @@ def parse_class_skills(text: str) -> list[str]:
 
     Looks for patterns like:
     "Class Skills: Acrobatics (Dex), Bluff (Cha), Climb (Str), ..."
+
+    HTML-to-text produces "Acrobatics ( Dex )" with spaces inside parens,
+    and class features like (Su), (Ex), (Sp) must NOT match.
     """
     match = re.search(
         r'Class Skills?\s*(?:are\s*)?[:\s]*(.+?)(?:\.|Skill Ranks|Hit Die|$)',
@@ -188,9 +208,46 @@ def parse_class_skills(text: str) -> list[str]:
         return []
 
     skills_text = match.group(1)
-    # Extract skill names (word before parenthesized ability)
-    skills = re.findall(r'([\w\s]+?)\s*\(\w+\)', skills_text)
-    return [clean_text(s) for s in skills if s.strip()]
+
+    # Only match actual ability abbreviations (not Su/Ex/Sp)
+    ability_pat = r'(?:Str|Dex|Con|Int|Wis|Cha)'
+
+    # Two-pass extraction:
+    # 1. Compound skills: "Knowledge (nature) (Int)" → "Knowledge (nature)"
+    compound_re = re.compile(
+        r'([\w\s]+?\s*\([^)]+\))\s*\(\s*' + ability_pat + r'\s*\)',
+        re.IGNORECASE
+    )
+    # 2. Simple skills: "Acrobatics (Dex)" → "Acrobatics"
+    simple_re = re.compile(
+        r'([\w\s]+?)\s*\(\s*' + ability_pat + r'\s*\)',
+        re.IGNORECASE
+    )
+
+    skills = []
+    seen = set()
+
+    # Pass 1: compound (must go first to avoid partial matches)
+    for m in compound_re.finditer(skills_text):
+        name = clean_text(m.group(1))
+        # Normalize spaces inside parens: "Knowledge ( all )" → "Knowledge (all)"
+        name = re.sub(r'\(\s+', '(', name)
+        name = re.sub(r'\s+\)', ')', name)
+        if name and name.lower() not in seen:
+            # Strip leading "and" or "or"
+            name = re.sub(r'^(?:and|or)\s+', '', name, flags=re.IGNORECASE).strip()
+            seen.add(name.lower())
+            skills.append(name)
+
+    # Pass 2: simple (skip anything already captured by compound)
+    for m in simple_re.finditer(skills_text):
+        name = clean_text(m.group(1))
+        if name and name.lower() not in seen:
+            name = re.sub(r'^(?:and|or)\s+', '', name, flags=re.IGNORECASE).strip()
+            seen.add(name.lower())
+            skills.append(name)
+
+    return [s for s in skills if s]
 
 
 def extract_class_description(content) -> str:

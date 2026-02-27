@@ -1,0 +1,230 @@
+[
+  {
+    "name": "Common",
+    "rarity": "Common",
+    "script": "Common",
+    "spoken_by": "Humans, halflings, half-elves, half-orcs"
+  },
+  {
+    "name": "Dwarven",
+    "rarity": "Common",
+    "script": "Dwarven",
+    "spoken_by": "Dwarves"
+  },
+  {
+    "name": "Elven",
+    "rarity": "Common",
+    "script": "Elven",
+    "spoken_by": "Elves, half-elves"
+  },
+  {
+    "name": "Giant",
+    "rarity": "Common",
+    "script": "Dwarven",
+    "spoken_by": "Ogres, giants"
+  },
+  {
+    "name": "Gnome",
+    "rarity": "Common",
+    "script": "Dwarven",
+    "spoken_by": "Gnomes"
+  },
+  {
+    "name": "Goblin",
+    "rarity": "Common",
+    "script": "Dwarven",
+    "spoken_by": "Goblins, hobgoblins, bugbears"
+  },
+  {
+    "name": "Halfling",
+    "rarity": "Common",
+    "script": "Common",
+    "spoken_by": "Halflings"
+  },
+  {
+    "name": "Orc",
+    "rarity": "Common",
+    "script": "Dwarven",
+    "spoken_by": "Orcs, half-orcs"
+  },
+  {
+    "name": "Abyssal",
+    "rarity": "Uncommon",
+    "script": "Infernal",
+    "spoken_by": "Demons, chaotic evil outsiders"
+  },
+  {
+    "name": "Aklo",
+    "rarity": "Uncommon",
+    "script": "—",
+    "spoken_by": "Derro, inhuman or otherworldly monsters, evil fey"
+  },
+  {
+    "name": "Aquan",
+    "rarity": "Uncommon",
+    "script": "Elven",
+    "spoken_by": "Water-based creatures"
+  },
+  {
+    "name": "Auran",
+    "rarity": "Uncommon",
+    "script": "Draconic",
+    "spoken_by": "Air-based creatures"
+  },
+  {
+    "name": "Celestial",
+    "rarity": "Uncommon",
+    "script": "Celestial",
+    "spoken_by": "Angels, good outsiders"
+  },
+  {
+    "name": "Draconic",
+    "rarity": "Uncommon",
+    "script": "Draconic",
+    "spoken_by": "Kobolds, troglodytes, lizardfolk, dragons"
+  },
+  {
+    "name": "Druidic",
+    "rarity": "Secret",
+    "script": "Druidic",
+    "spoken_by": "Druids (only)"
+  },
+  {
+    "name": "Gnoll",
+    "rarity": "Uncommon",
+    "script": "Common",
+    "spoken_by": "Gnolls"
+  },
+  {
+    "name": "Ignan",
+    "rarity": "Uncommon",
+    "script": "Draconic",
+    "spoken_by": "Fire-based creatures"
+  },
+  {
+    "name": "Infernal",
+    "rarity": "Uncommon",
+    "script": "Infernal",
+    "spoken_by": "Devils, lawful evil outsiders"
+  },
+  {
+    "name": "Necril",
+    "rarity": "Uncommon",
+    "script": "—",
+    "spoken_by": "Ghouls, intelligent undead"
+  },
+  {
+    "name": "Shadowtongue",
+    "rarity": "Uncommon",
+    "script": "—",
+    "spoken_by": "Fetchlings, creatures of the Shadow Plane"
+  },
+  {
+    "name": "Sylvan",
+    "rarity": "Uncommon",
+    "script": "Elven",
+    "spoken_by": "Fey creatures, centaurs, plant creatures"
+  },
+  {
+    "name": "Terran",
+    "rarity": "Uncommon",
+    "script": "Dwarven",
+    "spoken_by": "Earth-based creatures"
+  },
+  {
+    "name": "Undercommon",
+    "rarity": "Uncommon",
+    "script": "Elven",
+    "spoken_by": "Drow, duergar, morlocks"
+  },
+  {
+    "name": "Boggard",
+    "rarity": "Rare",
+    "script": "—",
+    "spoken_by": "Boggards"
+  },
+  {
+    "name": "Catfolk",
+    "rarity": "Rare",
+    "script": "Common",
+    "spoken_by": "Catfolk"
+  },
+  {
+    "name": "Cyclops",
+    "rarity": "Rare",
+    "script": "Giant",
+    "spoken_by": "Cyclopes"
+  },
+  {
+    "name": "Dark Folk",
+    "rarity": "Rare",
+    "script": "—",
+    "spoken_by": "Dark creepers, dark stalkers"
+  },
+  {
+    "name": "D'ziriak",
+    "rarity": "Rare",
+    "script": "—",
+    "spoken_by": "D'ziriak"
+  },
+  {
+    "name": "Grippli",
+    "rarity": "Rare",
+    "script": "Common",
+    "spoken_by": "Grippli"
+  },
+  {
+    "name": "Protean",
+    "rarity": "Rare",
+    "script": "—",
+    "spoken_by": "Proteans, chaotic outsiders"
+  },
+  {
+    "name": "Samsaran",
+    "rarity": "Rare",
+    "script": "Samsaran",
+    "spoken_by": "Samsarans"
+  },
+  {
+    "name": "Sphinx",
+    "rarity": "Rare",
+    "script": "—",
+    "spoken_by": "Sphinxes"
+  },
+  {
+    "name": "Strix",
+    "rarity": "Rare",
+    "script": "Infernal",
+    "spoken_by": "Strix"
+  },
+  {
+    "name": "Tengu",
+    "rarity": "Rare",
+    "script": "Common",
+    "spoken_by": "Tengu"
+  },
+  {
+    "name": "Vanaran",
+    "rarity": "Rare",
+    "script": "Common",
+    "spoken_by": "Vanaras"
+  },
+  {
+    "name": "Vegepygmy",
+    "rarity": "Rare",
+    "script": "—",
+    "spoken_by": "Vegepygmies (non-verbal, rhythmic tapping)"
+  },
+  {
+    "name": "Vishkanya",
+    "rarity": "Rare",
+    "script": "Common",
+    "spoken_by": "Vishkanya"
+  },
+  {
+    "name": "Wayang",
+    "rarity": "Rare",
+    "script": "Common",
+    "spoken_by": "Wayangs"
+  }
+]

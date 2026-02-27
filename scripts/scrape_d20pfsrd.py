@@ -8,15 +8,17 @@ Runs the complete d20pfsrd.com scraping pipeline:
   Phase 3: Save parsed data as JSON (ready for import)
 
 Usage:
-  python scripts/scrape_d20pfsrd.py                   # Full pipeline (Tier 1 only)
-  python scripts/scrape_d20pfsrd.py --phase manifest   # Phase 1 only
-  python scripts/scrape_d20pfsrd.py --phase parse      # Phase 2 only (needs manifest)
-  python scripts/scrape_d20pfsrd.py --type spells      # Parse only spells
-  python scripts/scrape_d20pfsrd.py --type feats       # Parse only feats
-  python scripts/scrape_d20pfsrd.py --type classes     # Parse only classes
-  python scripts/scrape_d20pfsrd.py --type races       # Parse only races
-  python scripts/scrape_d20pfsrd.py --tier 1 2         # Include Tier 2 (equipment)
-  python scripts/scrape_d20pfsrd.py --limit 50         # Parse only first N URLs per type
+  python scripts/scrape_d20pfsrd.py                        # Full pipeline (Tier 1 only)
+  python scripts/scrape_d20pfsrd.py --phase manifest        # Phase 1 only
+  python scripts/scrape_d20pfsrd.py --phase parse           # Phase 2 only (needs manifest)
+  python scripts/scrape_d20pfsrd.py --type spells           # Parse only spells
+  python scripts/scrape_d20pfsrd.py --type feats            # Parse only feats
+  python scripts/scrape_d20pfsrd.py --type classes          # Parse only classes
+  python scripts/scrape_d20pfsrd.py --type races            # Parse only races
+  python scripts/scrape_d20pfsrd.py --type traits           # Parse only traits
+  python scripts/scrape_d20pfsrd.py --type class_features   # Discover + parse class features
+  python scripts/scrape_d20pfsrd.py --tier 1 2              # Include Tier 2 (equipment)
+  python scripts/scrape_d20pfsrd.py --limit 50              # Parse only first N URLs per type
 """
 
 import argparse
@@ -35,6 +37,12 @@ from src.scrapers.spell_parser import parse_spell_batch
 from src.scrapers.feat_parser import parse_feat_batch
 from src.scrapers.class_parser import parse_class_batch
 from src.scrapers.race_parser import parse_race_batch
+from src.scrapers.archetype_parser import parse_archetype_batch
+from src.scrapers.trait_parser import parse_trait_batch
+from src.scrapers.class_feature_parser import (
+    discover_class_feature_urls, parse_class_feature_batch,
+    CLASS_FEATURE_INDEXES,
+)
 
 
 def progress_printer(current, total, name):
@@ -97,6 +105,10 @@ def run_parse(content_types: list[str] | None, limit: int | None):
             parsed = parse_class_batch(urls, progress_callback=progress_printer)
         elif content_type == "races":
             parsed = parse_race_batch(urls, progress_callback=progress_printer)
+        elif content_type == "archetypes":
+            parsed = parse_archetype_batch(urls, progress_callback=progress_printer)
+        elif content_type == "traits":
+            parsed = parse_trait_batch(urls)
         else:
             print(f"  ⚠ No parser for '{content_type}' yet — skipping")
             continue
@@ -115,6 +127,47 @@ def run_parse(content_types: list[str] | None, limit: int | None):
         }
 
         print(f"  ✓ {len(parsed)}/{len(urls)} parsed in {elapsed:.1f}s → {output_path.name}")
+
+    # --- Special: class_features has its own discovery pipeline ---
+    if content_types and "class_features" in content_types:
+        print(f"\n{'=' * 60}")
+        print("[CLASS_FEATURES] Discovery + Parse pipeline...")
+        print(f"{'=' * 60}")
+
+        start_time = time.time()
+
+        # Phase 1: Discover class feature URLs from index pages
+        discovered = discover_class_feature_urls()
+
+        # Phase 2: Parse each category
+        all_features = []
+        for key, urls in discovered.items():
+            config = CLASS_FEATURE_INDEXES[key]
+            cat_label = f"{config['parent_class']} {config['feature_category']}"
+            parse_urls = urls[:limit] if limit else urls
+            print(f"\n  [{cat_label}] Parsing {len(parse_urls)} pages...")
+
+            results = parse_class_feature_batch(
+                parse_urls,
+                feature_key=key,
+                progress_callback=progress_printer,
+                limit=limit,
+            )
+            all_features.extend(results)
+            print(f"    ✓ {len(results)}/{len(parse_urls)} parsed")
+
+        elapsed = time.time() - start_time
+
+        # Save all class features to one file
+        output_path = PARSED_DIR / "class_features.json"
+        save_json(all_features, output_path)
+        results_summary["class_features"] = {
+            "urls_attempted": sum(len(v) for v in discovered.values()),
+            "successfully_parsed": len(all_features),
+            "elapsed_seconds": round(elapsed, 1),
+            "output_file": str(output_path),
+        }
+        print(f"\n  ✓ {len(all_features)} total class features in {elapsed:.1f}s → {output_path.name}")
 
     return results_summary
 

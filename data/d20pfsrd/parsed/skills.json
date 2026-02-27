@@ -1,0 +1,212 @@
+[
+  {
+    "name": "Acrobatics",
+    "ability": "Dex",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Appraise",
+    "ability": "Int",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Bluff",
+    "ability": "Cha",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Climb",
+    "ability": "Str",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Craft",
+    "ability": "Int",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Diplomacy",
+    "ability": "Cha",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Disable Device",
+    "ability": "Dex",
+    "trained_only": true,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Disguise",
+    "ability": "Cha",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Escape Artist",
+    "ability": "Dex",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Fly",
+    "ability": "Dex",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Handle Animal",
+    "ability": "Cha",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Heal",
+    "ability": "Wis",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Intimidate",
+    "ability": "Cha",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (arcana)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (dungeoneering)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (engineering)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (geography)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (history)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (local)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (nature)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (nobility)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (planes)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Knowledge (religion)",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Linguistics",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Perception",
+    "ability": "Wis",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Perform",
+    "ability": "Cha",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Profession",
+    "ability": "Wis",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Ride",
+    "ability": "Dex",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Sense Motive",
+    "ability": "Wis",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Sleight of Hand",
+    "ability": "Dex",
+    "trained_only": true,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Spellcraft",
+    "ability": "Int",
+    "trained_only": true,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Stealth",
+    "ability": "Dex",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Survival",
+    "ability": "Wis",
+    "trained_only": false,
+    "armor_check_penalty": false
+  },
+  {
+    "name": "Swim",
+    "ability": "Str",
+    "trained_only": false,
+    "armor_check_penalty": true
+  },
+  {
+    "name": "Use Magic Device",
+    "ability": "Cha",
+    "trained_only": true,
+    "armor_check_penalty": false
+  }
+]
