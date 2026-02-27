@@ -394,6 +394,17 @@ body {
   background: none;
 }
 .tag .tag-remove:hover { color: var(--red-wax); }
+.feat-method-tag {
+  font-family: var(--font-label);
+  font-size: 8px;
+  letter-spacing: .04em;
+  color: var(--fade);
+  background: var(--paper-dark);
+  border: 1px solid var(--gold-border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-left: 4px;
+}
 
 /* ── Scrollable list ────────────────────────────────── */
 .scroll-list {

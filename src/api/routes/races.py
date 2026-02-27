@@ -15,13 +15,13 @@ router = APIRouter(tags=["races"])
 
 _RACE_DATA: dict[str, dict] = {
     # ── Core (7) ─────────────────────────────────────────────────────────────
-    "Dwarves":    {"race_type": "core",     "ability_modifiers": {"con": 2, "wis": 2, "cha": -2},           "size": "Medium", "base_speed": 20, "flexible_bonus": False},
-    "Elves":      {"race_type": "core",     "ability_modifiers": {"dex": 2, "int": 2, "con": -2},           "size": "Medium", "base_speed": 30, "flexible_bonus": False},
-    "Gnomes":     {"race_type": "core",     "ability_modifiers": {"con": 2, "cha": 2, "str": -2},           "size": "Small",  "base_speed": 20, "flexible_bonus": False},
-    "Half-Elves": {"race_type": "core",     "ability_modifiers": {},                                        "size": "Medium", "base_speed": 30, "flexible_bonus": True},
-    "Half-Orcs":  {"race_type": "core",     "ability_modifiers": {},                                        "size": "Medium", "base_speed": 30, "flexible_bonus": True},
-    "Halflings":  {"race_type": "core",     "ability_modifiers": {"dex": 2, "cha": 2, "str": -2},           "size": "Small",  "base_speed": 20, "flexible_bonus": False},
-    "Humans":     {"race_type": "core",     "ability_modifiers": {},                                        "size": "Medium", "base_speed": 30, "flexible_bonus": True},
+    "Dwarf":      {"race_type": "core",     "ability_modifiers": {"con": 2, "wis": 2, "cha": -2},           "size": "Medium", "base_speed": 20, "flexible_bonus": False},
+    "Elf":        {"race_type": "core",     "ability_modifiers": {"dex": 2, "int": 2, "con": -2},           "size": "Medium", "base_speed": 30, "flexible_bonus": False},
+    "Gnome":      {"race_type": "core",     "ability_modifiers": {"con": 2, "cha": 2, "str": -2},           "size": "Small",  "base_speed": 20, "flexible_bonus": False},
+    "Half-Elf":   {"race_type": "core",     "ability_modifiers": {},                                        "size": "Medium", "base_speed": 30, "flexible_bonus": True},
+    "Half-Orc":   {"race_type": "core",     "ability_modifiers": {},                                        "size": "Medium", "base_speed": 30, "flexible_bonus": True},
+    "Halfling":   {"race_type": "core",     "ability_modifiers": {"dex": 2, "cha": 2, "str": -2},           "size": "Small",  "base_speed": 20, "flexible_bonus": False},
+    "Human":      {"race_type": "core",     "ability_modifiers": {},                                        "size": "Medium", "base_speed": 30, "flexible_bonus": True},
     # ── Featured (16) ────────────────────────────────────────────────────────
     "Aasimar":    {"race_type": "featured", "ability_modifiers": {"wis": 2, "cha": 2},                      "size": "Medium", "base_speed": 30, "flexible_bonus": False},
     "Catfolk":    {"race_type": "featured", "ability_modifiers": {"dex": 2, "cha": 2, "wis": -2},           "size": "Medium", "base_speed": 30, "flexible_bonus": False},

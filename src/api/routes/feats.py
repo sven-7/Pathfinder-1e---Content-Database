@@ -9,6 +9,9 @@ from fastapi import APIRouter, Query, Request
 
 router = APIRouter(tags=["feats"])
 
+# Feat types that don't apply during normal character creation
+_NON_PLAYER_TYPES = {"monster", "mythic"}
+
 
 @router.get("/feats")
 async def list_feats(
@@ -16,9 +19,14 @@ async def list_feats(
     available_for: str | None = Query(default=None, description="Base64-encoded character JSON"),
     feat_type: str | None = Query(default=None),
     search: str | None = Query(default=None),
+    include_all: bool = Query(default=False, description="Include monster/mythic feats"),
 ):
     db = request.app.state.db
     rows = db.get_all_feats()
+
+    # Exclude non-player feat types by default
+    if not include_all:
+        rows = [r for r in rows if (r.get("feat_type") or "").lower() not in _NON_PLAYER_TYPES]
 
     # Filter by type
     if feat_type:

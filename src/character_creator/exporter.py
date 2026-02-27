@@ -138,6 +138,8 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         "skill_totals": skill_totals,
         "ability_mods": mods,
         "class_features": class_features,
+        # Pass feat_details through so the sheet can render level/method tags
+        "feat_details": char.get("feat_details", []),
     }
 
 

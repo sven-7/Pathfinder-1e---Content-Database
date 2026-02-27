@@ -36,7 +36,7 @@ app.add_middleware(
 
 # ── Include API routers ──────────────────────────────────────────────────── #
 
-from src.api.routes import races, classes, feats, skills, traits, characters  # noqa: E402
+from src.api.routes import races, classes, feats, skills, traits, characters, spells  # noqa: E402
 
 app.include_router(races.router, prefix="/api")
 app.include_router(classes.router, prefix="/api")
@@ -44,6 +44,7 @@ app.include_router(feats.router, prefix="/api")
 app.include_router(skills.router, prefix="/api")
 app.include_router(traits.router, prefix="/api")
 app.include_router(characters.router, prefix="/api")
+app.include_router(spells.router, prefix="/api")
 
 # ── Static files + page routes ───────────────────────────────────────────── #
 

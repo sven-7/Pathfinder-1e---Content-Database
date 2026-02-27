@@ -4,11 +4,12 @@
 
 const API = '/api';
 
-// 5 steps: Origins (race+class combined), Abilities, Feats & Traits, Skills, Review
+// 6 steps: Origins, Abilities, Feats & Traits, Extras, Skills, Review
 const STEPS = [
   { id: 'origins',   label: 'Origins' },
   { id: 'abilities', label: 'Abilities' },
   { id: 'feats',     label: 'Feats & Traits' },
+  { id: 'extras',    label: 'Extras' },
   { id: 'skills',    label: 'Skills' },
   { id: 'review',    label: 'Review' },
 ];
@@ -50,11 +51,17 @@ const state = {
   rollAssign:  {},
 
   // Step 2: Feats & Traits
-  feats:  [],
+  feats:  [],   // [{name, level, method}, ...]
   traits: [],
 
-  // Step 3: Skills
+  // Step 3: Extras
+  classTalents: [],   // selected class talent names
+  spells: {},         // {0: ['...'], 1: ['...']}
+  equipment: [],      // string items
+
+  // Step 4: Skills
   skillRanks: {},
+  favClassChoice: 'hp',   // 'hp' or 'skill'
 
   // Cached API data
   _races:      null,
@@ -137,8 +144,9 @@ function skillBudget() {
   const ranksPerLevel = state.classRow.skill_ranks_per_level || 2;
   const intMod = mod(getFinalScores().int);
   const perLevel = Math.max(1, ranksPerLevel + intMod);
-  const humanBonus = (state.race?.name === 'Humans') ? state.startLevel : 0;
-  return perLevel * state.startLevel + humanBonus;
+  const humanBonus = (state.race?.name === 'Human') ? state.startLevel : 0;
+  const fcSkillBonus = (state.favClassChoice === 'skill') ? state.startLevel : 0;
+  return perLevel * state.startLevel + humanBonus + fcSkillBonus;
 }
 
 function usedSkillRanks() {
@@ -151,9 +159,9 @@ function featBudget() {
   let budget = Math.ceil(level / 2);
   // Fighter bonus combat feats at levels 1, 2, 4, 6, 8... = floor((level+2)/2)
   if (state.className === 'Fighter') budget += Math.floor((level + 2) / 2);
-  // Human / Half-elf: +1 bonus feat at level 1
+  // Human / Half-Elf: +1 bonus feat at level 1
   const race = state.race?.name || '';
-  if (race === 'Humans' || race === 'Half-Elves') budget += 1;
+  if (race === 'Human' || race === 'Half-Elf') budget += 1;
   return budget;
 }
 
@@ -212,8 +220,9 @@ async function renderStep() {
       case 0: await renderOriginsStep(container); break;
       case 1: await renderAbilitiesStep(container); break;
       case 2: await renderFeatsTraitsStep(container); break;
-      case 3: await renderSkillsStep(container); break;
-      case 4: await renderReviewStep(container); break;
+      case 3: await renderExtrasStep(container); break;
+      case 4: await renderSkillsStep(container); break;
+      case 5: await renderReviewStep(container); break;
     }
   } catch(e) {
     container.innerHTML = `<div class="panel"><p class="text-red">Error: ${e.message}</p></div>`;
@@ -513,7 +522,7 @@ async function renderAbilitiesStep(c) {
     <button class="btn" onclick="prevStep()">← Back</button>
     <div style="display:flex;align-items:center;gap:12px;">
       <span class="nav-error" id="nav-error"></span>
-      <button class="btn btn-primary" onclick="nextStep()">Next: Feats & Traits →</button>
+      <button class="btn btn-primary" onclick="nextStep()">Next: Feats &amp; Traits →</button>
     </div>
   </div>`;
 
@@ -639,9 +648,19 @@ window.doRoll = function() {
 };
 
 window.setRollAssign = function(ab, idx) {
-  state.rollAssign[ab] = idx === '' ? undefined : parseInt(idx);
+  const parsed = idx === '' ? undefined : parseInt(idx);
+  // Clear any other ability that was already using this index
+  if (parsed !== undefined) {
+    for (const other of ABILITIES_ORDER) {
+      if (other !== ab && state.rollAssign[other] === parsed) {
+        state.rollAssign[other] = undefined;
+      }
+    }
+  }
+  state.rollAssign[ab] = parsed;
   computeBaseScores();
   document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
+  renderAbilityMethodPanel();
 };
 
 function renderManual() {
@@ -700,7 +719,7 @@ async function renderFeatsTraitsStep(c) {
           <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${state.feats.length}/${budget} selected</span>
         </div>
         <div style="margin-bottom:10px;">
-          ${state.feats.map(f => `<span class="tag">${f}<button class="tag-remove" onclick="removeFeat(${jsAttr(f)})">✕</button></span>`).join('')}
+          ${state.feats.map(f => `<span class="tag">${f.name}<span class="feat-method-tag">${f.method}</span><button class="tag-remove" onclick="removeFeat(${jsAttr(f.name)})">✕</button></span>`).join('')}
           ${state.feats.length === 0 ? '<span class="text-muted" style="font-size:12px;">No feats selected.</span>' : ''}
         </div>
         <div class="field-group">
@@ -753,14 +772,14 @@ async function renderFeatsTraitsStep(c) {
     <button class="btn" onclick="prevStep()">← Back</button>
     <div style="display:flex;align-items:center;gap:12px;">
       <span class="nav-error" id="nav-error"></span>
-      <button class="btn btn-primary" onclick="nextStep()">Next: Skills →</button>
+      <button class="btn btn-primary" onclick="nextStep()">Next: Extras →</button>
     </div>
   </div>`;
 }
 
 function featListHtml(feats) {
   return feats.slice(0, 300).map(f => `
-    <div class="list-item${state.feats.includes(f.name)?' selected':''}"
+    <div class="list-item${state.feats.some(sf => sf.name === f.name)?' selected':''}"
          data-name="${esc(f.name)}" data-type="${esc(f.feat_type)}"
          onclick="toggleFeat(${jsAttr(f.name)})">
       <div>
@@ -785,20 +804,20 @@ function traitListHtml(traits) {
 }
 
 window.toggleFeat = function(name) {
-  if (state.feats.includes(name)) {
-    state.feats = state.feats.filter(f => f !== name);
+  if (state.feats.some(f => f.name === name)) {
+    state.feats = state.feats.filter(f => f.name !== name);
   } else {
     if (state.feats.length >= featBudget()) {
       showErrors([`Maximum ${featBudget()} feats at level ${state.startLevel}.`]);
       return;
     }
-    state.feats.push(name);
+    state.feats.push({ name, level: state.startLevel, method: 'general' });
   }
   renderFeatsTraitsStep(document.getElementById('step-content'));
 };
 
 window.removeFeat = function(name) {
-  state.feats = state.feats.filter(f => f !== name);
+  state.feats = state.feats.filter(f => f.name !== name);
   renderFeatsTraitsStep(document.getElementById('step-content'));
 };
 
@@ -840,7 +859,239 @@ window.filterTraits = function() {
   });
 };
 
-// ── Step 3: Skills ────────────────────────────────────────────────────────
+// ── Step 3: Extras (class talents, spells, equipment) ─────────────────────
+
+// Maps class names to their selectable talent feature_type in class_features table
+const CLASS_TALENT_MAP = {
+  'Barbarian':     'Rage Power',
+  'Rogue':         'Rogue Talent',
+  'Alchemist':     'Discovery',
+  'Witch':         'Hex',
+  'Magus':         'Magus Arcana',
+  'Ninja':         'Ninja Trick',
+  'Inquisitor':    'Inquisition',
+  'Slayer':        'Slayer Talent',
+  'Investigator':  'Investigator Talent',
+  'Arcanist':      'Exploit',
+  'Skald':         'Rage Power',
+  'Shaman':        'Hex',
+  'Kineticist':    'Wild Talent',
+};
+
+async function renderExtrasStep(c) {
+  const className    = state.className || '';
+  const classRow     = state.classRow;
+  const talentType   = CLASS_TALENT_MAP[className] || null;
+  const isSpellcaster = !!classRow?.spellcasting_type;
+
+  // Load class talents if applicable
+  let talents = [];
+  if (talentType) {
+    try {
+      talents = await apiFetch(`/classes/${encodeURIComponent(className)}/features?feature_type=${encodeURIComponent(talentType)}`);
+    } catch(e) { talents = []; }
+  }
+
+  // Build available spell levels at current level (simplified: use class progression data from classRow)
+  // For now show level 0 (cantrips) and level 1 spells if spellcaster
+  let spellLevels = [];
+  if (isSpellcaster) {
+    // Assume all spellcasters get cantrips + level 1 at level 1; extend for higher levels
+    const maxSpellLevel = Math.min(9, Math.ceil(state.startLevel / 2));
+    for (let lvl = 0; lvl <= maxSpellLevel; lvl++) spellLevels.push(lvl);
+  }
+
+  const talentSection = talentType ? `
+    <div class="panel">
+      <div class="panel-title">${talentType}s
+        <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${state.classTalents.length} selected</span>
+      </div>
+      <div style="margin-bottom:10px;" id="talent-selected">
+        ${state.classTalents.map(t => `<span class="tag">${t}<button class="tag-remove" onclick="removeTalent(${jsAttr(t)})">✕</button></span>`).join('')}
+        ${state.classTalents.length === 0 ? '<span class="text-muted" style="font-size:12px;">None selected.</span>' : ''}
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="talent-search" placeholder="Search ${talentType}s…" oninput="filterTalents()">
+      </div>
+      <div class="scroll-list" style="max-height:220px;" id="talent-list">
+        ${talents.length > 0 ? talents.map(t => `
+          <div class="list-item${state.classTalents.includes(t.name)?' selected':''}"
+               data-name="${esc(t.name)}"
+               onclick="toggleTalent(${jsAttr(t.name)})">
+            <div>
+              <div class="list-item-name">${t.name}</div>
+              ${t.description ? `<div class="list-item-detail">${(t.description||'').slice(0,80)}${(t.description||'').length>80?'…':''}</div>` : ''}
+            </div>
+          </div>`).join('') : '<div class="text-muted" style="padding:8px;font-size:12px;">No ${talentType}s found in database.</div>'}
+      </div>
+    </div>` : '';
+
+  const spellSection = isSpellcaster ? `
+    <div class="panel">
+      <div class="panel-title">Spells Known / Prepared</div>
+      <p class="text-muted" style="font-size:11px;margin-bottom:10px;">
+        Select spells for your ${className}. Use the spell level tabs below.
+      </p>
+      <div class="method-tabs" id="spell-level-tabs">
+        ${spellLevels.map(lvl => `<div class="method-tab${lvl===0?' active':''}" onclick="setSpellTab(${lvl})">${lvl === 0 ? 'Cantrips' : 'Level '+lvl}</div>`).join('')}
+      </div>
+      <div id="spell-tab-content">
+        ${spellTabHtml(0, className)}
+      </div>
+    </div>` : '';
+
+  const noExtras = !talentSection && !spellSection;
+  c.innerHTML = `
+  ${talentSection}
+  ${spellSection}
+  ${noExtras ? `<div class="panel"><p class="text-muted" style="font-size:12px;">No class-specific options for <b>${esc(className || 'this class')}</b>. Add equipment below or click Next: Skills.</p></div>` : ''}
+
+  <div class="panel">
+    <div class="panel-title">Equipment</div>
+    <p class="text-muted" style="font-size:11px;margin-bottom:8px;">Enter starting equipment, one item per line.</p>
+    <textarea class="field-input" id="equipment-input" rows="5" style="width:100%;resize:vertical;"
+              placeholder="Longsword&#10;Chain shirt&#10;Backpack">${state.equipment.join('\n')}</textarea>
+  </div>
+
+  <div class="nav-bar">
+    <button class="btn" onclick="prevStep()">← Back</button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="nav-error" id="nav-error"></span>
+      <button class="btn btn-primary" onclick="nextStep()">Next: Skills →</button>
+    </div>
+  </div>`;
+
+  // Kick off loading spell list for level 0 if spellcaster
+  if (isSpellcaster) loadSpellList(0);
+}
+
+window.toggleTalent = function(name) {
+  if (state.classTalents.includes(name)) {
+    state.classTalents = state.classTalents.filter(t => t !== name);
+  } else {
+    state.classTalents.push(name);
+  }
+  // Re-render selected area without full step re-render
+  const selEl = document.getElementById('talent-selected');
+  if (selEl) {
+    selEl.innerHTML = state.classTalents.length
+      ? state.classTalents.map(t => `<span class="tag">${t}<button class="tag-remove" onclick="removeTalent(${jsAttr(t)})">✕</button></span>`).join('')
+      : '<span class="text-muted" style="font-size:12px;">None selected.</span>';
+  }
+  document.querySelectorAll('#talent-list .list-item').forEach(el => {
+    el.classList.toggle('selected', state.classTalents.includes(el.dataset.name));
+  });
+};
+
+window.removeTalent = function(name) {
+  state.classTalents = state.classTalents.filter(t => t !== name);
+  const selEl = document.getElementById('talent-selected');
+  if (selEl) {
+    selEl.innerHTML = state.classTalents.length
+      ? state.classTalents.map(t => `<span class="tag">${t}<button class="tag-remove" onclick="removeTalent(${jsAttr(t)})">✕</button></span>`).join('')
+      : '<span class="text-muted" style="font-size:12px;">None selected.</span>';
+  }
+  document.querySelectorAll('#talent-list .list-item').forEach(el => {
+    el.classList.toggle('selected', state.classTalents.includes(el.dataset.name));
+  });
+};
+
+window.filterTalents = function() {
+  const q = (document.getElementById('talent-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#talent-list .list-item').forEach(el => {
+    el.style.display = !q || el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
+
+// ── Spell tab helpers ─────────────────────────────────────────────────────
+let _currentSpellTab = 0;
+let _spellListCache = {};
+
+function spellTabHtml(level, className) {
+  const selected = (state.spells[level] || []);
+  return `
+    <div style="margin:8px 0;font-size:11px;color:var(--fade);">
+      Selected: ${selected.length > 0 ? selected.map(s => `<span class="tag" style="font-size:10px;">${s}<button class="tag-remove" onclick="removeSpell(${level},${jsAttr(s)})">✕</button></span>`).join('') : '<em>None</em>'}
+    </div>
+    <div id="spell-list-${level}"><span class="text-muted">Loading spells…</span></div>`;
+}
+
+window.setSpellTab = function(level) {
+  _currentSpellTab = level;
+  document.querySelectorAll('#spell-level-tabs .method-tab').forEach((tt, ii) => {
+    tt.classList.toggle('active', ii === level);
+  });
+  const contentEl = document.getElementById('spell-tab-content');
+  if (contentEl) contentEl.innerHTML = spellTabHtml(level, state.className || '');
+  loadSpellList(level);
+};
+
+async function loadSpellList(level) {
+  const listEl = document.getElementById(`spell-list-${level}`);
+  if (!listEl) return;
+  if (_spellListCache[level]) {
+    renderSpellList(level, _spellListCache[level]);
+    return;
+  }
+  try {
+    const spells = await apiFetch(`/spells?class_name=${encodeURIComponent(state.className || '')}&level=${level}&limit=200`);
+    _spellListCache[level] = spells;
+    renderSpellList(level, spells);
+  } catch(e) {
+    listEl.innerHTML = `<div class="text-muted" style="padding:8px;font-size:12px;">Could not load spells: ${e.message}</div>`;
+  }
+}
+
+function renderSpellList(level, spells) {
+  const listEl = document.getElementById(`spell-list-${level}`);
+  if (!listEl) return;
+  const selected = state.spells[level] || [];
+  if (!spells.length) {
+    listEl.innerHTML = '<div class="text-muted" style="padding:8px;font-size:12px;">No spells found for this level.</div>';
+    return;
+  }
+  listEl.innerHTML = `<div class="scroll-list" style="max-height:200px;">
+    ${spells.slice(0, 200).map(s => `
+      <div class="list-item${selected.includes(s.name)?' selected':''}"
+           data-name="${esc(s.name)}"
+           onclick="toggleSpell(${level},${jsAttr(s.name)})">
+        <div class="list-item-name">${s.name}</div>
+        ${s.school ? `<div class="list-item-detail">${s.school}</div>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
+window.toggleSpell = function(level, name) {
+  if (!state.spells[level]) state.spells[level] = [];
+  if (state.spells[level].includes(name)) {
+    state.spells[level] = state.spells[level].filter(s => s !== name);
+  } else {
+    state.spells[level].push(name);
+  }
+  // Re-render just the selected line and list highlight
+  const contentEl = document.getElementById('spell-tab-content');
+  if (contentEl) {
+    // Update selected summary line
+    const sel = state.spells[level] || [];
+    const selDiv = contentEl.querySelector('div[style*="margin:8px"]');
+    if (selDiv) {
+      selDiv.innerHTML = `Selected: ${sel.length > 0 ? sel.map(s => `<span class="tag" style="font-size:10px;">${s}<button class="tag-remove" onclick="removeSpell(${level},${jsAttr(s)})">✕</button></span>`).join('') : '<em>None</em>'}`;
+    }
+  }
+  document.querySelectorAll(`#spell-list-${level} .list-item`).forEach(el => {
+    el.classList.toggle('selected', (state.spells[level] || []).includes(el.dataset.name));
+  });
+};
+
+window.removeSpell = function(level, name) {
+  if (state.spells[level]) {
+    state.spells[level] = state.spells[level].filter(s => s !== name);
+  }
+  window.setSpellTab(level);
+};
+
+/// ── Step 4: Skills ────────────────────────────────────────────────────────
 async function renderSkillsStep(c) {
   if (!state._skills) state._skills = await apiFetch('/skills');
   if (!state._classSkills && state.className) {
@@ -856,19 +1107,37 @@ async function renderSkillsStep(c) {
   const final     = getFinalScores();
   const maxRanks  = state.startLevel;
 
+  const ranksPerLevel = state.classRow?.skill_ranks_per_level || 2;
+  const intMod = mod(final.int);
+  const perLvl = Math.max(1, ranksPerLevel + intMod);
+
   c.innerHTML = `
   <div class="panel">
     <div class="panel-title">Skill Ranks</div>
-    <div class="skill-budget-bar">
-      <span>Available ranks${state.startLevel > 1 ? ` (level ${state.startLevel})` : ''}</span>
-      <span class="skill-budget-count ${remaining < 0 ? 'depleted' : ''}">${remaining} / ${budget}</span>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:10px;">
+      <div class="skill-budget-bar" style="flex:1;min-width:200px;">
+        <span>Available ranks${state.startLevel > 1 ? ` (level ${state.startLevel})` : ''}</span>
+        <span class="skill-budget-count ${remaining < 0 ? 'depleted' : ''}">${remaining} / ${budget}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+        <span style="font-family:var(--font-label);font-size:9px;color:var(--fade);">FAVORED CLASS BONUS:</span>
+        <label style="cursor:pointer;display:flex;gap:4px;align-items:center;">
+          <input type="radio" name="fcb" value="hp" ${state.favClassChoice==='hp'?'checked':''} onchange="setFavClass('hp')"> +HP/lvl
+        </label>
+        <label style="cursor:pointer;display:flex;gap:4px;align-items:center;">
+          <input type="radio" name="fcb" value="skill" ${state.favClassChoice==='skill'?'checked':''} onchange="setFavClass('skill')"> +Skill Rank/lvl
+        </label>
+      </div>
     </div>
+
     <p class="text-muted" style="font-size:11px;margin-bottom:10px;">
       <b style="color:var(--green);">Bold green</b> = class skill (+3 when ranked) · Max ${maxRanks} rank${maxRanks>1?'s':''} per skill
+      · Base: ${perLvl}/lvl (${ranksPerLevel} class${intMod>=0?'+':''}${intMod} INT)
     </p>
     <div style="overflow-x:auto;">
     <table class="skill-list-table">
-      <thead><tr><th>Skill</th><th>Ability</th><th>Ranks</th><th>Mod</th><th>Total</th></tr></thead>
+      <thead><tr><th>Skill</th><th>Ability</th><th>Ranks</th><th>Mod</th><th>Total</th><th style="font-size:9px;color:var(--fade);">Breakdown</th></tr></thead>
       <tbody>
         ${state._skills.map(sk => {
           const isCS  = state._classSkills.has(sk.name.toLowerCase());
@@ -876,6 +1145,9 @@ async function renderSkillsStep(c) {
           const abilMod = mod(final[sk.ability] || 10);
           const trained = ranks > 0 && isCS ? 3 : 0;
           const total = ranks + abilMod + trained;
+          const breakdown = ranks > 0
+            ? `${ranks}rk ${abilMod>=0?'+':''}${abilMod}${sk.ability.toUpperCase()}${trained?' +3cs':''} = ${total>=0?'+':''}${total}`
+            : `${abilMod>=0?'+':''}${abilMod} ${sk.ability.toUpperCase()}`;
           return `<tr class="${isCS?'class-skill':''}">
             <td class="${isCS?'skill-cs':''}">${sk.name}${sk.trained_only?'*':''}</td>
             <td>${sk.ability.toUpperCase()}</td>
@@ -890,6 +1162,7 @@ async function renderSkillsStep(c) {
             <td class="skill-total-val" style="color:${total>0?'var(--green)':total<0?'var(--red-wax)':'var(--ink)'}">
               ${total >= 0 ? '+' : ''}${total}
             </td>
+            <td style="font-size:9px;color:var(--fade);white-space:nowrap;">${breakdown}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -918,7 +1191,12 @@ window.changeRank = function(skillName, delta) {
   renderSkillsStep(document.getElementById('step-content'));
 };
 
-// ── Step 4: Review ────────────────────────────────────────────────────────
+window.setFavClass = function(choice) {
+  state.favClassChoice = choice;
+  renderSkillsStep(document.getElementById('step-content'));
+};
+
+// ── Step 5: Review ────────────────────────────────────────────────────────
 async function renderReviewStep(c) {
   computeBaseScores();
   const final    = getFinalScores();
@@ -982,7 +1260,7 @@ async function renderReviewStep(c) {
         <div class="review-section">
           <div class="review-section-title">Feats (${state.feats.length}/${featBudget()})</div>
           ${state.feats.length
-            ? state.feats.map(f => `<div class="review-row"><span class="review-val">${f}</span></div>`).join('')
+            ? state.feats.map(f => `<div class="review-row"><span class="review-val">${f.name} <span class="feat-method-tag">${f.method} · lvl ${f.level}</span></span></div>`).join('')
             : '<div class="text-muted" style="font-size:11px;">None selected</div>'}
         </div>
 
@@ -997,7 +1275,7 @@ async function renderReviewStep(c) {
       <div>
         <div class="review-section">
           <div class="review-section-title">Combat Stats (Level ${level})</div>
-          <div class="review-row"><span class="review-key">HP</span><span class="review-val">${hp}</span></div>
+          <div class="review-row"><span class="review-key">HP</span><span class="review-val">${hp + (state.favClassChoice === 'hp' ? level : 0)}${state.favClassChoice==='hp'?` (+${level} FCB)`:''}</span></div>
           <div class="review-row"><span class="review-key">AC</span><span class="review-val">${ac}</span></div>
           <div class="review-row"><span class="review-key">BAB</span><span class="review-val">${fm(bab)}</span></div>
           <div class="review-row"><span class="review-key">Initiative</span><span class="review-val">${fm(dexMod)}</span></div>
@@ -1062,10 +1340,11 @@ function validateCurrentStep() {
       return [];
     }
     case 2: return [];   // Feats & Traits
-    case 3:              // Skills
+    case 3: return [];   // Extras
+    case 4:              // Skills
       if (usedSkillRanks() > skillBudget()) return ['Too many skill ranks allocated.'];
       return [];
-    case 4: return [];   // Review
+    case 5: return [];   // Review
   }
   return [];
 }
@@ -1080,12 +1359,28 @@ function syncCurrentStepState() {
     const flex = document.getElementById('flex-bonus');
     if (flex) state.flexBonus = flex.value || null;
   }
+  if (state.currentStep === 3) {
+    // Save equipment from textarea
+    const equip = document.getElementById('equipment-input');
+    if (equip) {
+      state.equipment = equip.value.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+  }
 }
 
 window.nextStep = function() {
   syncCurrentStepState();
   const errors = validateCurrentStep();
   if (errors.length) { showErrors(errors); return; }
+
+  // Fix 7: warn if skill ranks are unspent
+  if (state.currentStep === 4) {  // skills step
+    const remaining = skillBudget() - usedSkillRanks();
+    if (remaining > 0) {
+      if (!confirm(`You have ${remaining} unspent skill rank${remaining > 1 ? 's' : ''}. Continue anyway?`)) return;
+    }
+  }
+
   if (state.currentStep < STEPS.length - 1) {
     state.currentStep++;
     state.maxReached = Math.max(state.maxReached, state.currentStep);
@@ -1113,7 +1408,9 @@ function buildCharDict() {
   const dieSize  = parseInt(hitDie.slice(1)) || 8;
   const avgRoll  = {d6:4,d8:5,d10:6,d12:7}[hitDie] || 5;
   const hpL1 = Math.max(1, dieSize + mod(final.con));
-  const hp   = hpL1 + (level > 1 ? Math.max(1, avgRoll + mod(final.con)) * (level - 1) : 0);
+  const hpBase = hpL1 + (level > 1 ? Math.max(1, avgRoll + mod(final.con)) * (level - 1) : 0);
+  const hpFCB  = state.favClassChoice === 'hp' ? level : 0;
+  const hp = hpBase + hpFCB;
 
   return {
     id: null,
@@ -1127,13 +1424,17 @@ function buildCharDict() {
       level: level,
       archetype_name: state.archetypeName || null,
     }] : [],
-    feats: [...state.feats],
+    feats: state.feats.map(f => f.name),
+    feat_details: state.feats.map(f => ({ name: f.name, level: f.level, method: f.method })),
     traits: [...state.traits],
     skills: { ...state.skillRanks },
-    equipment: [],
+    equipment: [...state.equipment],
     conditions: [],
     hp_max: hp,
     hp_current: hp,
+    fav_class_choice: state.favClassChoice,
+    class_talents: [...state.classTalents],
+    spells: { ...state.spells },
     notes: '',
   };
 }
@@ -1220,13 +1521,25 @@ window.loadChar = async function(id) {
       state.classRow = state._classes.find(c => c.name === state.className) || null;
     }
   }
-  state.feats      = char.feats   || [];
-  state.traits     = char.traits  || [];
-  state.skillRanks = char.skills  || {};
+  // Backward-compatible feats: strings → objects
+  const rawFeats = char.feats || [];
+  const featDetails = char.feat_details || [];
+  state.feats = rawFeats.map((f, i) => {
+    if (typeof f === 'object' && f.name) return f;
+    const detail = featDetails[i];
+    return detail ? { name: detail.name, level: detail.level, method: detail.method }
+                  : { name: String(f), level: 1, method: 'general' };
+  });
+  state.traits        = char.traits          || [];
+  state.skillRanks    = char.skills          || {};
+  state.favClassChoice = char.fav_class_choice || 'hp';
+  state.classTalents  = char.class_talents   || [];
+  state.spells        = char.spells          || {};
+  state.equipment     = char.equipment       || [];
 
   document.getElementById('char-list-modal').style.display = 'none';
-  state.currentStep = 4;
-  state.maxReached  = 4;
+  state.currentStep = 5;
+  state.maxReached  = 5;
   renderTracker();
   renderStep();
 };

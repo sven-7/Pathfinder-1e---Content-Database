@@ -266,9 +266,15 @@ function init() {
     ? classFeats.map(f => `<li>${f}</li>`).join('')
     : '<li class="text-muted">None</li>';
 
-  // Feats
+  // Feats (with level/method tags if feat_details present)
+  const featDetails = d.feat_details || [];
   document.getElementById('s-feats').innerHTML = (d.feats||[]).length
-    ? d.feats.map(f => `<li><strong>${f}</strong></li>`).join('')
+    ? d.feats.map((f, i) => {
+        const det = featDetails[i];
+        const tag = det ? ` <span style="font-size:9px;font-family:var(--font-label);color:var(--fade);background:var(--paper-dark);border:1px solid var(--gold-border);border-radius:3px;padding:1px 4px;">${det.method} · Lvl ${det.level}</span>` : '';
+        const name = typeof f === 'string' ? f : (f.name || f);
+        return `<li><strong>${name}</strong>${tag}</li>`;
+      }).join('')
     : '<li class="text-muted">None</li>';
 
   // Traits

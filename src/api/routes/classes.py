@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from src.character_creator.builder import CLASS_HIT_DIE, CLASS_SKILL_RANKS
 
@@ -90,10 +90,16 @@ async def get_class_progression(name: str, request: Request):
 
 
 @router.get("/classes/{name}/features")
-async def get_class_features(name: str, request: Request):
+async def get_class_features(
+    name: str,
+    request: Request,
+    feature_type: str | None = Query(default=None, description="Filter by feature_type"),
+):
     db = request.app.state.db
     cls_row = db.get_class(name)
     if cls_row is None:
         raise HTTPException(status_code=404, detail=f"Class '{name}' not found")
     features = db.get_class_features(cls_row["id"])
+    if feature_type:
+        features = [f for f in features if (f.get("feature_type") or "").lower() == feature_type.lower()]
     return features
