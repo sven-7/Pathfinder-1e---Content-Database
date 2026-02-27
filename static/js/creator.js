@@ -4,10 +4,10 @@
 
 const API = '/api';
 
+// 5 steps: Origins (race+class combined), Abilities, Feats & Traits, Skills, Review
 const STEPS = [
-  { id: 'identity',  label: 'Identity' },
+  { id: 'origins',   label: 'Origins' },
   { id: 'abilities', label: 'Abilities' },
-  { id: 'class',     label: 'Class' },
   { id: 'feats',     label: 'Feats & Traits' },
   { id: 'skills',    label: 'Skills' },
   { id: 'review',    label: 'Review' },
@@ -31,39 +31,38 @@ const state = {
   currentStep: 0,
   maxReached:  0,
 
-  // Step 1
-  name:        '',
-  playerName:  '',
-  alignment:   'True Neutral',
-  race:        null,         // {name, ability_modifiers, flexible_bonus, ...}
-  flexBonus:   null,         // chosen ability for flexible +2
-
-  // Step 2
-  abilityMethod: 'standard', // 'standard' | 'pointbuy' | 'roll' | 'manual'
-  baseScores:  { str:10, dex:10, con:10, int:10, wis:10, cha:10 },
-  saAssign:    {},           // standard array: {str:'15', ...}
-  rollValues:  null,         // [16, 14, ...] six values
-  rollAssign:  {},           // {str: 0, ...} index into rollValues
-
-  // Step 3
-  className:   null,
-  classRow:    null,
+  // Step 0: Origins
+  name:          '',
+  playerName:    '',
+  alignment:     'True Neutral',
+  startLevel:    1,
+  race:          null,   // full race object from API
+  flexBonus:     null,   // chosen ability key for flexible +2
+  className:     null,
+  classRow:      null,
   archetypeName: null,
 
-  // Step 4
-  feats:       [],
-  traits:      [],
+  // Step 1: Abilities
+  abilityMethod: 'standard',
+  baseScores:  { str:10, dex:10, con:10, int:10, wis:10, cha:10 },
+  saAssign:    {},
+  rollValues:  null,
+  rollAssign:  {},
 
-  // Step 5
-  skillRanks:  {},
+  // Step 2: Feats & Traits
+  feats:  [],
+  traits: [],
 
-  // Cache
-  _races:     null,
-  _classes:   null,
-  _feats:     null,
-  _traits:    null,
-  _skills:    null,
-  _classSkills: null,        // set of class skill names
+  // Step 3: Skills
+  skillRanks: {},
+
+  // Cached API data
+  _races:      null,
+  _classes:    null,
+  _feats:      null,
+  _traits:     null,
+  _skills:     null,
+  _classSkills: null,
 };
 
 // ── API helpers ──────────────────────────────────────────────────────────
@@ -114,7 +113,6 @@ function getFinalScores() {
 }
 
 function computeBaseScores() {
-  // Resolve baseScores from current method/assignments
   if (state.abilityMethod === 'standard') {
     const scores = { str:10,dex:10,con:10,int:10,wis:10,cha:10 };
     for (const ab of ABILITIES_ORDER) {
@@ -122,8 +120,6 @@ function computeBaseScores() {
       if (!isNaN(val)) scores[ab] = val;
     }
     state.baseScores = scores;
-  } else if (state.abilityMethod === 'pointbuy') {
-    // Already maintained live in state.baseScores
   } else if (state.abilityMethod === 'roll') {
     const scores = { str:10,dex:10,con:10,int:10,wis:10,cha:10 };
     for (const ab of ABILITIES_ORDER) {
@@ -132,16 +128,17 @@ function computeBaseScores() {
     }
     state.baseScores = scores;
   }
-  // 'manual': baseScores is already set directly
+  // pointbuy and manual: baseScores is maintained directly
 }
 
+// ── Budget helpers ────────────────────────────────────────────────────────
 function skillBudget() {
   if (!state.classRow) return 0;
   const ranksPerLevel = state.classRow.skill_ranks_per_level || 2;
   const intMod = mod(getFinalScores().int);
-  let budget = Math.max(1, ranksPerLevel + intMod);
-  if (state.race?.name === 'Humans') budget += 1;
-  return budget;
+  const perLevel = Math.max(1, ranksPerLevel + intMod);
+  const humanBonus = (state.race?.name === 'Humans') ? state.startLevel : 0;
+  return perLevel * state.startLevel + humanBonus;
 }
 
 function usedSkillRanks() {
@@ -149,9 +146,14 @@ function usedSkillRanks() {
 }
 
 function featBudget() {
-  let budget = 1;
-  if (state.className === 'Fighter') budget += 1;
-  if (state.race?.name === 'Humans' || state.race?.name === 'Half-Elves') budget += 1;
+  const level = state.startLevel;
+  // General feats at levels 1, 3, 5, 7... = ceil(level/2)
+  let budget = Math.ceil(level / 2);
+  // Fighter bonus combat feats at levels 1, 2, 4, 6, 8... = floor((level+2)/2)
+  if (state.className === 'Fighter') budget += Math.floor((level + 2) / 2);
+  // Human / Half-elf: +1 bonus feat at level 1
+  const race = state.race?.name || '';
+  if (race === 'Humans' || race === 'Half-Elves') budget += 1;
   return budget;
 }
 
@@ -160,8 +162,8 @@ function renderTracker() {
   const el = document.getElementById('step-tracker');
   let html = '';
   STEPS.forEach((step, i) => {
-    const isDone   = i < state.currentStep;
-    const isActive = i === state.currentStep;
+    const isDone     = i < state.currentStep;
+    const isActive   = i === state.currentStep;
     const isDisabled = i > state.maxReached;
     let cls = 'step-node';
     if (isDone)     cls += ' done';
@@ -182,7 +184,6 @@ function renderTracker() {
 
 function goToStep(i) {
   if (i > state.maxReached) return;
-  // Validate forward navigation
   if (i > state.currentStep) {
     const errors = validateCurrentStep();
     if (errors.length) { showErrors(errors); return; }
@@ -202,52 +203,60 @@ function showErrors(errs) {
   }
 }
 
-// ── Step rendering dispatcher ────────────────────────────────────────────
+// ── Step rendering dispatcher ─────────────────────────────────────────────
 async function renderStep() {
   const container = document.getElementById('step-content');
   container.innerHTML = '<div class="loading-msg"><div class="spinner"></div></div>';
   try {
     switch (state.currentStep) {
-      case 0: await renderIdentityStep(container); break;
+      case 0: await renderOriginsStep(container); break;
       case 1: await renderAbilitiesStep(container); break;
-      case 2: await renderClassStep(container); break;
-      case 3: await renderFeatsTraitsStep(container); break;
-      case 4: await renderSkillsStep(container); break;
-      case 5: await renderReviewStep(container); break;
+      case 2: await renderFeatsTraitsStep(container); break;
+      case 3: await renderSkillsStep(container); break;
+      case 4: await renderReviewStep(container); break;
     }
   } catch(e) {
     container.innerHTML = `<div class="panel"><p class="text-red">Error: ${e.message}</p></div>`;
   }
 }
 
-// ── Step 0: Identity + Race ──────────────────────────────────────────────
-async function renderIdentityStep(c) {
-  if (!state._races) state._races = await apiFetch('/races');
-  const races = state._races;
+// ── Step 0: Origins (Identity + Race + Class) ─────────────────────────────
+async function renderOriginsStep(c) {
+  if (!state._races)   state._races   = await apiFetch('/races');
+  if (!state._classes) state._classes = await apiFetch('/classes');
 
-  // Group by type
+  const races = state._races;
   const coreRaces = races.filter(r => r.race_type === 'core');
-  const otherRaces = races.filter(r => r.race_type !== 'core');
+
+  const classes = state._classes;
+  const groups = {};
+  classes.forEach(cls => {
+    const g = cls.class_type || 'other';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(cls);
+  });
+  const typeLabels = {
+    base:'Base Classes', hybrid:'Hybrid Classes', unchained:'Unchained',
+    occult:'Occult Adventures', prestige:'Prestige Classes', alternate:'Alternate Classes',
+  };
 
   c.innerHTML = `
-  <div class="row">
-    <div class="col-2">
-      <div class="panel">
-        <div class="panel-title">Identity</div>
-        <div class="row gap-sm">
-          <div class="col">
-            <div class="field-group">
-              <label class="field-label">Character Name *</label>
-              <input class="field-input" id="inp-name" value="${esc(state.name)}" placeholder="Enter character name…">
-            </div>
-          </div>
-          <div class="col">
-            <div class="field-group">
-              <label class="field-label">Player Name</label>
-              <input class="field-input" id="inp-player" value="${esc(state.playerName)}" placeholder="Optional">
-            </div>
-          </div>
+  <div class="panel">
+    <div class="panel-title">Identity</div>
+    <div class="row gap-sm" style="flex-wrap:wrap;">
+      <div class="col">
+        <div class="field-group">
+          <label class="field-label">Character Name *</label>
+          <input class="field-input" id="inp-name" value="${esc(state.name)}" placeholder="Enter character name…">
         </div>
+      </div>
+      <div class="col">
+        <div class="field-group">
+          <label class="field-label">Player Name</label>
+          <input class="field-input" id="inp-player" value="${esc(state.playerName)}" placeholder="Optional">
+        </div>
+      </div>
+      <div class="col">
         <div class="field-group">
           <label class="field-label">Alignment</label>
           <select class="field-select" id="inp-alignment">
@@ -255,42 +264,54 @@ async function renderIdentityStep(c) {
           </select>
         </div>
       </div>
+      <div style="width:120px;">
+        <div class="field-group">
+          <label class="field-label">Starting Level</label>
+          <input type="number" class="field-input" id="inp-level" min="1" max="20" value="${state.startLevel}"
+                 title="For mid-campaign characters — sets feat/skill budgets and HP">
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <div class="row">
+    <!-- Race column -->
+    <div class="col">
       <div class="panel">
         <div class="panel-title">Race</div>
+        <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px;" id="core-race-tags">
+          ${coreRaces.map(r => `
+            <span class="tag race-tag${state.race?.name===r.name?' selected':''}"
+                  data-race="${esc(r.name)}"
+                  onclick="selectRace(${jsAttr(r.name)})">${r.name}</span>`).join('')}
+        </div>
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input class="search-input" id="race-search" placeholder="Search races…" oninput="filterRaces()">
         </div>
-
-        <div style="margin-bottom:8px;">
-          <span class="field-label" style="display:inline;">Core Races: </span>
-          ${coreRaces.map(r => `
-            <span class="tag${state.race?.name===r.name?' selected':''}"
-              style="${state.race?.name===r.name?'background:var(--gold-bg);border-color:var(--gold);':''}"
-              onclick="selectRace(${JSON.stringify(r.name)})">
-              ${r.name}
-            </span>`).join('')}
-        </div>
-
         <div class="scroll-list" style="max-height:200px;" id="race-list">
-          ${races.map(r => `
-            <div class="list-item${state.race?.name===r.name?' selected':''}"
-                 data-name="${esc(r.name)}"
-                 onclick="selectRace(${JSON.stringify(r.name)})">
-              <div>
-                <div class="list-item-name">${r.name}</div>
-                <div class="list-item-detail">${r.size} · Speed ${r.base_speed}ft</div>
-              </div>
-              <div class="list-item-type">${r.race_type || ''}</div>
-            </div>`).join('')}
+          ${buildRaceListHtml(races)}
+        </div>
+        <div id="race-preview" style="margin-top:8px;">
+          ${state.race ? racePreviewHtml(state.race) : '<p class="text-muted" style="font-size:12px;">Select a race above.</p>'}
         </div>
       </div>
     </div>
 
-    <div class="col-sm">
-      <div class="panel" style="min-height:200px;" id="race-preview">
-        ${state.race ? racePreviewHtml(state.race) : '<p class="text-muted" style="font-size:12px;">Select a race to see details.</p>'}
+    <!-- Class column -->
+    <div class="col">
+      <div class="panel">
+        <div class="panel-title">Class</div>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="class-search" placeholder="Search classes…" oninput="filterClasses()">
+        </div>
+        <div class="scroll-list" style="max-height:200px;" id="class-list">
+          ${buildClassListHtml(groups, typeLabels)}
+        </div>
+        <div id="class-preview" style="margin-top:8px;">
+          ${state.classRow ? classPreviewHtml(state.classRow) : '<p class="text-muted" style="font-size:12px;">Select a class above.</p>'}
+        </div>
       </div>
     </div>
   </div>
@@ -302,6 +323,54 @@ async function renderIdentityStep(c) {
       <button class="btn btn-primary" onclick="nextStep()">Next: Ability Scores →</button>
     </div>
   </div>`;
+
+  // If class already chosen (returning to this step), reload archetypes
+  if (state.classRow) loadArchetypes(state.className);
+}
+
+function buildRaceListHtml(races) {
+  const grouped = {};
+  races.forEach(r => {
+    const t = r.race_type || 'other';
+    if (!grouped[t]) grouped[t] = [];
+    grouped[t].push(r);
+  });
+  const order  = ['core','featured','uncommon'];
+  const labels = { core:'CORE', featured:'FEATURED', uncommon:'UNCOMMON' };
+  return order.filter(t => grouped[t]?.length).map(type => `
+    <div style="padding:2px 12px;background:var(--paper-dark);border-bottom:1px solid var(--gold-border);">
+      <span style="font-family:var(--font-label);font-size:8px;color:var(--gold);">${labels[type]}</span>
+    </div>
+    ${grouped[type].map(r => `
+      <div class="list-item${state.race?.name===r.name?' selected':''}"
+           data-name="${esc(r.name)}"
+           onclick="selectRace(${jsAttr(r.name)})">
+        <div>
+          <div class="list-item-name">${r.name}</div>
+          <div class="list-item-detail">${r.size} · Speed ${r.base_speed}ft</div>
+        </div>
+        <div class="list-item-type">${r.race_type}</div>
+      </div>`).join('')}
+  `).join('');
+}
+
+function buildClassListHtml(groups, typeLabels) {
+  const order = ['base','hybrid','unchained','occult','prestige','alternate'];
+  return order.filter(t => groups[t]?.length).map(type => `
+    <div style="padding:2px 12px;background:var(--paper-dark);border-bottom:1px solid var(--gold-border);">
+      <span style="font-family:var(--font-label);font-size:8px;color:var(--gold);">${typeLabels[type]||type.toUpperCase()}</span>
+    </div>
+    ${groups[type].map(cls => `
+      <div class="list-item${state.className===cls.name?' selected':''}"
+           data-name="${esc(cls.name)}"
+           onclick="selectClass(${jsAttr(cls.name)})">
+        <div>
+          <div class="list-item-name">${cls.name}</div>
+          <div class="list-item-detail">${cls.hit_die} · ${cls.skill_ranks_per_level} skills/lvl</div>
+        </div>
+        ${cls.spellcasting_type ? `<div class="list-item-type">${cls.spellcasting_type}</div>` : ''}
+      </div>`).join('')}
+  `).join('');
 }
 
 function racePreviewHtml(race) {
@@ -313,18 +382,17 @@ function racePreviewHtml(race) {
     ? `<span class="race-mod-chip positive">+2 Any (choice)</span>` : '';
 
   return `<div class="race-detail">
-    <h4>${race.name}</h4>
-    <div class="race-mods">${modChips}${flexHtml}</div>
-    <div><b>Size:</b> ${race.size || 'Medium'} &nbsp;|&nbsp; <b>Speed:</b> ${race.base_speed || 30}ft</div>
-    ${race.flexible_bonus ? flexBonusSelector(race) : ''}
-    <p class="text-muted mt-sm" style="font-size:11px;">${(race.description||'').slice(0,200)}${race.description?.length>200?'…':''}</p>
+    <b style="font-family:var(--font-head);font-size:13px;">${race.name}</b>
+    <div class="race-mods" style="margin:4px 0;">${modChips}${flexHtml}</div>
+    <div style="font-size:11px;"><b>Size:</b> ${race.size||'Medium'} &nbsp;|&nbsp; <b>Speed:</b> ${race.base_speed||30}ft</div>
+    ${race.flexible_bonus ? flexBonusSelector() : ''}
   </div>`;
 }
 
-function flexBonusSelector(race) {
+function flexBonusSelector() {
   return `<div class="field-group mt-sm">
     <label class="field-label">+2 Ability Score Bonus</label>
-    <select class="field-select" id="flex-bonus" onchange="state.flexBonus=this.value">
+    <select class="field-select" id="flex-bonus" onchange="state.flexBonus=this.value||null">
       <option value="">— Choose ability —</option>
       ${ABILITIES_ORDER.map(ab =>
         `<option value="${ab}" ${state.flexBonus===ab?'selected':''}>${ABILITY_LABELS[ab]}</option>`
@@ -333,15 +401,43 @@ function flexBonusSelector(race) {
   </div>`;
 }
 
-window.selectRace = async function(name) {
-  const race = state._races.find(r => r.name === name);
+function classPreviewHtml(cls) {
+  const saves = [];
+  if (cls.fort_progression === 'good') saves.push('Fort');
+  if (cls.ref_progression  === 'good') saves.push('Ref');
+  if (cls.will_progression === 'good') saves.push('Will');
+  return `<div style="margin-bottom:6px;">
+    <b style="font-family:var(--font-head);font-size:13px;">${cls.name}</b>
+    ${cls.alignment_restriction ? `<span class="text-muted" style="font-size:10px;margin-left:6px;">${cls.alignment_restriction}</span>` : ''}
+  </div>
+  <div class="row gap-sm" style="flex-wrap:wrap;margin-bottom:6px;">
+    <div class="stat-box"><div class="stat-box-label">Hit Die</div><div class="stat-box-value">${cls.hit_die||'d8'}</div></div>
+    <div class="stat-box"><div class="stat-box-label">BAB</div><div class="stat-box-value" style="font-size:12px;">${cls.bab_progression||'—'}</div></div>
+    <div class="stat-box"><div class="stat-box-label">Skills/Lvl</div><div class="stat-box-value">${cls.skill_ranks_per_level||2}</div></div>
+    <div class="stat-box"><div class="stat-box-label">Good Saves</div><div class="stat-box-value" style="font-size:10px;">${saves.join('/')||'—'}</div></div>
+  </div>
+  ${cls.spellcasting_type ? `<div class="text-muted" style="font-size:10px;margin-bottom:4px;"><b>Spellcasting:</b> ${cls.spellcasting_type} (${cls.spellcasting_style||'—'})</div>` : ''}
+  <div id="archetype-section"></div>`;
+}
+
+window.selectRace = function(name) {
+  const race = (state._races || []).find(r => r.name === name);
+  if (!race) return;
   state.race = race;
-  if (!race?.flexible_bonus) state.flexBonus = null;
-  document.getElementById('race-preview').innerHTML = race ? racePreviewHtml(race) : '';
-  // Update list selection
+  if (!race.flexible_bonus) state.flexBonus = null;
+  // Highlight quick-select tags
+  document.querySelectorAll('.race-tag').forEach(el => {
+    const match = el.dataset.race === name;
+    el.classList.toggle('selected', match);
+    el.style.background   = match ? 'var(--gold-bg)' : '';
+    el.style.borderColor  = match ? 'var(--gold)'    : '';
+  });
+  // Highlight scrollable list
   document.querySelectorAll('#race-list .list-item').forEach(el => {
     el.classList.toggle('selected', el.dataset.name === name);
   });
+  // Show preview
+  document.getElementById('race-preview').innerHTML = racePreviewHtml(race);
 };
 
 window.filterRaces = function() {
@@ -351,7 +447,51 @@ window.filterRaces = function() {
   });
 };
 
-// ── Step 1: Ability Scores ───────────────────────────────────────────────
+window.selectClass = async function(name) {
+  const cls = (state._classes || []).find(c => c.name === name);
+  if (!cls) return;
+  state.className = name;
+  state.classRow = cls;
+  state.archetypeName = null;
+  state._classSkills = null;
+  document.querySelectorAll('#class-list .list-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.name === name);
+  });
+  document.getElementById('class-preview').innerHTML = classPreviewHtml(cls);
+  await loadArchetypes(name);
+};
+
+async function loadArchetypes(name) {
+  const archSection = document.getElementById('archetype-section');
+  if (!archSection) return;
+  archSection.innerHTML = '<span class="text-muted" style="font-size:11px;">Loading…</span>';
+  try {
+    const archetypes = await apiFetch(`/classes/${encodeURIComponent(name)}/archetypes`);
+    if (archetypes.length === 0) {
+      archSection.innerHTML = '<p class="text-muted" style="font-size:11px;">No archetypes available.</p>';
+    } else {
+      archSection.innerHTML = `
+        <div class="field-group" style="margin-top:6px;">
+          <label class="field-label">Archetype (Optional)</label>
+          <select class="field-select" id="archetype-select" onchange="state.archetypeName=this.value||null">
+            <option value="">— None (base class) —</option>
+            ${archetypes.map(a => `<option value="${esc(a.name)}" ${state.archetypeName===a.name?'selected':''}>${a.name}</option>`).join('')}
+          </select>
+        </div>`;
+    }
+  } catch(e) {
+    archSection.innerHTML = '<p class="text-muted" style="font-size:11px;">Could not load archetypes.</p>';
+  }
+}
+
+window.filterClasses = function() {
+  const q = document.getElementById('class-search').value.toLowerCase();
+  document.querySelectorAll('#class-list .list-item').forEach(el => {
+    el.style.display = el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
+
+// ── Step 1: Ability Scores ────────────────────────────────────────────────
 async function renderAbilitiesStep(c) {
   c.innerHTML = `
   <div class="panel">
@@ -373,7 +513,7 @@ async function renderAbilitiesStep(c) {
     <button class="btn" onclick="prevStep()">← Back</button>
     <div style="display:flex;align-items:center;gap:12px;">
       <span class="nav-error" id="nav-error"></span>
-      <button class="btn btn-primary" onclick="nextStep()">Next: Class →</button>
+      <button class="btn btn-primary" onclick="nextStep()">Next: Feats & Traits →</button>
     </div>
   </div>`;
 
@@ -400,13 +540,11 @@ function renderAbilityMethodPanel() {
 }
 
 function renderStandardArray() {
-  // Check for duplicate assignments
   const used = {};
   for (const [ab, val] of Object.entries(state.saAssign)) {
     if (val) used[val] = (used[val] || 0) + 1;
   }
   const hasDup = Object.values(used).some(c => c > 1);
-
   return `<p class="text-muted" style="font-size:12px;margin-bottom:12px;">
     Assign each value from [${STANDARD_ARRAY.join(', ')}] to one ability score.
   </p>
@@ -418,7 +556,7 @@ function renderStandardArray() {
         <option value="">—</option>
         ${STANDARD_ARRAY.map(s => `<option value="${s}" ${v==s?'selected':''}>${s}</option>`).join('')}
       </select>
-      <div class="ability-assign-mod" id="sa-mod-${ab}">${v ? modStr(+v) : '—'}</div>
+      <div class="ability-assign-mod">${v ? modStr(+v) : '—'}</div>
     </div>`;
   }).join('')}
   ${hasDup ? '<p class="text-red mt-sm" style="font-size:11px;">⚠ Each value may only be assigned once.</p>' : ''}`;
@@ -435,7 +573,6 @@ function renderPointBuy() {
   const scores = state.baseScores;
   const totalCost = Object.values(scores).reduce((s, v) => s + (PB_COSTS[v] || 0), 0);
   const remaining = PB_BUDGET - totalCost;
-
   return `<div class="pb-budget">
     <div class="pb-budget-label">Points Remaining</div>
     <div class="pb-budget-number ${remaining < 0 ? 'over' : ''}">${remaining}</div>
@@ -451,7 +588,7 @@ function renderPointBuy() {
         <div class="pb-score">${v}</div>
         <button class="pb-btn" onclick="pbChange('${ab}',+1)" ${v>=18||remaining<=0?'disabled':''}>+</button>
       </div>
-      <div class="pb-cost">Cost: ${cost >= 0 ? cost : cost}</div>
+      <div class="pb-cost">Cost: ${cost}</div>
       <div class="pb-mod ${mod(v)>0?'positive':mod(v)<0?'negative':''}">${modStr(v)}</div>
     </div>`;
   }).join('')}`;
@@ -491,12 +628,11 @@ function renderRoll() {
   }).join('')}`;
 }
 
-window.doRoll = async function() {
-  const r = await apiFetch('/feats?search=__none__');  // dummy call to warm connection
-  // Roll client-side (same logic as server)
+window.doRoll = function() {
   state.rollValues = Array.from({length:6}, () => {
     const d = Array.from({length:4}, () => 1 + Math.floor(Math.random()*6));
-    d.sort((a,b)=>a-b); return d[1]+d[2]+d[3];
+    d.sort((a,b) => a-b);
+    return d[1]+d[2]+d[3];
   });
   state.rollAssign = {};
   renderAbilityMethodPanel();
@@ -530,7 +666,6 @@ function abilityPreviewHtml() {
   computeBaseScores();
   const final = getFinalScores();
   const raceMods = state.race?.ability_modifiers || {};
-
   return `<div class="panel-title">Final Ability Scores
     ${state.race ? `<span class="text-muted" style="font-size:10px;font-weight:400;">(after ${state.race.name} racial modifiers)</span>` : ''}
   </div>
@@ -550,128 +685,9 @@ function abilityPreviewHtml() {
   </div>`;
 }
 
-// ── Step 2: Class + Archetype ────────────────────────────────────────────
-async function renderClassStep(c) {
-  if (!state._classes) state._classes = await apiFetch('/classes');
-  const classes = state._classes;
-
-  const groups = {};
-  classes.forEach(cls => {
-    const g = cls.class_type || 'other';
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(cls);
-  });
-
-  const typeLabels = {
-    base:'Base Classes', hybrid:'Hybrid Classes', unchained:'Unchained',
-    occult:'Occult Adventures', prestige:'Prestige Classes', alternate:'Alternate Classes',
-  };
-
-  c.innerHTML = `
-  <div class="row">
-    <div class="col-2">
-      <div class="panel">
-        <div class="panel-title">Class</div>
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input class="search-input" id="class-search" placeholder="Search classes…" oninput="filterClasses()">
-        </div>
-        <div class="scroll-list" style="max-height:320px;" id="class-list">
-          ${Object.entries(groups).map(([type, clsList]) => `
-            <div style="padding:4px 12px;background:var(--paper-dark);border-bottom:1px solid var(--gold-border);">
-              <span style="font-family:var(--font-label);font-size:8px;color:var(--gold);letter-spacing:.08em;">${typeLabels[type]||type.toUpperCase()}</span>
-            </div>
-            ${clsList.map(cls => `
-              <div class="list-item${state.className===cls.name?' selected':''}"
-                   data-name="${esc(cls.name)}"
-                   onclick="selectClass(${JSON.stringify(cls.name)})">
-                <div>
-                  <div class="list-item-name">${cls.name}</div>
-                  <div class="list-item-detail">${cls.hit_die} · ${cls.skill_ranks_per_level} skills/lvl · BAB ${cls.bab_progression}</div>
-                </div>
-                ${cls.spellcasting_type ? `<div class="list-item-type">${cls.spellcasting_type}</div>` : ''}
-              </div>`).join('')}
-          `).join('')}
-        </div>
-      </div>
-    </div>
-
-    <div class="col">
-      <div class="panel" id="class-preview">
-        ${state.classRow ? classPreviewHtml(state.classRow) : '<p class="text-muted" style="font-size:12px;">Select a class.</p>'}
-      </div>
-    </div>
-  </div>
-
-  <div class="nav-bar">
-    <button class="btn" onclick="prevStep()">← Back</button>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <span class="nav-error" id="nav-error"></span>
-      <button class="btn btn-primary" onclick="nextStep()">Next: Feats & Traits →</button>
-    </div>
-  </div>`;
-}
-
-function classPreviewHtml(cls) {
-  const saves = [];
-  if (cls.fort_progression === 'good') saves.push('Fort');
-  if (cls.ref_progression === 'good')  saves.push('Ref');
-  if (cls.will_progression === 'good') saves.push('Will');
-
-  return `<div class="panel-title">${cls.name}</div>
-  <div class="row gap-sm" style="margin-bottom:12px;flex-wrap:wrap;">
-    <div class="stat-box"><div class="stat-box-label">Hit Die</div><div class="stat-box-value">${cls.hit_die||'d8'}</div></div>
-    <div class="stat-box"><div class="stat-box-label">BAB</div><div class="stat-box-value" style="font-size:14px;">${cls.bab_progression||'—'}</div></div>
-    <div class="stat-box"><div class="stat-box-label">Skills/Lvl</div><div class="stat-box-value">${cls.skill_ranks_per_level||2}</div></div>
-    <div class="stat-box"><div class="stat-box-label">Good Saves</div><div class="stat-box-value" style="font-size:12px;">${saves.join(', ')||'—'}</div></div>
-  </div>
-  ${cls.spellcasting_type ? `<div class="text-muted" style="font-size:11px;margin-bottom:8px;">
-    <b>Spellcasting:</b> ${cls.spellcasting_type} (${cls.spellcasting_style||'—'})
-  </div>` : ''}
-  ${cls.alignment_restriction ? `<div class="text-muted" style="font-size:11px;margin-bottom:8px;">
-    <b>Alignment:</b> ${cls.alignment_restriction}
-  </div>` : ''}
-  <div id="archetype-section"></div>`;
-}
-
-window.selectClass = async function(name) {
-  const cls = state._classes.find(c => c.name === name);
-  state.className = name;
-  state.classRow = cls;
-  state.archetypeName = null;
-  state._classSkills = null;
-
-  document.querySelectorAll('#class-list .list-item').forEach(el => {
-    el.classList.toggle('selected', el.dataset.name === name);
-  });
-  document.getElementById('class-preview').innerHTML = classPreviewHtml(cls);
-
-  // Load archetypes
-  const archetypes = await apiFetch(`/classes/${encodeURIComponent(name)}/archetypes`);
-  const archSection = document.getElementById('archetype-section');
-  if (!archSection) return;
-  if (archetypes.length === 0) {
-    archSection.innerHTML = '<p class="text-muted" style="font-size:11px;">No archetypes available.</p>';
-    return;
-  }
-  archSection.innerHTML = `
-    <div class="panel-title" style="margin-top:12px;">Archetype (Optional)</div>
-    <select class="field-select" id="archetype-select" onchange="state.archetypeName=this.value||null">
-      <option value="">— None (base class) —</option>
-      ${archetypes.map(a => `<option value="${esc(a.name)}" ${state.archetypeName===a.name?'selected':''}>${a.name}</option>`).join('')}
-    </select>`;
-};
-
-window.filterClasses = function() {
-  const q = document.getElementById('class-search').value.toLowerCase();
-  document.querySelectorAll('#class-list .list-item').forEach(el => {
-    el.style.display = el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
-  });
-};
-
-// ── Step 3: Feats + Traits ───────────────────────────────────────────────
+// ── Step 2: Feats + Traits ────────────────────────────────────────────────
 async function renderFeatsTraitsStep(c) {
-  if (!state._feats) state._feats = await apiFetch('/feats');
+  if (!state._feats)  state._feats  = await apiFetch('/feats');
   if (!state._traits) state._traits = await apiFetch('/traits');
 
   const budget = featBudget();
@@ -684,10 +700,9 @@ async function renderFeatsTraitsStep(c) {
           <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${state.feats.length}/${budget} selected</span>
         </div>
         <div style="margin-bottom:10px;">
-          ${state.feats.map(f => `<span class="tag">${f}<button class="tag-remove" onclick="removeFeat(${JSON.stringify(f)})">✕</button></span>`).join('')}
+          ${state.feats.map(f => `<span class="tag">${f}<button class="tag-remove" onclick="removeFeat(${jsAttr(f)})">✕</button></span>`).join('')}
           ${state.feats.length === 0 ? '<span class="text-muted" style="font-size:12px;">No feats selected.</span>' : ''}
         </div>
-
         <div class="field-group">
           <label class="field-label">Filter by Type</label>
           <select class="field-select" id="feat-type-filter" onchange="filterFeats()">
@@ -712,7 +727,7 @@ async function renderFeatsTraitsStep(c) {
           <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${state.traits.length}/2</span>
         </div>
         <div style="margin-bottom:10px;">
-          ${state.traits.map(t => `<span class="tag">${t}<button class="tag-remove" onclick="removeTrait(${JSON.stringify(t)})">✕</button></span>`).join('')}
+          ${state.traits.map(t => `<span class="tag">${t}<button class="tag-remove" onclick="removeTrait(${jsAttr(t)})">✕</button></span>`).join('')}
           ${state.traits.length === 0 ? '<span class="text-muted" style="font-size:12px;">No traits selected.</span>' : ''}
         </div>
         <div class="field-group">
@@ -747,7 +762,7 @@ function featListHtml(feats) {
   return feats.slice(0, 300).map(f => `
     <div class="list-item${state.feats.includes(f.name)?' selected':''}"
          data-name="${esc(f.name)}" data-type="${esc(f.feat_type)}"
-         onclick="toggleFeat(${JSON.stringify(f.name)})">
+         onclick="toggleFeat(${jsAttr(f.name)})">
       <div>
         <div class="list-item-name">${f.name}</div>
         ${f.prerequisites ? `<div class="list-item-detail">Req: ${f.prerequisites.slice(0,80)}${f.prerequisites.length>80?'…':''}</div>` : ''}
@@ -760,7 +775,7 @@ function traitListHtml(traits) {
   return traits.slice(0, 200).map(t => `
     <div class="list-item${state.traits.includes(t.name)?' selected':''}"
          data-name="${esc(t.name)}" data-type="${esc(t.trait_type)}"
-         onclick="toggleTrait(${JSON.stringify(t.name)})">
+         onclick="toggleTrait(${jsAttr(t.name)})">
       <div>
         <div class="list-item-name">${t.name}</div>
         ${t.benefit ? `<div class="list-item-detail">${t.benefit.slice(0,80)}${t.benefit.length>80?'…':''}</div>` : ''}
@@ -774,12 +789,11 @@ window.toggleFeat = function(name) {
     state.feats = state.feats.filter(f => f !== name);
   } else {
     if (state.feats.length >= featBudget()) {
-      showErrors([`Maximum ${featBudget()} feats allowed at level 1.`]);
+      showErrors([`Maximum ${featBudget()} feats at level ${state.startLevel}.`]);
       return;
     }
     state.feats.push(name);
   }
-  // Re-render feats step
   renderFeatsTraitsStep(document.getElementById('step-content'));
 };
 
@@ -826,7 +840,7 @@ window.filterTraits = function() {
   });
 };
 
-// ── Step 4: Skills ───────────────────────────────────────────────────────
+// ── Step 3: Skills ────────────────────────────────────────────────────────
 async function renderSkillsStep(c) {
   if (!state._skills) state._skills = await apiFetch('/skills');
   if (!state._classSkills && state.className) {
@@ -836,37 +850,30 @@ async function renderSkillsStep(c) {
     state._classSkills = new Set();
   }
 
-  const budget = skillBudget();
-  const used = usedSkillRanks();
+  const budget    = skillBudget();
+  const used      = usedSkillRanks();
   const remaining = budget - used;
-  const finalScores = getFinalScores();
+  const final     = getFinalScores();
+  const maxRanks  = state.startLevel;
 
   c.innerHTML = `
   <div class="panel">
     <div class="panel-title">Skill Ranks</div>
     <div class="skill-budget-bar">
-      <span>Available ranks at level 1</span>
+      <span>Available ranks${state.startLevel > 1 ? ` (level ${state.startLevel})` : ''}</span>
       <span class="skill-budget-count ${remaining < 0 ? 'depleted' : ''}">${remaining} / ${budget}</span>
     </div>
     <p class="text-muted" style="font-size:11px;margin-bottom:10px;">
-      <b style="color:var(--green);">Bold green</b> = class skill (gains +3 bonus when ranked)
+      <b style="color:var(--green);">Bold green</b> = class skill (+3 when ranked) · Max ${maxRanks} rank${maxRanks>1?'s':''} per skill
     </p>
     <div style="overflow-x:auto;">
     <table class="skill-list-table">
-      <thead>
-        <tr>
-          <th>Skill</th>
-          <th>Ability</th>
-          <th>Ranks</th>
-          <th>Mod</th>
-          <th>Total</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Skill</th><th>Ability</th><th>Ranks</th><th>Mod</th><th>Total</th></tr></thead>
       <tbody>
         ${state._skills.map(sk => {
-          const isCS = state._classSkills.has(sk.name.toLowerCase());
+          const isCS  = state._classSkills.has(sk.name.toLowerCase());
           const ranks = state.skillRanks[sk.name] || 0;
-          const abilMod = mod(finalScores[sk.ability] || 10);
+          const abilMod = mod(final[sk.ability] || 10);
           const trained = ranks > 0 && isCS ? 3 : 0;
           const total = ranks + abilMod + trained;
           return `<tr class="${isCS?'class-skill':''}">
@@ -876,10 +883,10 @@ async function renderSkillsStep(c) {
               <div class="rank-stepper">
                 <button class="rank-btn" onclick="changeRank('${esc(sk.name)}',-1)" ${ranks<=0?'disabled':''}>−</button>
                 <span class="rank-val">${ranks}</span>
-                <button class="rank-btn" onclick="changeRank('${esc(sk.name)}',1)" ${remaining<=0||ranks>=1?'disabled':''}>+</button>
+                <button class="rank-btn" onclick="changeRank('${esc(sk.name)}',1)" ${remaining<=0||ranks>=maxRanks?'disabled':''}>+</button>
               </div>
             </td>
-            <td style="text-align:center">${modStr(finalScores[sk.ability]||10)}</td>
+            <td style="text-align:center">${modStr(final[sk.ability]||10)}</td>
             <td class="skill-total-val" style="color:${total>0?'var(--green)':total<0?'var(--red-wax)':'var(--ink)'}">
               ${total >= 0 ? '+' : ''}${total}
             </td>
@@ -901,45 +908,52 @@ async function renderSkillsStep(c) {
 }
 
 window.changeRank = function(skillName, delta) {
-  const current = state.skillRanks[skillName] || 0;
-  const budget = skillBudget();
-  const used = usedSkillRanks();
+  const current  = state.skillRanks[skillName] || 0;
+  const budget   = skillBudget();
+  const used     = usedSkillRanks();
   if (delta > 0 && used >= budget) return;
   if (delta < 0 && current <= 0) return;
-  if (delta > 0 && current >= 1) return; // max 1 rank at level 1
+  if (delta > 0 && current >= state.startLevel) return;
   state.skillRanks[skillName] = Math.max(0, current + delta);
   renderSkillsStep(document.getElementById('step-content'));
 };
 
-// ── Step 5: Review ───────────────────────────────────────────────────────
+// ── Step 4: Review ────────────────────────────────────────────────────────
 async function renderReviewStep(c) {
   computeBaseScores();
-  const final = getFinalScores();
+  const final    = getFinalScores();
   const classRow = state.classRow;
+  const level    = state.startLevel;
 
-  // Compute derived stats client-side
-  const intMod = mod(final.int);
-  const wisMod = mod(final.wis);
   const conMod = mod(final.con);
   const dexMod = mod(final.dex);
   const strMod = mod(final.str);
+  const wisMod = mod(final.wis);
 
-  let bab = 0, fort_base = 0, ref_base = 0, will_base = 0;
+  // HP: max die at level 1, average for subsequent levels
   const hitDie = classRow?.hit_die || 'd8';
-  const avgMap = {d6:4,d8:5,d10:6,d12:7};
-  const hp = Math.max(1, (avgMap[hitDie]||5) + conMod);
-  // Simple BAB calc from classRow
+  const dieSize = parseInt(hitDie.slice(1)) || 8;
+  const avgRoll = {d6:4,d8:5,d10:6,d12:7}[hitDie] || 5;
+  const hpL1   = Math.max(1, dieSize + conMod);
+  const hp     = hpL1 + (level > 1 ? Math.max(1, avgRoll + conMod) * (level - 1) : 0);
+
+  // Saves and BAB at given level (approximate for review)
+  let bab = 0, fort_base = 0, ref_base = 0, will_base = 0;
   if (classRow) {
-    bab = classRow.bab_progression === 'full' ? 1 : classRow.bab_progression === 'three_quarter' ? 0 : 0;
-    fort_base = classRow.fort_progression === 'good' ? 2 : 0;
-    ref_base  = classRow.ref_progression === 'good' ? 2 : 0;
-    will_base = classRow.will_progression === 'good' ? 2 : 0;
+    if      (classRow.bab_progression === 'full')         bab = level;
+    else if (classRow.bab_progression === 'three_quarter') bab = Math.floor(level * 3 / 4);
+    else                                                    bab = Math.floor(level / 2);
+    const goodSave = n => Math.floor(n / 2) + 2;
+    const poorSave = n => Math.floor(n / 3);
+    fort_base = classRow.fort_progression === 'good' ? goodSave(level) : poorSave(level);
+    ref_base  = classRow.ref_progression  === 'good' ? goodSave(level) : poorSave(level);
+    will_base = classRow.will_progression === 'good' ? goodSave(level) : poorSave(level);
   }
   const fort = fort_base + conMod;
   const ref  = ref_base  + dexMod;
   const will = will_base + wisMod;
   const ac   = 10 + dexMod;
-  const initiative = dexMod;
+  const fm   = m => m >= 0 ? `+${m}` : `${m}`;
 
   c.innerHTML = `
   <div class="panel">
@@ -953,7 +967,7 @@ async function renderReviewStep(c) {
           <div class="review-row"><span class="review-key">Alignment</span><span class="review-val">${state.alignment}</span></div>
           <div class="review-row"><span class="review-key">Race</span><span class="review-val">${state.race?.name||'—'}</span></div>
           <div class="review-row"><span class="review-key">Class</span><span class="review-val">${state.className||'—'}${state.archetypeName?' ('+state.archetypeName+')':''}</span></div>
-          <div class="review-row"><span class="review-key">Level</span><span class="review-val">1</span></div>
+          <div class="review-row"><span class="review-key">Level</span><span class="review-val">${level}</span></div>
         </div>
 
         <div class="review-section">
@@ -961,39 +975,43 @@ async function renderReviewStep(c) {
           ${ABILITIES_ORDER.map(ab => `
             <div class="review-row">
               <span class="review-key">${ABILITY_LABELS[ab]}</span>
-              <span class="review-val">${final[ab]} (${modStr(final[ab])})</span>
+              <span class="review-val">${final[ab]} (${fm(mod(final[ab]))})</span>
             </div>`).join('')}
         </div>
 
         <div class="review-section">
-          <div class="review-section-title">Feats (${state.feats.length})</div>
-          ${state.feats.length ? state.feats.map(f => `<div class="review-row"><span class="review-val">${f}</span></div>`).join('') : '<div class="text-muted" style="font-size:11px;">None selected</div>'}
+          <div class="review-section-title">Feats (${state.feats.length}/${featBudget()})</div>
+          ${state.feats.length
+            ? state.feats.map(f => `<div class="review-row"><span class="review-val">${f}</span></div>`).join('')
+            : '<div class="text-muted" style="font-size:11px;">None selected</div>'}
         </div>
 
         <div class="review-section">
           <div class="review-section-title">Traits (${state.traits.length})</div>
-          ${state.traits.length ? state.traits.map(t => `<div class="review-row"><span class="review-val">${t}</span></div>`).join('') : '<div class="text-muted" style="font-size:11px;">None selected</div>'}
+          ${state.traits.length
+            ? state.traits.map(t => `<div class="review-row"><span class="review-val">${t}</span></div>`).join('')
+            : '<div class="text-muted" style="font-size:11px;">None selected</div>'}
         </div>
       </div>
 
       <div>
         <div class="review-section">
-          <div class="review-section-title">Combat Stats</div>
-          <div class="review-row"><span class="review-key">HP (avg)</span><span class="review-val">${hp}</span></div>
-          <div class="review-row"><span class="review-key">AC</span><span class="review-val">${ac} (touch ${ac}, FF ${10})</span></div>
-          <div class="review-row"><span class="review-key">BAB</span><span class="review-val">${bab >= 0 ? '+'+bab : bab}</span></div>
-          <div class="review-row"><span class="review-key">Initiative</span><span class="review-val">${initiative >= 0 ? '+'+initiative : initiative}</span></div>
-          <div class="review-row"><span class="review-key">Fort Save</span><span class="review-val">${fort >= 0 ? '+'+fort : fort}</span></div>
-          <div class="review-row"><span class="review-key">Ref Save</span><span class="review-val">${ref >= 0 ? '+'+ref : ref}</span></div>
-          <div class="review-row"><span class="review-key">Will Save</span><span class="review-val">${will >= 0 ? '+'+will : will}</span></div>
-          <div class="review-row"><span class="review-key">CMB</span><span class="review-val">${bab+strMod >= 0 ? '+'+(bab+strMod) : bab+strMod}</span></div>
+          <div class="review-section-title">Combat Stats (Level ${level})</div>
+          <div class="review-row"><span class="review-key">HP</span><span class="review-val">${hp}</span></div>
+          <div class="review-row"><span class="review-key">AC</span><span class="review-val">${ac}</span></div>
+          <div class="review-row"><span class="review-key">BAB</span><span class="review-val">${fm(bab)}</span></div>
+          <div class="review-row"><span class="review-key">Initiative</span><span class="review-val">${fm(dexMod)}</span></div>
+          <div class="review-row"><span class="review-key">Fort</span><span class="review-val">${fm(fort)}</span></div>
+          <div class="review-row"><span class="review-key">Ref</span><span class="review-val">${fm(ref)}</span></div>
+          <div class="review-row"><span class="review-key">Will</span><span class="review-val">${fm(will)}</span></div>
+          <div class="review-row"><span class="review-key">CMB</span><span class="review-val">${fm(bab+strMod)}</span></div>
           <div class="review-row"><span class="review-key">CMD</span><span class="review-val">${10+bab+strMod+dexMod}</span></div>
         </div>
 
         <div class="review-section">
           <div class="review-section-title">Skill Ranks (${usedSkillRanks()} / ${skillBudget()})</div>
           ${Object.entries(state.skillRanks).filter(([,v])=>v>0).map(([sk,r]) =>
-            `<div class="review-row"><span class="review-key">${sk}</span><span class="review-val">${r} rank</span></div>`
+            `<div class="review-row"><span class="review-key">${sk}</span><span class="review-val">${r} rank${r>1?'s':''}</span></div>`
           ).join('') || '<div class="text-muted" style="font-size:11px;">No ranks allocated</div>'}
         </div>
       </div>
@@ -1008,7 +1026,7 @@ async function renderReviewStep(c) {
       <button class="btn" onclick="saveCharacter()">📁 Save to Library</button>
     </div>
     <p class="text-muted mt-sm" style="font-size:11px;">
-      "Save & View Sheet" generates a complete character sheet in a new tab.
+      "Save & View Sheet" saves the character and opens the sheet in a new tab.
     </p>
   </div>
 
@@ -1018,20 +1036,21 @@ async function renderReviewStep(c) {
   </div>`;
 }
 
-// ── Navigation ───────────────────────────────────────────────────────────
+// ── Navigation ────────────────────────────────────────────────────────────
 function validateCurrentStep() {
   switch(state.currentStep) {
-    case 0:
+    case 0: {  // Origins
       if (!state.name.trim()) return ['Character name is required.'];
       if (!state.race) return ['Please select a race.'];
-      if (state.race.flexible_bonus && !state.flexBonus)
-        return ['Please choose your +2 ability score bonus.'];
+      if (state.race.flexible_bonus && !state.flexBonus) return ['Please choose your +2 ability score bonus.'];
+      if (!state.className) return ['Please select a class.'];
       return [];
-    case 1:
+    }
+    case 1: {  // Abilities
       const final = getFinalScores();
       if (Object.values(final).some(v => v < 3)) return ['Ability scores cannot be below 3.'];
       if (state.abilityMethod === 'pointbuy') {
-        const cost = Object.values(state.baseScores).reduce((s,v)=>s+(PB_COSTS[v]||0),0);
+        const cost = Object.values(state.baseScores).reduce((s,v) => s+(PB_COSTS[v]||0), 0);
         if (cost > PB_BUDGET) return [`Point buy over budget by ${cost - PB_BUDGET} points.`];
       }
       if (state.abilityMethod === 'standard') {
@@ -1041,23 +1060,23 @@ function validateCurrentStep() {
         if (dups.length) return ['Each value can only be assigned once.'];
       }
       return [];
-    case 2:
-      if (!state.className) return ['Please select a class.'];
-      return [];
-    case 3: return [];
-    case 4:
+    }
+    case 2: return [];   // Feats & Traits
+    case 3:              // Skills
       if (usedSkillRanks() > skillBudget()) return ['Too many skill ranks allocated.'];
       return [];
-    case 5: return [];
+    case 4: return [];   // Review
   }
   return [];
 }
 
 function syncCurrentStepState() {
   if (state.currentStep === 0) {
-    state.name       = document.getElementById('inp-name')?.value?.trim() || state.name;
+    state.name       = document.getElementById('inp-name')?.value?.trim()  || state.name;
     state.playerName = document.getElementById('inp-player')?.value?.trim() || state.playerName;
-    state.alignment  = document.getElementById('inp-alignment')?.value || state.alignment;
+    state.alignment  = document.getElementById('inp-alignment')?.value      || state.alignment;
+    const lvl = parseInt(document.getElementById('inp-level')?.value);
+    if (!isNaN(lvl) && lvl >= 1 && lvl <= 20) state.startLevel = lvl;
     const flex = document.getElementById('flex-bonus');
     if (flex) state.flexBonus = flex.value || null;
   }
@@ -1084,14 +1103,17 @@ window.prevStep = function() {
   }
 };
 
-// ── Build character dict ─────────────────────────────────────────────────
+// ── Build character dict ──────────────────────────────────────────────────
 function buildCharDict() {
   computeBaseScores();
-  const final = getFinalScores();
+  const final    = getFinalScores();
   const classRow = state.classRow;
-  const hitDie = classRow?.hit_die || 'd8';
-  const avgMap = {d6:4,d8:5,d10:6,d12:7};
-  const hp = Math.max(1, (avgMap[hitDie]||5) + mod(final.con));
+  const level    = state.startLevel;
+  const hitDie   = classRow?.hit_die || 'd8';
+  const dieSize  = parseInt(hitDie.slice(1)) || 8;
+  const avgRoll  = {d6:4,d8:5,d10:6,d12:7}[hitDie] || 5;
+  const hpL1 = Math.max(1, dieSize + mod(final.con));
+  const hp   = hpL1 + (level > 1 ? Math.max(1, avgRoll + mod(final.con)) * (level - 1) : 0);
 
   return {
     id: null,
@@ -1102,7 +1124,7 @@ function buildCharDict() {
     ability_scores: final,
     class_levels: state.className ? [{
       class_name: state.className,
-      level: 1,
+      level: level,
       archetype_name: state.archetypeName || null,
     }] : [],
     feats: [...state.feats],
@@ -1116,11 +1138,12 @@ function buildCharDict() {
   };
 }
 
-// ── Export actions ───────────────────────────────────────────────────────
+// ── Export actions ────────────────────────────────────────────────────────
 window.saveCharacter = async function() {
   const char = buildCharDict();
   try {
     const result = await apiPost('/characters', char);
+    addToHistory(result.id, char);
     alert(`Character saved! ID: ${result.id}`);
   } catch(e) {
     alert('Error saving character: ' + e.message);
@@ -1132,7 +1155,7 @@ window.downloadJSON = function() {
   const blob = new Blob([JSON.stringify(char, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${char.name.replace(/\s+/g,'_') || 'character'}.json`;
+  a.download = `${(char.name||'character').replace(/\s+/g,'_')}.json`;
   a.click();
 };
 
@@ -1140,15 +1163,17 @@ window.saveAndViewSheet = async function() {
   const char = buildCharDict();
   try {
     const result = await apiPost('/characters', char);
+    addToHistory(result.id, char);
+    renderHistory();
     window.open(`/api/characters/${result.id}/sheet`, '_blank');
   } catch(e) {
     alert('Error: ' + e.message);
   }
 };
 
-// ── Character library ────────────────────────────────────────────────────
+// ── Character library ─────────────────────────────────────────────────────
 window.openCharList = async function() {
-  const modal = document.getElementById('char-list-modal');
+  const modal   = document.getElementById('char-list-modal');
   const content = document.getElementById('char-list-content');
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
@@ -1177,39 +1202,93 @@ window.openCharList = async function() {
 
 window.loadChar = async function(id) {
   const char = await apiFetch(`/characters/${id}`);
-  // Restore state from saved character
-  state.name = char.name || '';
-  state.playerName = char.player_name || '';
-  state.alignment = char.alignment || 'True Neutral';
-
+  state.name       = char.name         || '';
+  state.playerName = char.player_name  || '';
+  state.alignment  = char.alignment    || 'True Neutral';
   if (char.race && state._races) {
     state.race = state._races.find(r => r.name === char.race) || null;
   }
-  if (char.ability_scores) state.baseScores = { ...char.ability_scores };
+  if (char.ability_scores) {
+    state.baseScores  = { ...char.ability_scores };
+    state.abilityMethod = 'manual';
+  }
   if (char.class_levels?.[0]) {
-    state.className = char.class_levels[0].class_name;
+    state.className    = char.class_levels[0].class_name;
     state.archetypeName = char.class_levels[0].archetype_name || null;
+    state.startLevel   = char.class_levels[0].level || 1;
     if (state._classes) {
       state.classRow = state._classes.find(c => c.name === state.className) || null;
     }
   }
-  state.feats = char.feats || [];
-  state.traits = char.traits || [];
-  state.skillRanks = char.skills || {};
-  state.abilityMethod = 'manual';
+  state.feats      = char.feats   || [];
+  state.traits     = char.traits  || [];
+  state.skillRanks = char.skills  || {};
 
   document.getElementById('char-list-modal').style.display = 'none';
-  state.currentStep = 5;
-  state.maxReached = 5;
+  state.currentStep = 4;
+  state.maxReached  = 4;
   renderTracker();
   renderStep();
 };
 
-// ── Utilities ────────────────────────────────────────────────────────────
+// ── Character history (localStorage) ─────────────────────────────────────
+const HISTORY_KEY = 'pf1e_char_history';
+const MAX_HISTORY = 8;
+
+function addToHistory(id, char) {
+  const history  = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const classStr = (char.class_levels || []).map(cl =>
+    `${cl.class_name} ${cl.level}${cl.archetype_name ? ' ('+cl.archetype_name+')' : ''}`
+  ).join(', ');
+  const entry = { id, name: char.name||'?', race: char.race||'—', class_str: classStr, saved: Date.now() };
+  const deduped = history.filter(h => h.id !== id);
+  deduped.unshift(entry);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(deduped.slice(0, MAX_HISTORY)));
+}
+
+function renderHistory() {
+  const el = document.getElementById('recent-chars');
+  if (!el) return;
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  if (!history.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div class="panel" style="max-width:800px;margin:16px auto 0;">
+      <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
+        Recent Characters
+        <button class="btn btn-sm" onclick="clearHistory()">Clear</button>
+      </div>
+      ${history.map(c => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gold-border);">
+          <div>
+            <span style="font-family:var(--font-head);font-size:13px;">${esc(c.name)}</span>
+            <span class="text-muted" style="font-size:11px;margin-left:8px;">${esc(c.race)} · ${esc(c.class_str)}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <a class="btn btn-sm" href="/api/characters/${c.id}/sheet" target="_blank">Sheet</a>
+            <a class="btn btn-sm" href="/levelup#char=${c.id}">Level Up</a>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+window.clearHistory = function() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+};
+
+// ── Utilities ─────────────────────────────────────────────────────────────
 function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────
+// Encode a JS value for use inside a double-quoted HTML onclick attribute.
+// JSON.stringify uses double-quotes which would break attribute parsing.
+function jsAttr(val) {
+  return JSON.stringify(val).replace(/"/g, '&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
 renderTracker();
 renderStep();
+renderHistory();
