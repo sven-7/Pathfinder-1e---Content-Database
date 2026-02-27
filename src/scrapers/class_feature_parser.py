@@ -279,7 +279,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Kineticist',
         'feature_category': 'Wild Talent',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes/kineticist/kineticist-wild-talents/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/kineticist/kineticist-wild-talents/',
         ],
         'type': 'A',
     },
@@ -287,7 +287,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Mesmerist',
         'feature_category': 'Mesmerist Trick',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes/mesmerist/mesmerist-tricks/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/mesmerist/mesmerist-tricks/',
         ],
         'type': 'A',
     },
@@ -295,7 +295,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Medium',
         'feature_category': 'Spirit',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes/medium/spirits/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/medium/spirits/',
         ],
         'type': 'B',
     },
@@ -303,7 +303,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Occultist',
         'feature_category': 'Implement School',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes/occultist/implement-schools/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/occultist/implement-schools/',
         ],
         'type': 'B',
     },
@@ -311,7 +311,7 @@ CLASS_FEATURE_INDEXES = {
         'parent_class': 'Psychic',
         'feature_category': 'Discipline',
         'index_urls': [
-            f'{BASE_URL}/alternative-rule-systems/occult-adventures/occult-classes/psychic/psychic-disciplines/',
+            f'{BASE_URL}/alternative-rule-systems/paizo-rules-systems/occult-adventures/occult-classes/psychic/psychic-disciplines/',
         ],
         'type': 'B',
     },

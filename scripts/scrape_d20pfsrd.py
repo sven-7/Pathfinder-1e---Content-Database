@@ -203,14 +203,31 @@ def print_status():
 def main():
     parser = argparse.ArgumentParser(description="d20pfsrd.com content scraper")
     parser.add_argument('--phase', choices=['manifest', 'parse', 'all', 'status'],
-                       default='all', help='Which phase to run')
+                       default=None, help='Which phase to run (default: auto-detect)')
     parser.add_argument('--type', nargs='+', dest='content_types',
-                       help='Content types to parse (spells, feats, classes, races)')
+                       help='Content types to parse (spells, feats, classes, races, traits, class_features)')
     parser.add_argument('--tier', nargs='+', type=int, default=[1],
                        help='Content tiers to include in manifest (1=character building, 2=equipment)')
     parser.add_argument('--limit', type=int, default=None,
                        help='Max URLs to parse per content type (for testing)')
     args = parser.parse_args()
+
+    # Auto-detect phase:
+    #   --type X → parse only (skip manifest if it exists)
+    #   --phase manifest → manifest only
+    #   --phase parse → parse only
+    #   no flags → all
+    if args.phase is None:
+        if args.content_types:
+            # User specified --type: skip manifest if it already exists
+            manifest = load_manifest()
+            if manifest:
+                args.phase = 'parse'
+                print(f"(Using existing manifest with {sum(manifest['metadata']['content_types'].values()):,} URLs)")
+            else:
+                args.phase = 'all'
+        else:
+            args.phase = 'all'
 
     print("╔" + "═" * 58 + "╗")
     print("║   d20pfsrd.com Content Scraper                           ║")
