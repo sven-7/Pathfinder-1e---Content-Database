@@ -696,10 +696,13 @@ function renderSkills() {
 }
 
 // ── renderSpells ───────────────────────────────────────────────────────────
+// D.spells can be:
+//   {level_key: [name, ...]}  — current format from creator.js (object with string keys)
+//   [name, ...]               — legacy flat array (old saved characters)
+//   undefined                 — non-spellcaster
 function renderSpells() {
   if (!D || !D.derived) return;
   const spellSlots = D.derived.spell_slots || {};
-  const knownSpells = D.spells || [];
   const sec = document.getElementById('spells-section');
   const el  = document.getElementById('s-spells');
 
@@ -707,13 +710,22 @@ function renderSpells() {
   if (!classNames.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
-  const scores = (D.ability_scores) || {};
+  // Normalize D.spells to {levelStr: [names]}
+  const spellsByLevel = {};
+  let flatFallback = [];
+  if (Array.isArray(D.spells)) {
+    // Legacy format — flat list with no level info; show at bottom
+    flatFallback = D.spells;
+  } else if (D.spells && typeof D.spells === 'object') {
+    Object.assign(spellsByLevel, D.spells);
+  }
+
+  const scores = D.ability_scores || {};
   let html = '';
 
   classNames.forEach((className, ci) => {
     const slots = spellSlots[className];
-    if (ci > 0) html += `<div class="spell-class-sep">${className}</div>`;
-    else if (classNames.length > 1) html += `<div class="spell-class-sep">${className}</div>`;
+    if (classNames.length > 1) html += `<div class="spell-class-sep">${className}</div>`;
 
     const spAbility = SPELLCASTING_ABILITY[className] || 'int';
     const spMod = abilityMod(scores[spAbility] || 10);
@@ -726,6 +738,7 @@ function renderSpells() {
 
       const lvlLabel = lvl === 0 ? 'Cantrips / Orisons' : `Level ${lvl}`;
       const dc = 10 + lvl + spMod;
+      const spellsHere = spellsByLevel[String(lvl)] || [];
 
       html += `<div class="formulae-level">`;
       html += `<div class="formulae-level-header">`;
@@ -740,14 +753,23 @@ function renderSpells() {
           onclick="toggleSpellDot('${className}',${lvl},${i})"></span>`;
       }
       html += `</div></div>`; // flvl-slots, formulae-level-header
+
+      // Spells belonging to this level, inline under the header
+      if (spellsHere.length > 0) {
+        html += spellsHere.map(s => {
+          const name = typeof s === 'string' ? s : (s.name || '—');
+          return `<div class="fname">${name}</div>`;
+        }).join('');
+      }
+
       html += `</div>`; // formulae-level
     });
   });
 
-  // Known / prepared spells list
-  if (knownSpells.length > 0) {
+  // Legacy flat list fallback (old characters saved before level keys were stored)
+  if (flatFallback.length > 0) {
     html += `<div class="sub-title">Known / Prepared</div>`;
-    html += knownSpells.map(s => {
+    html += flatFallback.map(s => {
       const name = typeof s === 'string' ? s : (s.name || '—');
       return `<div class="fname">${name}</div>`;
     }).join('');
