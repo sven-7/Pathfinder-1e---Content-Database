@@ -97,6 +97,27 @@ let abilityChoice = null; // ability name for +1 (every 4 levels)
 let newSkillRanks = {};   // additional ranks for this level
 let newFeat = null;       // feat name chosen (if applicable)
 let classRow = null;      // class data row
+let newTalents = [];      // talent names selected this level-up
+let newSpells = {};       // {spellLevel: [names]} selected this level-up
+
+// Caches (persist across step renders)
+let _luProgression = null;    // all progression rows for this class
+let _luClassTalents = null;   // fetched talent list
+let _luSpellCache = {};       // {spellLevel: [spells]}
+
+// Maps class names to their selectable talent feature_type
+const CLASS_TALENT_MAP = {
+  'Barbarian': 'Rage Power', 'Unchained Barbarian': 'Rage Power', 'Skald': 'Rage Power',
+  'Rogue': 'Rogue Talent',   'Unchained Rogue': 'Rogue Talent',
+  'Alchemist': 'Discovery',
+  'Witch': 'Hex',            'Shaman': 'Hex',
+  'Magus': 'Magus Arcana',
+  'Ninja': 'Ninja Trick',
+  'Slayer': 'Slayer Talent',
+  'Investigator': 'Investigator Talent',
+  'Arcanist': 'Exploit',
+  'Kineticist': 'Wild Talent',
+};
 
 // ── Derived helpers ──────────────────────────────────────────────────────
 function mod(score) { return Math.floor((score - 10) / 2); }
@@ -260,14 +281,23 @@ window.loadCharObj = async function(jsonStr) {
     char = data;
   }
 
-  // Get class data
+  // Get class data and progression
   const primaryClass = char.class_levels?.[0];
   if (primaryClass) {
     try {
       const classes = await apiFetch('/classes');
       classRow = classes.find(c => c.name === primaryClass.class_name) || null;
     } catch(e) {}
+    try {
+      _luProgression = await apiFetch(`/classes/${encodeURIComponent(primaryClass.class_name)}/progression`);
+    } catch(e) { _luProgression = []; }
   }
+
+  // Reset level-up selections when loading a new character
+  newTalents = [];
+  newSpells = {};
+  _luClassTalents = null;
+  _luSpellCache = {};
 
   newLevel = (char.class_levels?.[0]?.level || 1) + 1;
   currentStep = 1;
@@ -373,7 +403,7 @@ async function renderSkills(c) {
     ? (char.ability_scores?.int || 10) + 1
     : (char.ability_scores?.int || 10);
   const intMod = mod(intSc);
-  const budget = Math.max(1, ranksPerLevel + intMod) + (char.race === 'Humans' ? 1 : 0);
+  const budget = Math.max(1, ranksPerLevel + intMod) + (char.race === 'Human' ? 1 : 0);
   const used = Object.values(newSkillRanks).reduce((s,v)=>s+(v||0),0);
   const remaining = budget - used;
   const maxRanks = newLevel;
@@ -487,41 +517,228 @@ window.luFilterFeats = function() {
 
 // ── Step 5: Class Features ────────────────────────────────────────────────
 async function renderFeatures(c) {
-  let features = [];
-  let progression = null;
-  if (char.class_levels?.[0]) {
-    const className = char.class_levels[0].class_name;
+  const className = char.class_levels?.[0]?.class_name || '';
+  const prog = _luProgression || [];
+  const progression  = prog.find(p => p.level === newLevel) || null;
+  const prevProg     = prog.find(p => p.level === newLevel - 1) || null;
+
+  const special = progression?.special || '';
+  const featureList = special ? special.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  // ── Detect if this level gains a talent ───────────────────────────────
+  const talentType = CLASS_TALENT_MAP[className] || null;
+  const gainsTalent = talentType && special && special.toLowerCase().includes(talentType.toLowerCase());
+
+  // Load talent list if needed
+  if (gainsTalent && !_luClassTalents) {
     try {
-      const classes = await apiFetch('/classes');
-      const cls = classes.find(c => c.name === className);
-      if (cls) {
-        const prog = await apiFetch(`/classes/${encodeURIComponent(className)}/progression`);
-        progression = prog.find(p => p.level === newLevel) || null;
+      _luClassTalents = await apiFetch(`/classes/${encodeURIComponent(className)}/features?feature_type=${encodeURIComponent(talentType)}`);
+    } catch(e) { _luClassTalents = []; }
+  }
+
+  // ── Detect new spell levels ───────────────────────────────────────────
+  let newSpellLevels = [];  // spell levels newly available at newLevel
+  let spellSlots = {};      // {level: count} for new level
+  if (classRow?.spellcasting_type && progression?.spells_per_day) {
+    try {
+      const curSlots  = JSON.parse(progression.spells_per_day  || '{}');
+      const prevSlots = JSON.parse(prevProg?.spells_per_day || '{}');
+      const hasCantrips = classRow.spellcasting_type !== 'alchemical';
+
+      // New spell levels are keys in curSlots that aren't in prevSlots
+      for (const [k, v] of Object.entries(curSlots)) {
+        const lvl = parseInt(k);
+        if (!prevSlots[k]) {
+          if (hasCantrips && newSpellLevels.length === 0 && Object.keys(prevSlots).length === 0) {
+            newSpellLevels.push(0);  // first time getting spells → also gain cantrips
+          }
+          newSpellLevels.push(lvl);
+        }
+        spellSlots[lvl] = v;
       }
     } catch(e) {}
   }
 
-  const special = progression?.special || '';
-  const featureList = special ? special.split(',').map(s => s.trim()).filter(Boolean) : [];
+  // ── Build talent panel HTML ───────────────────────────────────────────
+  const talentPanel = gainsTalent ? `
+  <div class="panel">
+    <div class="panel-title">${talentType} Selection
+      <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${newTalents.length} chosen</span>
+    </div>
+    <div style="margin-bottom:8px;" id="lu-talent-selected">
+      ${newTalents.length
+        ? newTalents.map(t => `<span class="tag">${esc(t)} <button class="tag-remove" onclick="luRemoveTalent(${JSON.stringify(t)})">✕</button></span>`).join('')
+        : '<span class="text-muted" style="font-size:12px;">None selected — choose 1 ${talentType}.</span>'}
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="lu-talent-search" placeholder="Search ${talentType}s…" oninput="luFilterTalents()">
+    </div>
+    <div class="scroll-list" style="max-height:220px;" id="lu-talent-list">
+      ${(_luClassTalents || []).length
+        ? (_luClassTalents || []).map(t => `
+            <div class="list-item${newTalents.includes(t.name)?' selected':''}" data-name="${esc(t.name)}"
+                 onclick="luToggleTalent(${JSON.stringify(t.name)})">
+              <div>
+                <div class="list-item-name">${esc(t.name)}</div>
+                ${t.description ? `<div class="list-item-detail">${esc((t.description||'').slice(0,90))}…</div>` : ''}
+              </div>
+            </div>`).join('')
+        : `<div class="text-muted" style="padding:8px;font-size:12px;">No ${talentType}s found in database.</div>`}
+    </div>
+  </div>` : '';
+
+  // ── Build spell panel HTML ─────────────────────────────────────────────
+  const firstNewSpellLvl = newSpellLevels[0] ?? 0;
+  const spellPanel = newSpellLevels.length > 0 ? `
+  <div class="panel">
+    <div class="panel-title">New Spells Available at Level ${newLevel}
+      <span class="text-muted" style="font-weight:400;font-size:10px;"> — select spells to add</span>
+    </div>
+    <div class="method-tabs" id="lu-spell-tabs">
+      ${newSpellLevels.map((lvl, i) => {
+        const label = lvl === 0 ? 'Cantrips' : `Level ${lvl}`;
+        const slots = spellSlots[lvl];
+        const note  = slots !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slots}/day)</span>` : '';
+        return `<div class="method-tab${i===0?' active':''}" data-splvl="${lvl}" onclick="luSetSpellTab(${lvl})">${label}${note}</div>`;
+      }).join('')}
+    </div>
+    <div id="lu-spell-tab-content">
+      ${luSpellTabHtml(firstNewSpellLvl, className)}
+    </div>
+  </div>` : '';
 
   c.innerHTML = `
   <div class="panel">
     <div class="panel-title">Class Features at Level ${newLevel}</div>
     ${featureList.length
-      ? `<ul class="feat-list">${featureList.map(f => `<li><strong>${f}</strong></li>`).join('')}</ul>`
-      : `<p class="text-muted" style="font-size:12px;">No additional class features listed for this level in the database.</p>`
+      ? `<ul class="feat-list">${featureList.map(f => `<li><strong>${esc(f)}</strong></li>`).join('')}</ul>`
+      : `<p class="text-muted" style="font-size:12px;">No additional features listed in the database for this level.</p>`
     }
     ${progression ? `
-      <div class="review-section" style="margin-top:16px;">
+      <div class="review-section" style="margin-top:12px;">
         <div class="review-section-title">Progression at Level ${newLevel}</div>
-        <div class="review-row"><span class="review-key">BAB</span><span class="review-val">+${progression.bab}</span></div>
-        <div class="review-row"><span class="review-key">Fort</span><span class="review-val">+${progression.fort_save}</span></div>
-        <div class="review-row"><span class="review-key">Ref</span><span class="review-val">+${progression.ref_save}</span></div>
-        <div class="review-row"><span class="review-key">Will</span><span class="review-val">+${progression.will_save}</span></div>
+        <div class="review-row"><span class="review-key">BAB</span><span class="review-val">+${progression.bab ?? '?'}</span></div>
+        <div class="review-row"><span class="review-key">Fort</span><span class="review-val">+${progression.fort_save ?? '?'}</span></div>
+        <div class="review-row"><span class="review-key">Ref</span><span class="review-val">+${progression.ref_save ?? '?'}</span></div>
+        <div class="review-row"><span class="review-key">Will</span><span class="review-val">+${progression.will_save ?? '?'}</span></div>
+        ${progression.spells_per_day ? `<div class="review-row"><span class="review-key">Spell Slots</span><span class="review-val">${
+          Object.entries(JSON.parse(progression.spells_per_day)).map(([lvl, n]) => `L${lvl}×${n}`).join(' ')
+        }</span></div>` : ''}
       </div>` : ''}
   </div>
+  ${talentPanel}
+  ${spellPanel}
   ${navBar('()=>prevLU()', '()=>nextLU()', 'Next: Review →')}`;
+
+  // Kick off loading spell list for first new spell level
+  if (newSpellLevels.length > 0) luLoadSpellList(firstNewSpellLvl, className);
 }
+
+// ── Talent helpers ────────────────────────────────────────────────────────
+window.luToggleTalent = function(name) {
+  if (newTalents.includes(name)) {
+    newTalents = newTalents.filter(t => t !== name);
+  } else {
+    newTalents.push(name);
+  }
+  // Refresh selected list and highlight
+  const sel = document.getElementById('lu-talent-selected');
+  if (sel) sel.innerHTML = newTalents.length
+    ? newTalents.map(t => `<span class="tag">${esc(t)} <button class="tag-remove" onclick="luRemoveTalent(${JSON.stringify(t)})">✕</button></span>`).join('')
+    : '<span class="text-muted" style="font-size:12px;">None selected.</span>';
+  document.querySelectorAll('#lu-talent-list .list-item').forEach(el => {
+    el.classList.toggle('selected', newTalents.includes(el.dataset.name));
+  });
+};
+
+window.luRemoveTalent = function(name) {
+  newTalents = newTalents.filter(t => t !== name);
+  renderFeatures(document.getElementById('step-content'));
+};
+
+window.luFilterTalents = function() {
+  const q = (document.getElementById('lu-talent-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#lu-talent-list .list-item').forEach(el => {
+    el.style.display = !q || el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
+
+// ── Spell helpers ──────────────────────────────────────────────────────────
+function luSpellTabHtml(level, className) {
+  const selected = newSpells[level] || [];
+  return `
+    <div style="margin:8px 0;font-size:11px;color:var(--fade);">
+      Selected: ${selected.length
+        ? selected.map(s => `<span class="tag" style="font-size:10px;">${esc(s)}<button class="tag-remove" onclick="luRemoveSpell(${level},${JSON.stringify(s)})">✕</button></span>`).join('')
+        : '<em>None</em>'}
+    </div>
+    <div id="lu-spell-list-${level}"><span class="text-muted">Loading spells…</span></div>`;
+}
+
+window.luSetSpellTab = function(level) {
+  document.querySelectorAll('#lu-spell-tabs .method-tab').forEach(tt => {
+    tt.classList.toggle('active', parseInt(tt.dataset.splvl) === level);
+  });
+  const content = document.getElementById('lu-spell-tab-content');
+  if (content) content.innerHTML = luSpellTabHtml(level, char.class_levels?.[0]?.class_name || '');
+  luLoadSpellList(level, char.class_levels?.[0]?.class_name || '');
+};
+
+async function luLoadSpellList(level, className) {
+  const listEl = document.getElementById(`lu-spell-list-${level}`);
+  if (!listEl) return;
+  if (_luSpellCache[level]) { luRenderSpellList(level, _luSpellCache[level]); return; }
+  try {
+    const spells = await apiFetch(`/spells?class_name=${encodeURIComponent(className)}&level=${level}&limit=200`);
+    _luSpellCache[level] = spells;
+    luRenderSpellList(level, spells);
+  } catch(e) {
+    if (listEl) listEl.innerHTML = `<div class="text-muted" style="padding:8px;font-size:12px;">Could not load spells.</div>`;
+  }
+}
+
+function luRenderSpellList(level, spells) {
+  const listEl = document.getElementById(`lu-spell-list-${level}`);
+  if (!listEl) return;
+  const selected = newSpells[level] || [];
+  if (!spells.length) {
+    listEl.innerHTML = '<div class="text-muted" style="padding:8px;font-size:12px;">No spells found for this class/level.</div>';
+    return;
+  }
+  listEl.innerHTML = `<div class="scroll-list" style="max-height:200px;">
+    ${spells.slice(0,200).map(s => `
+      <div class="list-item${selected.includes(s.name)?' selected':''}" data-name="${esc(s.name)}"
+           onclick="luToggleSpell(${level},${JSON.stringify(s.name)})">
+        <div class="list-item-name">${esc(s.name)}</div>
+        ${s.school ? `<div class="list-item-detail">${esc(s.school)}</div>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
+window.luToggleSpell = function(level, name) {
+  if (!newSpells[level]) newSpells[level] = [];
+  if (newSpells[level].includes(name)) {
+    newSpells[level] = newSpells[level].filter(s => s !== name);
+  } else {
+    newSpells[level].push(name);
+  }
+  const selDiv = document.getElementById('lu-spell-tab-content')?.querySelector('div[style*="margin:8px"]');
+  if (selDiv) {
+    const sel = newSpells[level] || [];
+    selDiv.innerHTML = `Selected: ${sel.length
+      ? sel.map(s => `<span class="tag" style="font-size:10px;">${esc(s)}<button class="tag-remove" onclick="luRemoveSpell(${level},${JSON.stringify(s)})">✕</button></span>`).join('')
+      : '<em>None</em>'}`;
+  }
+  document.querySelectorAll(`#lu-spell-list-${level} .list-item`).forEach(el => {
+    el.classList.toggle('selected', (newSpells[level] || []).includes(el.dataset.name));
+  });
+};
+
+window.luRemoveSpell = function(level, name) {
+  if (newSpells[level]) newSpells[level] = newSpells[level].filter(s => s !== name);
+  luSetSpellTab(level);
+};
 
 // ── Step 6: Review & Export ───────────────────────────────────────────────
 function renderReview(c) {
@@ -532,6 +749,17 @@ function renderReview(c) {
   const hpGain = (hpChoice || 0) + conMod;
   const newHPMax = (char.hp_max || 0) + Math.max(1, hpGain);
 
+  // Merge new talents and spells into existing character data
+  const mergedTalents = [...(char.class_talents || []), ...newTalents];
+  const mergedSpells = { ...(char.spells || {}) };
+  for (const [lvl, names] of Object.entries(newSpells)) {
+    if (!mergedSpells[lvl]) mergedSpells[lvl] = [];
+    mergedSpells[lvl] = [...new Set([...mergedSpells[lvl], ...names])];
+  }
+  // Update feat_details with level tag for new feat
+  const mergedFeatDetails = [...(char.feat_details || [])];
+  if (newFeat) mergedFeatDetails.push({ name: newFeat, level: newLevel, method: 'general' });
+
   // Build updated character
   const updatedChar = {
     ...char,
@@ -539,7 +767,10 @@ function renderReview(c) {
     hp_current: Math.min(char.hp_current || 0, newHPMax) + Math.max(1, hpGain),
     class_levels: char.class_levels.map((cl, i) => i === 0 ? {...cl, level: newLevel} : cl),
     feats: newFeat ? [...(char.feats||[]), newFeat] : (char.feats||[]),
+    feat_details: mergedFeatDetails,
     skills: mergeSkills(char.skills||{}, newSkillRanks),
+    class_talents: mergedTalents,
+    spells: mergedSpells,
   };
   if (abilityChoice) {
     updatedChar.ability_scores = {
@@ -548,18 +779,25 @@ function renderReview(c) {
     };
   }
 
+  const newSpellSummary = Object.entries(newSpells)
+    .filter(([, names]) => names.length > 0)
+    .map(([lvl, names]) => `<div class="review-row"><span class="review-key">Spells L${lvl}</span><span class="review-val">${names.join(', ')}</span></div>`)
+    .join('');
+
   c.innerHTML = `
   <div class="panel">
-    <div class="panel-title">Level Up Summary — ${char.name} to Level ${newLevel}</div>
+    <div class="panel-title">Level Up Summary — ${esc(char.name)} to Level ${newLevel}</div>
     <div class="review-grid">
       <div>
         <div class="review-section-title">Changes</div>
         <div class="review-row"><span class="review-key">New Level</span><span class="review-val">${newLevel}</span></div>
         <div class="review-row"><span class="review-key">HP Gain</span><span class="review-val">+${Math.max(1,hpGain)} → ${newHPMax} total</span></div>
         ${abilityChoice ? `<div class="review-row"><span class="review-key">Ability +1</span><span class="review-val">${abilityChoice.toUpperCase()} → ${updatedChar.ability_scores[abilityChoice]}</span></div>` : ''}
-        ${newFeat ? `<div class="review-row"><span class="review-key">New Feat</span><span class="review-val">${newFeat}</span></div>` : ''}
+        ${newFeat ? `<div class="review-row"><span class="review-key">New Feat</span><span class="review-val">${esc(newFeat)}</span></div>` : ''}
+        ${newTalents.map(t => `<div class="review-row"><span class="review-key">New Talent</span><span class="review-val">${esc(t)}</span></div>`).join('')}
+        ${newSpellSummary}
         ${Object.entries(newSkillRanks).filter(([,v])=>v>0).map(([sk,r])=>
-          `<div class="review-row"><span class="review-key">Skill: ${sk}</span><span class="review-val">+${r} rank</span></div>`
+          `<div class="review-row"><span class="review-key">Skill: ${esc(sk)}</span><span class="review-val">+${r} rank</span></div>`
         ).join('')}
       </div>
     </div>

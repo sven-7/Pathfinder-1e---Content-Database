@@ -73,8 +73,9 @@ const state = {
   _traits:     null,
   _skills:     null,
   _classSkills: null,
-  _weapons:    null,
-  _armor:      null,
+  _weapons:     null,
+  _armor:       null,
+  _progression: null,  // class progression rows, cleared when class changes
 };
 
 // ── API helpers ──────────────────────────────────────────────────────────
@@ -468,6 +469,7 @@ window.selectClass = async function(name) {
   state.classRow = cls;
   state.archetypeName = null;
   state._classSkills = null;
+  state._progression = null;  // clear cached progression when class changes
   document.querySelectorAll('#class-list .list-item').forEach(el => {
     el.classList.toggle('selected', el.dataset.name === name);
   });
@@ -904,13 +906,30 @@ async function renderExtrasStep(c) {
     } catch(e) { talents = []; }
   }
 
-  // Build available spell levels at current level (simplified: use class progression data from classRow)
-  // For now show level 0 (cantrips) and level 1 spells if spellcaster
+  // Build available spell levels from actual class progression data
   let spellLevels = [];
+  let spellSlots = {};   // {spellLevel: slotCount} for display
   if (isSpellcaster) {
-    // Assume all spellcasters get cantrips + level 1 at level 1; extend for higher levels
-    const maxSpellLevel = Math.min(9, Math.ceil(state.startLevel / 2));
-    for (let lvl = 0; lvl <= maxSpellLevel; lvl++) spellLevels.push(lvl);
+    if (!state._progression) {
+      try {
+        state._progression = await apiFetch(`/classes/${encodeURIComponent(className)}/progression`);
+      } catch(e) { state._progression = []; }
+    }
+    const progRow = (state._progression || []).find(p => p.level === state.startLevel);
+    if (progRow?.spells_per_day) {
+      try {
+        const slots = JSON.parse(progRow.spells_per_day);
+        const numLevels = Object.keys(slots).map(Number).filter(n => !isNaN(n)).sort((a,b) => a-b);
+        const hasCantrips = classRow.spellcasting_type !== 'alchemical';
+        if (hasCantrips && numLevels.length > 0) spellLevels.push(0);
+        for (const lvl of numLevels) { spellLevels.push(lvl); spellSlots[lvl] = slots[String(lvl)]; }
+      } catch(e) {}
+    }
+    // Fallback if no progression data or class hasn't gotten spells yet
+    if (spellLevels.length === 0) {
+      const maxSpellLevel = Math.min(9, Math.ceil(state.startLevel / 2));
+      for (let lvl = 0; lvl <= maxSpellLevel; lvl++) spellLevels.push(lvl);
+    }
   }
 
   const talentSection = talentType ? `
@@ -939,19 +958,30 @@ async function renderExtrasStep(c) {
       </div>
     </div>` : '';
 
-  const spellSection = isSpellcaster ? `
+  const firstSpellTab = spellLevels[0] ?? 0;
+  const spellSection = isSpellcaster && spellLevels.length > 0 ? `
     <div class="panel">
       <div class="panel-title">Spells Known / Prepared</div>
       <p class="text-muted" style="font-size:11px;margin-bottom:10px;">
         Select spells for your ${className}. Use the spell level tabs below.
+        ${classRow.spellcasting_type === 'alchemical' ? '(Formulae / Extracts)' : ''}
       </p>
       <div class="method-tabs" id="spell-level-tabs">
-        ${spellLevels.map(lvl => `<div class="method-tab${lvl===0?' active':''}" onclick="setSpellTab(${lvl})">${lvl === 0 ? 'Cantrips' : 'Level '+lvl}</div>`).join('')}
+        ${spellLevels.map(lvl => {
+          const label = lvl === 0 ? 'Cantrips' : `Level ${lvl}`;
+          const slots = spellSlots[lvl];
+          const slotNote = slots !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slots}/day)</span>` : '';
+          return `<div class="method-tab${lvl===firstSpellTab?' active':''}" data-splvl="${lvl}" onclick="setSpellTab(${lvl})">${label}${slotNote}</div>`;
+        }).join('')}
       </div>
       <div id="spell-tab-content">
-        ${spellTabHtml(0, className)}
+        ${spellTabHtml(firstSpellTab, className)}
       </div>
-    </div>` : '';
+    </div>` : (isSpellcaster ? `
+    <div class="panel">
+      <div class="panel-title">Spells</div>
+      <p class="text-muted" style="font-size:12px;">${className} does not gain spell slots at level ${state.startLevel}.</p>
+    </div>` : '');
 
   // Load weapons and armor from API (cached)
   if (!state._weapons) {
@@ -1074,8 +1104,8 @@ async function renderExtrasStep(c) {
     </div>
   </div>`;
 
-  // Kick off loading spell list for level 0 if spellcaster
-  if (isSpellcaster) loadSpellList(0);
+  // Kick off loading spell list for first spell level
+  if (isSpellcaster && spellLevels.length > 0) loadSpellList(firstSpellTab);
 }
 
 function weaponListHtml(weapons) {
@@ -1240,8 +1270,8 @@ function spellTabHtml(level, className) {
 
 window.setSpellTab = function(level) {
   _currentSpellTab = level;
-  document.querySelectorAll('#spell-level-tabs .method-tab').forEach((tt, ii) => {
-    tt.classList.toggle('active', ii === level);
+  document.querySelectorAll('#spell-level-tabs .method-tab').forEach(tt => {
+    tt.classList.toggle('active', parseInt(tt.dataset.splvl) === level);
   });
   const contentEl = document.getElementById('spell-tab-content');
   if (contentEl) contentEl.innerHTML = spellTabHtml(level, state.className || '');
