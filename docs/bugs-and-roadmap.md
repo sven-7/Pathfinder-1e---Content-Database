@@ -1,5 +1,5 @@
 # Bugs, Improvements & Roadmap
-*Last updated: Feb 2026 — post Phase 12a bug fixes*
+*Last updated: Feb 2026 — post Phase 12b rules engine audit*
 
 ---
 
@@ -9,8 +9,8 @@
 |-------|--------|-------------|
 | 1–11 | Complete | Data import, API, creator wizard, multi-user auth |
 | 12 | Next | DM View & Campaign Layer — campaign setup, DM-configurable rules, party management |
-| 12a | Next (parallel) | Creator Bug Fixes — chip UI, Point Buy UX, talent budget enforcement, HP fix |
-| 12b | Next (parallel) | Rules Engine Audit — full audit of level-up calculations, test suite vs Kairon reference |
+| 12a | Complete | Creator Bug Fixes — chip UI, Point Buy UX, talent budget enforcement, HP fix |
+| 12b | Complete | Rules Engine Audit — 71 pytest tests, multi-class exporter fix, levelup.html auth fix |
 | 13 | Planned | Level-Aware Creator — ASI, per-level FCB, talent gating, prerequisite enforcement |
 | 14 | Planned | Encounter & Combat Tracker |
 | 15 | Planned | Equipment Phase — full armor/weapon/gear UI overhaul |
@@ -77,18 +77,23 @@ Investigator archetype picker shows archetypes from other classes.
 
 ---
 
-## Level-Up Rules Engine — What Needs to Be Evaluated (Phase 12b)
+## Phase 12b: Rules Engine Audit — COMPLETE
 
-The rules engine in `src/rules_engine/` and `src/character_creator/` has several functions that need full audit for multi-level correctness:
+71 pytest tests covering all rules engine modules. All pass. Key findings:
 
-### Functions to Audit
-1. `builder.py::compute_hp()` — ~~broken (C-1)~~ FIXED: max at L1
-2. `builder.py::skill_budget()` — ~~broken race check (C-2)~~ FIXED, needs multi-level sum
-3. `builder.py::feat_budget()` — missing class-specific bonus feat schedules
-4. `exporter.py::_compute_derived()` — HP (C-1), class features (M-1), trait bonuses (missing), ASI (missing)
-5. `progression.py::get_hp()` — verify if multi-level or not
-6. `progression.py::get_bab()` / `get_save()` — verify multi-class stacking
-7. `progression.py::get_spell_slots()` — verify reads correctly per level
+### Functions Audited & Verified
+1. `progression.py::get_hp()` — max at L1, average thereafter, CON per level, favored class HP, minimum = total level ✅
+2. `progression.py::get_bab()` / `get_save()` — multi-class stacking verified (Fighter 3 + Rogue 2) ✅
+3. `progression.py::get_spell_slots()` — reads correctly per level from DB ✅
+4. `combat.py::ac/cmb/cmd/initiative/attack_bonus` — all formulas correct ✅
+5. `bonuses.py::BonusStack` — stacking rules (dodge/untyped/circumstance stack, others don't) ✅
+6. `prerequisites.py` — parsing and checking of BAB, ability, feat, class feature prereqs ✅
+7. `skills.py` — class skill bonus, multi-class union, totals ✅
+8. `exporter.py::_compute_derived()` — full integration verified against Kairon L5 reference ✅
+
+### Bugs Fixed (Phase 12b)
+- **Exporter multi-class class skills**: only loaded skills from first class level; now unions all
+- **levelup.html missing auth**: `apiFetch()` and `exportLevelUp()` now include JWT auth headers + 401 handling
 
 ### Trait Bonuses Not Applied
 The `exporter.py` `_compute_derived()` does not apply trait effects to derived stats:
@@ -147,5 +152,5 @@ Character files: `characters/Kairon_Investigator_sheet.html` and higher-level va
 
 Each phase should end with: bugs fixed + Kairon test verified + this doc updated + git commit + push.
 
-**Current checkpoint:** Post Phase 12a — C-1, C-2, C-3, M-1, MOD-2 resolved.
-**Next conversation:** Phase 12b (rules engine audit) or Phase 13 (level-aware creator).
+**Current checkpoint:** Post Phase 12b — rules engine fully tested (71 tests), multi-class exporter fix, levelup auth fix.
+**Next conversation:** Phase 12 (DM campaign layer) or Phase 13 (level-aware creator).

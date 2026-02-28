@@ -153,8 +153,8 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
     # Skills
     skill_totals = {}
     class_skill_names: set[str] = set()
-    if cls_levels:
-        row = db.get_class(cls_levels[0].class_name)
+    for cl in cls_levels:
+        row = db.get_class(cl.class_name)
         if row:
             for sk in db.get_class_skills(row["id"]):
                 class_skill_names.add(sk["name"].lower())
