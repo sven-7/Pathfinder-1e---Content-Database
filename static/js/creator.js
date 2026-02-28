@@ -505,22 +505,40 @@ async function loadArchetypes(name) {
   archSection.innerHTML = '<span class="text-muted" style="font-size:11px;">Loading…</span>';
   try {
     const archetypes = await apiFetch(`/classes/${encodeURIComponent(name)}/archetypes`);
-    if (archetypes.length === 0) {
+    if (!archetypes || archetypes.length === 0) {
       archSection.innerHTML = '<p class="text-muted" style="font-size:11px;">No archetypes available.</p>';
-    } else {
-      archSection.innerHTML = `
-        <div class="field-group" style="margin-top:6px;">
-          <label class="field-label">Archetype (Optional)</label>
-          <select class="field-select" id="archetype-select" onchange="state.archetypeName=this.value||null">
-            <option value="">— None (base class) —</option>
-            ${archetypes.map(a => `<option value="${esc(a.name)}" ${state.archetypeName===a.name?'selected':''}>${a.name}</option>`).join('')}
-          </select>
-        </div>`;
+      return;
     }
+    // Store on window so the filter function can access it
+    window._loadedArchetypes = archetypes;
+    archSection.innerHTML = `
+      <div class="field-group" style="margin-top:6px;">
+        <label class="field-label">Archetype (Optional)
+          <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${archetypes.length} available</span>
+        </label>
+        <input type="text" class="field-input" id="archetype-filter" placeholder="Filter archetypes…"
+               oninput="filterArchetypeList()" style="margin-bottom:4px;">
+        <select class="field-select" id="archetype-select" onchange="state.archetypeName=this.value||null" size="5"
+                style="height:auto;min-height:80px;">
+          <option value="">— None (base class) —</option>
+          ${archetypes.map(a => `<option value="${esc(a.name)}" ${state.archetypeName===a.name?'selected':''}>${esc(a.name)}</option>`).join('')}
+        </select>
+      </div>`;
   } catch(e) {
     archSection.innerHTML = '<p class="text-muted" style="font-size:11px;">Could not load archetypes.</p>';
   }
 }
+
+window.filterArchetypeList = function() {
+  const q = (document.getElementById('archetype-filter')?.value || '').toLowerCase();
+  const select = document.getElementById('archetype-select');
+  if (!select) return;
+  const archetypes = window._loadedArchetypes || [];
+  // Rebuild options matching the filter
+  const filtered = archetypes.filter(a => a.name.toLowerCase().includes(q));
+  select.innerHTML = `<option value="">— None (base class) —</option>` +
+    filtered.map(a => `<option value="${esc(a.name)}" ${state.archetypeName===a.name?'selected':''}>${esc(a.name)}</option>`).join('');
+};
 
 window.filterClasses = function() {
   const q = document.getElementById('class-search').value.toLowerCase();
@@ -1001,11 +1019,11 @@ async function renderExtrasStep(c) {
     ? `${className} does not prepare extracts at level ${state.startLevel}.`
     : `${className} does not gain spell slots at level ${state.startLevel}.`;
 
-  // Load class talents if applicable
+  // Load class talents if applicable (exact match avoids pulling in sub-type entries)
   let talents = [];
   if (talentType) {
     try {
-      talents = await apiFetch(`/classes/${encodeURIComponent(className)}/features?feature_type=${encodeURIComponent(talentType)}`);
+      talents = await apiFetch(`/classes/${encodeURIComponent(className)}/features?feature_type=${encodeURIComponent(talentType)}&exact=1`);
     } catch(e) { talents = []; }
   }
 

@@ -94,6 +94,7 @@ async def get_class_features(
     name: str,
     request: Request,
     feature_type: str | None = Query(default=None, description="Filter by feature_type"),
+    exact: bool = Query(default=False, description="Exact match on feature_type (no prefix)"),
 ):
     db = request.app.state.db
     cls_row = db.get_class(name)
@@ -101,10 +102,16 @@ async def get_class_features(
         raise HTTPException(status_code=404, detail=f"Class '{name}' not found")
     features = db.get_class_features(cls_row["id"])
     if feature_type:
-        # Prefix match: "Arcanist Exploit" matches "Arcanist Exploit - Greater" etc.
         ft_lower = feature_type.lower()
-        features = [
-            f for f in features
-            if (f.get("feature_type") or "").lower().startswith(ft_lower)
-        ]
+        if exact:
+            features = [
+                f for f in features
+                if (f.get("feature_type") or "").lower() == ft_lower
+            ]
+        else:
+            # Prefix match: "Arcanist Exploit" also returns "Arcanist Exploit - Greater" etc.
+            features = [
+                f for f in features
+                if (f.get("feature_type") or "").lower().startswith(ft_lower)
+            ]
     return features
