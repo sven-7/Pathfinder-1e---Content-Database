@@ -13,7 +13,7 @@ A comprehensive Pathfinder 1st Edition campaign management platform: structured 
 | Interface | Description | Status |
 |-----------|-------------|--------|
 | **Character Creator** | Guided 6-step wizard: Origins → Abilities → Feats → Extras → Skills → Review | ✅ v1 Done |
-| **Classic Character Sheet** | Authoritative character record — Paizo PDF-style with roll buttons, spell dots, weapon blocks | 🔧 Phase 8 |
+| **Classic Character Sheet** | Authoritative character record — parchment layout, spell slot dots, resource trackers, live condition deltas, HP popup, dice roller | ✅ Phase 8 Done |
 | **Spell & Formula Book** | Dedicated spellcaster panel — prepared/spontaneous tracking, formula tactical groupings | 🔧 Phase 9 |
 | **Cheat Sheet (Modular Panels)** | Situation-based quick reference, drag-and-drop panels, print to 1–2 pages | 🔧 Phase 10 |
 | **DM View** | Party overview, NPC manager, all character sheets readable by GM | 🔧 Phase 12 |
@@ -44,6 +44,7 @@ A comprehensive Pathfinder 1st Edition campaign management platform: structured 
 | 5 | **Feat Filtering** — exclude monster/mythic feats from creator; prerequisite text shown in picker | ✅ Complete |
 | 6 | **Equipment System** — 70 weapons + 28 armor entries; armor dropdown, shield dropdown, weapon picker in creator; AC computed from equipped armor; weapon stat blocks on sheet | ✅ Complete |
 | 7 | **Creator Polish — Class Abilities & Spells** — talent selection (rage powers, rogue talents, etc.); spell selection by level in creator; level-up wizard detects new spell levels and talent gains | ✅ Complete |
+| 8 | **Classic Character Sheet** — Kairon-parity redesign: self-contained HTML, embedded CSS, 3-column parchment layout, interactive spell slot dots (4-state cycle), class resource trackers (Rage/Ki/Inspiration/etc.), 27-condition table with live stat deltas, HP popup calculator, dice bar, localStorage persistence | ✅ Complete |
 
 ### Near-Term: Content Quality
 
@@ -57,7 +58,7 @@ A comprehensive Pathfinder 1st Edition campaign management platform: structured 
 | Phase | Description | Deliverable |
 |-------|-------------|-------------|
 | **7** | **Creator Polish — Class Abilities & Spells** — Class ability selection during level-up (rage powers, rogue talents, discoveries, etc.); spell selection at level-up (known/prepared per class); multi-level feat associations | Level-up wizard is complete for all class types |
-| **8** | **Classic Character Sheet** — Full redesign to Paizo-parity: ornamental header, ability block, weapon stat blocks with roll buttons, resource pool trackers (Ki/Rage/Inspiration), conditions that modify displayed values, print-optimized layout | A sheet you want to bring to the table |
+| **8** | **Classic Character Sheet** ✅ — Self-contained parchment sheet: 3-column layout, ability scores, stat strip, spell slot dots, resource trackers, 27 live conditions, HP popup, dice bar, localStorage state | A sheet you want to bring to the table |
 | **9** | **Spell & Formula Book Panel** — Dedicated spellcaster view: spell dots per level, prepared vs. spontaneous workflow, Alchemist formula book with tactical groupings (combat buffs / defensive / utility / social), infusion tracking | Spellcasters have a complete, playable spell workflow |
 | **10** | **Cheat Sheet — Modular Panels** — Situation-based panels (Combat, Resources, Skills, Abilities); drag-and-drop to rearrange; toggle visibility; action economy icons (● standard, ◐ move, ◑ swift, ◆ immediate, ○ free); print to 1–2 pages | Players assemble a custom reference card for the session |
 
@@ -156,6 +157,29 @@ Local web app at `http://localhost:8000`:
 - Iterative attacks: `num_attacks = 1 + max(0, (bab - 1) // 5)` — Fighter 6 shows `+9/+4` ✓
 - Sheet displays: equipped armor/shield with stats, weapon blocks with pre-computed attack/damage strings
 
+### Phase 8 — Classic Character Sheet (Kairon-Parity Redesign)
+
+`static/sheet.html` rewritten as a 958-line self-contained file (no external CSS, works offline):
+
+- **Design:** Cinzel/Crimson Text/Special Elite fonts; parchment `#f0e8d5` background; double-border gold page frame
+- **Header banner:** Large character name, class/level/alignment, 6 ability score blocks with signed modifier
+- **Stat strip:** Initiative · HP · AC/touch/flat-footed · Fort·Ref·Will (clickable to roll) · BAB/CMB/CMD
+- **HP popup calculator:** Click HP block to open; accepts `−5` (damage), `+3` (heal), `12` (set absolute); clamps to `[0, max]`
+- **Spell slot dots:** Per spell level, 4-state cycle — empty → gold (prepared) → blue (active) → red (expended). State persisted in localStorage
+- **Resource trackers:** Dot-per-use pools for all resource classes (Rage rounds, Ki points, Inspiration, Channel Energy, Wild Shape, Arcane Pool, Grit, Panache, Resolve, etc.)
+- **Conditions table (27 entries):** Toggling a condition instantly re-renders AC/saves/initiative with green (buffed) or red (debuffed) spans; `Flat-Footed`, `Stunned`, `Paralyzed` strip DEX from AC
+- **3-column layout:** Features/Feats/Traits/Resources/Notes | Weapons/Conditions/Skills | Spells
+- **Dice bar:** Roll any count/sides/mod; click skill rows or save blocks to auto-fill modifier; nat-20/nat-1 styled
+- **localStorage:** Key `pf1e_sheet_v1_${char_id}` stores `{hp_current, spell_dots, resource_dots, conditions, notes}`
+- **`exporter.py`:** `_compute_derived()` now returns `spell_slots` (`{class: {level: count}}`) and `class_resources` (list of resource pool dicts); `_compute_class_resources()` added as module-level helper
+
+> **Design note — Conditions vs. Status Effects:**
+> The current sheet uses a single "Conditions" panel for all 27 PF1e standard conditions (Dazed, Shaken, Prone, etc.). In Pathfinder 1e there is an important distinction between:
+> - **Conditions** — standardized rule states defined in the CRB (Bestiary appendix): Blinded, Confused, Dazed, Fatigued, Shaken, etc. These have fixed, rule-defined mechanical penalties. ✅ Currently tracked.
+> - **Status Effects / Active Buffs** — transient spell, extract, or ability effects active on the character: Haste (from a spell), Studied Combat (Investigator), Heroism (extract), Cat's Grace (extract), etc. These are time-limited, have source-specific mechanics, and may grant bonuses as well as impose penalties. 🔧 **Not yet separated** — currently these would need to be manually managed or hacked into the conditions panel.
+>
+> **Phase 9+ target:** add a distinct "Active Effects / Buffs" panel separate from the Conditions panel. Active effects should track: source (spell/ability/item), duration (rounds/minutes), and mechanical delta (same `{ac, attack, fort, ref, will, init}` structure as conditions), toggled by spell dot state rather than by checkbox.
+
 ### Phase 7 — Creator Polish: Class Abilities & Spells
 - Class talent selection (rage powers, rogue talents, discoveries, hexes, etc.) in creator Extras step
 - `CLASS_TALENT_MAP` maps 12 classes to their pickable feature types; uses `/api/classes/{name}/features`
@@ -192,18 +216,24 @@ Skill total verified: Kyra Heal (1 rank + WIS +4 + class +3) = **+8** ✓
 - 70 weapons + 28 armor entries; AC computed from equipped items
 - Spell selection uses actual class progression data (not formula guesses)
 - Class talent selection (rage powers, rogue talents, etc.) in creator and level-up
+- **Phase 8:** Kairon-parity sheet — interactive spell dots, resource trackers, live condition deltas, HP popup, dice bar, localStorage persistence (all 14 feature checks pass ✓)
+- **Phase 8:** Investigator L5 verified: BAB +3, Fort +2, Ref +6, Will +6, spell slots {1:4, 2:2, 3:1}, Inspiration 9 uses ✓
 
-### Current Gaps (post-Phase 7)
+### Current Gaps (post-Phase 8)
 
-**Sheet quality below target (high):** Sheet is functional but plain. No spell dots, no roll buttons, no resource trackers (rage rounds/ki points), conditions don't modify displayed values. Phase 8 target.
+**Conditions vs. Status Effects not separated (medium):** The sheet has a "Conditions" panel for the 27 PF1e standard conditions (Dazed, Shaken, Prone, etc.) but no separate panel for active spell/extract/ability buffs (Haste, Heroism, Cat's Grace, Studied Combat). These are conceptually different — conditions are involuntary rule states; status effects are chosen, time-limited enhancements. Phase 9+ target: add an "Active Effects" panel with source, duration, and delta tracking, linked to spell dot state.
 
-**Spells known vs. prepared not distinguished (medium):** Creator lets you pick spells but doesn't distinguish between Wizard (spellbook/prepared) vs. Sorcerer (spells known, spontaneous). Both show the same picker. A future improvement.
+**Spells shown as flat list on sheet (medium):** The sheet's Spells column shows slot dots correctly per level, but the known/prepared spell list is flat because character JSON stores spell names without level metadata. Needs creator to save `[{name, level}]` instead of `[name]` at creation time.
+
+**Spells known vs. prepared not distinguished (medium):** Creator lets you pick spells but doesn't distinguish between Wizard (spellbook/prepared) vs. Sorcerer (spells known, spontaneous). Both show the same picker. Phase 9 target.
 
 **Cleric domain spells counted as base slots (low):** The `+1` domain bonus was stripped from the import (e.g., `"1+1"` → `1`). Domain spells are tracked as a class feature, not as extra slots. Current behavior is close enough for play.
 
 **3pp archetypes present (medium):** Archetype list includes third-party content with no Paizo-official flag. Phase 5 only filtered feats, not archetypes. Needs `is_paizo_official` column on archetypes table.
 
 **No spell descriptions in picker (medium):** Creator spell picker shows name only. No description, school, range, or casting time. Makes it hard to choose wisely during creation.
+
+**Class features data gap (medium):** Several classes (Investigator, and others) have `NULL` in the `class_progression.special` column and no rows in `class_features` table — their class features are not shown on the sheet. Foundry data contains this information; needs import.
 
 **Favored class bonus not reflected on sheet (low):** Creator tracks `favClassChoice` (HP or skill rank per level) but the sheet display doesn't show the actual applied bonus HP/skill ranks clearly.
 
@@ -212,11 +242,13 @@ Skill total verified: Kyra Heal (1 rank + WIS +4 + class +3) = **+8** ✓
 ## Known Issues
 
 ### High Priority
-- **Sheet redesign needed** — Current sheet is functional but lacks roll buttons, spell dots, resource trackers, and conditions that modify displayed stats (Phase 8 target)
+- **Conditions vs. Status Effects not separated** — Sheet uses one "Conditions" panel for both PF1e standard conditions (Dazed, Shaken, Prone) and spell/extract/ability buffs. These are distinct: conditions are involuntary rule states; status effects are chosen, time-limited enhancements with a source and duration. Need a separate "Active Effects / Buffs" panel for spell dot → effect linking (Phase 9+ target)
+- **Spells stored without level metadata** — Character JSON saves `spells: ["Cure Light Wounds", ...]` (flat names). Sheet can't organize known spells by level. Creator should save `[{name, level, class}]` instead
 - **No spell descriptions in picker** — Spell selection shows name only; no school, range, description, or casting time
-- **No prepared/spontaneous workflow** — Sheet doesn't distinguish Wizard (prepare daily) from Sorcerer (known pool); no slot-usage tracking
+- **No prepared/spontaneous workflow** — Sheet doesn't distinguish Wizard (prepare daily from spellbook) from Sorcerer (known pool, spontaneous); no slot-usage workflow tracking
 
 ### Medium Priority
+- **Class features data gap** — Several classes (Investigator etc.) have `NULL` `special` in `class_progression` and no `class_features` rows; features panel shows blank. Foundry data has this; needs import
 - **3pp archetypes present** — No `is_paizo_official` flag on archetypes table; third-party archetypes mixed in with Paizo content
 - **Feat descriptions sparse** — Many feats show prerequisite text but no benefit description; need data import from Foundry or CoreForge
 - **Favored class bonus display** — The HP or skill rank bonus is tracked in creator JSON but not clearly labeled on the sheet

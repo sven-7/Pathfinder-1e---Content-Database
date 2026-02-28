@@ -16,6 +16,65 @@ CHARS_DIR = ROOT / "characters"
 _PLACEHOLDER = "__CHAR_DATA__"
 
 
+def _compute_class_resources(cls_levels: list, mods: dict) -> list:
+    """Return list of class resource pool dicts for display on the sheet."""
+    resources = []
+    for cl in cls_levels:
+        cn = cl.class_name
+        lvl = cl.level
+        if cn in ("Barbarian", "Unchained Barbarian"):
+            uses = 4 + lvl + mods["con"]
+            resources.append({"name": "Rage", "uses_per_day": max(1, uses),
+                               "label": "Rage Rounds/Day", "resource_type": "rounds"})
+        elif cn in ("Monk", "Unchained Monk"):
+            uses = lvl // 2 + mods["wis"]
+            resources.append({"name": "Ki Pool", "uses_per_day": max(1, uses),
+                               "label": "Ki Points", "resource_type": "points"})
+        elif cn == "Paladin":
+            uses = max(1, mods["cha"])
+            resources.append({"name": "Lay on Hands", "uses_per_day": max(1, lvl // 2 * uses),
+                               "label": "Lay on Hands/Day", "resource_type": "uses"})
+            if lvl >= 4:
+                smite = max(1, (lvl + 2) // 3)
+                resources.append({"name": "Smite Evil", "uses_per_day": smite,
+                                   "label": "Smite Evil/Day", "resource_type": "uses"})
+        elif cn == "Cleric":
+            chan_pool = max(1, 3 + mods["cha"])
+            resources.append({"name": "Channel Energy", "uses_per_day": chan_pool,
+                               "label": "Channel Energy/Day", "resource_type": "uses"})
+        elif cn == "Druid":
+            if lvl >= 2:
+                wild = 1 + (lvl - 2) // 2
+                resources.append({"name": "Wild Shape", "uses_per_day": wild,
+                                   "label": "Wild Shape/Day", "resource_type": "uses"})
+        elif cn == "Gunslinger":
+            grit = max(1, mods["wis"])
+            resources.append({"name": "Grit", "uses_per_day": grit,
+                               "label": "Grit Points", "resource_type": "points"})
+        elif cn == "Swashbuckler":
+            panache = max(1, mods["cha"])
+            resources.append({"name": "Panache", "uses_per_day": panache,
+                               "label": "Panache Points", "resource_type": "points"})
+        elif cn in ("Investigator", "Alchemist"):
+            label = "Inspiration" if cn == "Investigator" else "Extracts"
+            uses = lvl + mods["int"]
+            resources.append({"name": label, "uses_per_day": max(1, uses),
+                               "label": f"{label} Prepared", "resource_type": "uses"})
+        elif cn == "Magus":
+            pool = max(1, lvl // 2 + mods["int"])
+            resources.append({"name": "Arcane Pool", "uses_per_day": pool,
+                               "label": "Arcane Pool Points", "resource_type": "points"})
+        elif cn == "Ninja":
+            ki = max(1, lvl // 2 + mods["cha"])
+            resources.append({"name": "Ki Pool", "uses_per_day": ki,
+                               "label": "Ki Points", "resource_type": "points"})
+        elif cn == "Samurai":
+            resolve = max(1, (lvl + 1) // 2)
+            resources.append({"name": "Resolve", "uses_per_day": resolve,
+                               "label": "Resolve Points", "resource_type": "points"})
+    return resources
+
+
 def _compute_derived(char: dict, db: "RulesDB") -> dict:
     """Compute derived stats from the character dict using the rules engine."""
     from src.rules_engine import Character, ClassLevel, get_bab, get_save, get_hp
@@ -187,6 +246,14 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
             "special": w.get("special") or "",
         })
 
+    # Spell slots
+    from src.rules_engine.progression import get_spell_slots
+    spell_slots_all: dict = {}
+    for cl in cls_levels:
+        slots = get_spell_slots(cl.class_name, cl.level, db)
+        if slots:
+            spell_slots_all[cl.class_name] = slots
+
     return {
         "bab": bab,
         "fort": fort,
@@ -211,6 +278,8 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         "class_features": class_features,
         "feat_details": char.get("feat_details", []),
         "weapons_derived": weapons_derived,
+        "spell_slots": spell_slots_all,
+        "class_resources": _compute_class_resources(cls_levels, mods),
     }
 
 
