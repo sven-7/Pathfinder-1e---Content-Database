@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF1e Quick Reference</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --paper: #f0e8d5;
+    --gold: #b8860b;
+    --gold-light: #d4a82a;
+    --gold-pale: #f5e6a3;
+    --red-wax: #8b1a1a;
+    --fade: #6b5c3e;
+    --accent-line: #c9a84c;
+    --row-alt: rgba(184,134,11,.07);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  @media print {
+    body { background:white; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .toolbar { display:none!important; }
+    .page { box-shadow:none; margin:0; width:8.5in; }
+    .page + .page { page-break-before:always; }
+  }
+
+  body {
+    background:#2c2416;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; padding:0 20px 20px;
+    font-family:'Crimson Text',Georgia,serif;
+    color:var(--ink);
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    position:sticky; top:0; z-index:1000; width:8.5in;
+    display:flex; align-items:center; gap:6px; padding:6px 12px;
+    background:linear-gradient(135deg,#1a1208,#2c2416);
+    border-bottom:2px solid var(--gold);
+    font-family:'Special Elite',monospace; font-size:11px; color:var(--gold-pale);
+  }
+  .toolbar-title { font-family:'Cinzel',serif; font-weight:700; font-size:12px; color:var(--gold-light); letter-spacing:.08em; margin-right:auto; }
+  .toolbar-btn {
+    font-family:'Special Elite',monospace; font-size:10px; letter-spacing:.06em;
+    padding:3px 10px; border:1px solid var(--gold);
+    background:rgba(184,134,11,.15); color:var(--gold-pale);
+    cursor:pointer; transition:all .15s; text-decoration:none;
+  }
+  .toolbar-btn:hover { background:rgba(184,134,11,.35); color:#fff; }
+
+  /* ── PAGE ── */
+  .page {
+    width:8.5in; background:var(--paper);
+    position:relative; padding:.2in .3in;
+    box-shadow:0 20px 80px rgba(0,0,0,.8),inset 0 0 60px rgba(0,0,0,.08);
+    margin-top:12px;
+  }
+  .page::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 10% 10%,rgba(180,140,60,.12) 0%,transparent 50%),
+               radial-gradient(ellipse at 90% 85%,rgba(120,80,20,.10) 0%,transparent 50%);
+    pointer-events:none; z-index:0;
+  }
+  .border-outer { position:absolute; inset:.14in; border:2px solid var(--gold); pointer-events:none; z-index:1; }
+  .border-inner { position:absolute; inset:.19in; border:1px solid var(--accent-line); pointer-events:none; z-index:1; }
+  .content { position:relative; z-index:2; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    text-align:center; margin-bottom:.1in;
+    border-bottom:2px solid var(--gold); padding-bottom:4px;
+  }
+  .page-header-title {
+    font-family:'Cinzel',serif; font-weight:900; font-size:16px;
+    letter-spacing:.25em; text-transform:uppercase; color:var(--ink);
+  }
+  .page-header-sub {
+    font-family:'Special Elite',monospace; font-size:7.5px;
+    letter-spacing:.2em; color:var(--fade); text-transform:uppercase; margin-top:1px;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    background:#f4eedf; border:1px solid var(--accent-line);
+    padding:4px 6px 5px; break-inside:avoid; margin-bottom:4px;
+  }
+  .section-title {
+    font-family:'Cinzel',serif; font-size:7px; font-weight:600;
+    letter-spacing:.18em; text-transform:uppercase; color:var(--ink);
+    background:var(--gold); margin:-5px -6px 4px; padding:2px 6px;
+  }
+
+  /* ── GRID LAYOUT ── */
+  .grid-3col {
+    display:grid;
+    grid-template-columns:1fr 1.05fr 1.15fr;
+    gap:.08in;
+    align-items:start;
+  }
+  .grid-2col {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:.08in;
+    align-items:start;
+  }
+  .span-full { grid-column:1/-1; }
+
+  /* ── TABLES ── */
+  table { width:100%; border-collapse:collapse; font-size:7px; }
+  th {
+    font-family:'Cinzel',serif; font-size:6.2px; font-weight:600;
+    letter-spacing:.1em; text-transform:uppercase;
+    border-bottom:1px solid var(--accent-line);
+    padding:1px 3px; text-align:left; color:var(--fade);
+    background:rgba(184,134,11,.12);
+  }
+  th.center, td.center { text-align:center; }
+  td { padding:1px 3px; vertical-align:top; line-height:1.35; }
+  tr:nth-child(even) td { background:var(--row-alt); }
+  .tbl-name { font-weight:600; color:var(--ink); white-space:nowrap; }
+  .tbl-muted { color:var(--fade); font-size:6.3px; }
+  .plus { color:#1a6b1a; font-weight:600; }
+  .minus { color:var(--red-wax); font-weight:600; }
+  .zero { color:var(--fade); }
+
+  /* ── CONDITION GRID ── */
+  .cond-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px 6px; }
+  .cond-entry { padding:1px 0; border-bottom:1px dotted rgba(184,134,11,.25); }
+  .cond-name { font-family:'Cinzel',serif; font-size:6.5px; font-weight:600; color:var(--ink); }
+  .cond-effect { font-size:6.5px; color:var(--fade); line-height:1.3; }
+
+  /* ── ACTION ENTRIES ── */
+  .action-entry { display:flex; gap:4px; padding:1.5px 0; border-bottom:1px dotted rgba(184,134,11,.25); }
+  .action-name {
+    font-family:'Special Elite',monospace; font-size:6.5px; font-weight:700;
+    color:var(--ink); white-space:nowrap; min-width:68px;
+  }
+  .action-desc { font-size:6.8px; color:var(--fade); line-height:1.3; }
+
+  /* ── FORMULA BLOCK ── */
+  .formula {
+    font-family:'Special Elite',monospace; font-size:6.8px;
+    background:rgba(184,134,11,.12); border:1px solid rgba(184,134,11,.3);
+    padding:2px 5px; margin:3px 0; text-align:center; color:var(--ink);
+    letter-spacing:.04em;
+  }
+  .formula em { font-style:normal; color:var(--red-wax); }
+
+  /* ── FOOTNOTE ── */
+  .footnote { font-size:6px; color:var(--fade); margin-top:3px; font-style:italic; }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="toolbar-title">PF1e Quick Reference</span>
+  <a class="toolbar-btn" href="/static/creator.html">Character Creator</a>
+  <button class="toolbar-btn" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<!-- ═══════════ PAGE 1 ═══════════ -->
+<div class="page">
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+  <div class="content">
+
+    <div class="page-header">
+      <div class="page-header-title">Pathfinder Quick Reference</div>
+      <div class="page-header-sub">Core Rulebook · Combat · Conditions · Skills</div>
+    </div>
+
+    <div class="grid-3col">
+
+      <!-- ══ COLUMN 1 ══ -->
+      <div>
+
+        <!-- ACTION ECONOMY -->
+        <div class="section">
+          <div class="section-title">Action Economy</div>
+
+          <div class="action-entry">
+            <span class="action-name">Standard</span>
+            <span class="action-desc">Attack (once), cast most spells, use most items/skills, total defense</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">Move</span>
+            <span class="action-desc">Move up to speed; draw/sheathe weapon; pick up item; open/close door; stand from prone</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">Full-Round</span>
+            <span class="action-desc">Full attack (all iterative attacks); charge; run (×4 speed); coup de grace; some spells</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">Swift</span>
+            <span class="action-desc">1 per turn; uses your swift slot; spontaneous healing, quickened spells, class features</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">Immediate</span>
+            <span class="action-desc">Like swift but usable on any turn (even opponent's); uses <em style="font-style:italic;color:var(--red-wax)">next</em> turn's swift slot</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">Free</span>
+            <span class="action-desc">Drop item; speak; end concentration; close fist; GM may limit quantity</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">5-ft Step</span>
+            <span class="action-desc">No AoO; only if you have not otherwise moved this turn; cannot be used while prone</span>
+          </div>
+          <div class="action-entry">
+            <span class="action-name">AoO</span>
+            <span class="action-desc">Single melee attack at highest BAB; triggered by provoking acts in threatened area</span>
+          </div>
+        </div>
+
+        <!-- ATTACKS OF OPPORTUNITY -->
+        <div class="section">
+          <div class="section-title">Attacks of Opportunity — Provokes?</div>
+          <table>
+            <tr><th>Action</th><th class="center">AoO</th></tr>
+            <tr><td>Move through threatened square</td><td class="center">Yes</td></tr>
+            <tr><td>Stand from prone</td><td class="center">Yes</td></tr>
+            <tr><td>Cast a spell</td><td class="center">Yes</td></tr>
+            <tr><td>Use ranged weapon in melee</td><td class="center">Yes</td></tr>
+            <tr><td>Combat maneuver (without Improved feat)</td><td class="center">Yes</td></tr>
+            <tr><td>Retrieve stored item</td><td class="center">Yes</td></tr>
+            <tr><td>Use a skill that requires concentration</td><td class="center">Yes</td></tr>
+            <tr><td>Attack (melee or ranged from threatened)</td><td class="center tbl-muted">No</td></tr>
+            <tr><td>5-ft step; withdraw action</td><td class="center tbl-muted">No</td></tr>
+            <tr><td>Total defense; fighting defensively</td><td class="center tbl-muted">No</td></tr>
+          </table>
+          <div class="footnote">Withdraw: first square of movement doesn't provoke; move up to speed.</div>
+        </div>
+
+        <!-- CONCENTRATION DCs -->
+        <div class="section">
+          <div class="section-title">Concentration Check DCs</div>
+          <div class="formula">DC = <em>base</em> + spell level</div>
+          <table>
+            <tr><th>Situation</th><th class="center">Base DC</th></tr>
+            <tr><td>Damaged while casting</td><td class="center">10 + damage dealt</td></tr>
+            <tr><td>Continuous/recurring damage</td><td class="center">10 + ½ damage</td></tr>
+            <tr><td>Cast defensively (avoid AoO)</td><td class="center">15 + 2× SL</td></tr>
+            <tr><td>Grappled or pinned</td><td class="center">10 + grappler CMB</td></tr>
+            <tr><td>Entangled</td><td class="center">15</td></tr>
+            <tr><td>Vigorous motion (small boat, etc.)</td><td class="center">10</td></tr>
+            <tr><td>Violent motion (stormy sea, etc.)</td><td class="center">15</td></tr>
+            <tr><td>Violently buffeted (hurricane)</td><td class="center">20</td></tr>
+            <tr><td>Spell distraction</td><td class="center">distracting spell DC</td></tr>
+          </table>
+          <div class="footnote">SL = spell level. Cast defensively: DC 15 + 2× spell level.</div>
+        </div>
+
+      </div><!-- /col 1 -->
+
+      <!-- ══ COLUMN 2 ══ -->
+      <div>
+
+        <!-- COMBAT MANEUVERS -->
+        <div class="section">
+          <div class="section-title">Combat Maneuvers</div>
+          <div class="formula">CMB = BAB + Str mod + size mod &nbsp;·&nbsp; CMD = 10 + BAB + Str + Dex + size</div>
+          <table>
+            <tr><th>Maneuver</th><th class="center">AoO</th><th>Success Effect</th></tr>
+            <tr>
+              <td class="tbl-name">Bull Rush</td>
+              <td class="center">Yes*</td>
+              <td>Push foe back 5 ft; +5 ft per 5 over CMD. You may follow.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Dirty Trick</td>
+              <td class="center">Yes*</td>
+              <td>Apply blinded/entangled/etc. 1 rnd; +1 rnd per 5 over CMD. Remove = move action.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Disarm</td>
+              <td class="center">Yes*</td>
+              <td>Foe drops weapon. If 10+ over CMD, you grab it. Defender may try to disarm you.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Drag</td>
+              <td class="center">Yes*</td>
+              <td>Pull foe 5 ft toward you; +5 ft per 5 over CMD. You may follow.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Grapple</td>
+              <td class="center">Yes*</td>
+              <td>Grappled. Each round: maintain, move, damage, pin, or tie up. Caster: concentration DC 10 + CMB.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Overrun</td>
+              <td class="center">Yes*</td>
+              <td>Move through foe's space. Foe chooses avoid or block (block = CMB contest).</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Reposition</td>
+              <td class="center">Yes*</td>
+              <td>Move foe to any adjacent square; +5 ft per 5 over CMD.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Steal</td>
+              <td class="center">Yes*</td>
+              <td>Take one visible item from foe. Must have a free hand.</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Sunder</td>
+              <td class="center">Yes*</td>
+              <td>Deal damage to held/worn item (bypasses hardness if 5+ over CMD).</td>
+            </tr>
+            <tr>
+              <td class="tbl-name">Trip</td>
+              <td class="center">Yes*</td>
+              <td>Foe knocked prone. If 10+ over CMD, also disarm. Defender may try to trip you.</td>
+            </tr>
+          </table>
+          <div class="footnote">* No AoO if you have the corresponding Improved feat (Improved Bull Rush, etc.).</div>
+        </div>
+
+        <!-- SIZE MODIFIERS -->
+        <div class="section">
+          <div class="section-title">Size Modifiers</div>
+          <table>
+            <tr><th>Size</th><th class="center">AC/Atk</th><th class="center">CMB/CMD</th><th class="center">Stealth</th><th class="center">Fly</th><th>Space</th></tr>
+            <tr><td class="tbl-name">Fine</td>      <td class="center plus">+8</td><td class="center minus">−8</td><td class="center plus">+16</td><td class="center plus">+8</td><td>½ ft</td></tr>
+            <tr><td class="tbl-name">Diminutive</td><td class="center plus">+4</td><td class="center minus">−4</td><td class="center plus">+12</td><td class="center plus">+6</td><td>1 ft</td></tr>
+            <tr><td class="tbl-name">Tiny</td>      <td class="center plus">+2</td><td class="center minus">−2</td><td class="center plus">+8</td> <td class="center plus">+4</td><td>2½ ft</td></tr>
+            <tr><td class="tbl-name">Small</td>     <td class="center plus">+1</td><td class="center minus">−1</td><td class="center plus">+4</td> <td class="center plus">+2</td><td>5 ft</td></tr>
+            <tr><td class="tbl-name">Medium</td>    <td class="center zero">0</td> <td class="center zero">0</td>  <td class="center zero">0</td>  <td class="center zero">0</td> <td>5 ft</td></tr>
+            <tr><td class="tbl-name">Large</td>     <td class="center minus">−1</td><td class="center plus">+1</td><td class="center minus">−4</td><td class="center minus">−2</td><td>10 ft</td></tr>
+            <tr><td class="tbl-name">Huge</td>      <td class="center minus">−2</td><td class="center plus">+2</td><td class="center minus">−8</td><td class="center minus">−4</td><td>15 ft</td></tr>
+            <tr><td class="tbl-name">Gargantuan</td><td class="center minus">−4</td><td class="center plus">+4</td><td class="center minus">−12</td><td class="center minus">−6</td><td>20 ft</td></tr>
+            <tr><td class="tbl-name">Colossal</td>  <td class="center minus">−8</td><td class="center plus">+8</td><td class="center minus">−16</td><td class="center minus">−8</td><td>30 ft</td></tr>
+          </table>
+          <div class="footnote">Reach: Medium/Small = 5 ft; Large = 10 ft; Huge = 15 ft (tall creatures vary).</div>
+        </div>
+
+        <!-- COMMON SKILL DCs -->
+        <div class="section">
+          <div class="section-title">Common Skill DCs</div>
+          <table>
+            <tr><th colspan="2">Spellcraft</th></tr>
+            <tr><td>Identify spell being cast</td><td class="center">15 + spell level</td></tr>
+            <tr><td>Identify magic item (detect magic)</td><td class="center">15 + caster level</td></tr>
+            <tr><td>Decipher a scroll</td><td class="center">20 + spell level</td></tr>
+            <tr><td>Learn new spell from spellbook</td><td class="center">15 + spell level</td></tr>
+
+            <tr><th colspan="2" style="padding-top:4px">Knowledge (identify creature)</th></tr>
+            <tr><td>DC to identify creature</td><td class="center">10 + CR</td></tr>
+            <tr><td>Each additional piece of info</td><td class="center">+5</td></tr>
+
+            <tr><th colspan="2" style="padding-top:4px">Diplomacy (attitude shift)</th></tr>
+            <tr><td>Hostile → Unfriendly</td><td class="center">DC 25</td></tr>
+            <tr><td>Unfriendly → Indifferent</td><td class="center">DC 20</td></tr>
+            <tr><td>Indifferent → Friendly</td><td class="center">DC 15</td></tr>
+            <tr><td>Friendly → Helpful</td><td class="center">DC 25</td></tr>
+
+            <tr><th colspan="2" style="padding-top:4px">Perception (distance)</th></tr>
+            <tr><td>Penalty per 10 ft of distance</td><td class="center">−1</td></tr>
+            <tr><td>Hear through closed door</td><td class="center">+5 DC</td></tr>
+            <tr><td>Hear through wall (per inch)</td><td class="center">+15 DC</td></tr>
+          </table>
+        </div>
+
+      </div><!-- /col 2 -->
+
+      <!-- ══ COLUMN 3 ══ -->
+      <div>
+
+        <!-- CONDITIONS -->
+        <div class="section">
+          <div class="section-title">Conditions</div>
+          <div class="cond-grid">
+
+            <div class="cond-entry">
+              <div class="cond-name">Blinded</div>
+              <div class="cond-effect">−2 AC, lose Dex bonus; −2 attacks; 50% miss chance; half speed</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Broken</div>
+              <div class="cond-effect">Item: −2 attack/damage; magic items function at half strength or not at all</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Confused</div>
+              <div class="cond-effect">d%: 1–25 act normally; 26–50 do nothing; 51–75 attack self; 76–100 attack nearest</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Cowering</div>
+              <div class="cond-effect">Lose Dex bonus; −2 AC; no actions; more severe than shaken</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Dazed</div>
+              <div class="cond-effect">No actions (including AoOs); AC unaffected; 1 round only</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Dazzled</div>
+              <div class="cond-effect">−1 attack rolls and Perception checks</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Deafened</div>
+              <div class="cond-effect">−4 initiative; −4 Perception (sound); 20% arcane spell failure</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Disabled</div>
+              <div class="cond-effect">0 or 1 HP; only standard or move action; strenuous activity = 1 damage/action</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Dying</div>
+              <div class="cond-effect">−1 to −Con HP; unconscious; DC 10 Con to stabilize each round or −1 HP</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Energy Drained</div>
+              <div class="cond-effect">−1 per negative level to attacks, saves, checks, spell DCs, max HP</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Entangled</div>
+              <div class="cond-effect">−2 attack; −4 Dex; concentration DC 15+SL to cast; may be rooted</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Exhausted</div>
+              <div class="cond-effect">Half speed; −6 Str and Dex; rest 1 hr → fatigued. Strenuous = 1 hr to exhaust again</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Fatigued</div>
+              <div class="cond-effect">−2 Str and Dex; can't run or charge; 8 hrs rest or remove fatigue to recover</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Flat-Footed</div>
+              <div class="cond-effect">Lose Dex bonus to AC; can't make AoO (unless Combat Reflexes)</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Frightened</div>
+              <div class="cond-effect">−2 attacks/saves/checks; must flee if possible; drop held items if can't flee</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Grappled</div>
+              <div class="cond-effect">−4 Dex; −2 attack and combat maneuvers; no move; concentration DC 10+CMB</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Helpless</div>
+              <div class="cond-effect">Paralyzed/held/bound; effective Dex 0; subject to coup de grace</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Incorporeal</div>
+              <div class="cond-effect">Immune to non-magic attacks; 50% chance to ignore magic; no Str score</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Invisible</div>
+              <div class="cond-effect">+2 attacks; opponents lose Dex to AC; can't be seen; Stealth check to hide location</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Nauseated</div>
+              <div class="cond-effect">Only move actions; no attacks, spells, or abilities requiring concentration</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Panicked</div>
+              <div class="cond-effect">Drop items, flee; −2 saves; 50% won't attack; more severe than frightened</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Paralyzed</div>
+              <div class="cond-effect">Effective Str and Dex 0; helpless; can only take purely mental actions</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Petrified</div>
+              <div class="cond-effect">Turned to stone; unconscious; DR 8/— while stone; breaking off parts = permanent</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Pinned</div>
+              <div class="cond-effect">Helpless; more severe grappled; −4 AC, lose Dex; concentration DC 10+CMB+4</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Prone</div>
+              <div class="cond-effect">−4 melee attacks; +4 AC vs ranged; −4 AC vs melee; stand up = move action (AoO)</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Shaken</div>
+              <div class="cond-effect">−2 attacks, saves, skill checks, ability checks</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Sickened</div>
+              <div class="cond-effect">−2 attacks, damage, saves, skill checks, ability checks</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Staggered</div>
+              <div class="cond-effect">Only a standard or move action (not both); free/swift/immediate still allowed</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Stunned</div>
+              <div class="cond-effect">Drop held items; −2 AC; lose Dex; no actions; creatures can still AoO you</div>
+            </div>
+            <div class="cond-entry">
+              <div class="cond-name">Unconscious</div>
+              <div class="cond-effect">Knocked out; helpless; effective Dex and Str 0</div>
+            </div>
+
+          </div><!-- /cond-grid -->
+
+          <div class="footnote" style="margin-top:4px">
+            Fear: Shaken &lt; Frightened &lt; Panicked &lt; Cowering. Fatigue: Fatigued &lt; Exhausted.
+          </div>
+        </div>
+
+      </div><!-- /col 3 -->
+
+    </div><!-- /grid-3col -->
+
+  </div><!-- /content -->
+</div><!-- /page 1 -->
+
+
+<!-- ═══════════ PAGE 2 ═══════════ -->
+<div class="page">
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+  <div class="content">
+
+    <div class="page-header">
+      <div class="page-header-title">Pathfinder Quick Reference — Page 2</div>
+      <div class="page-header-sub">Combat · Saving Throws · Ability Scores · Movement</div>
+    </div>
+
+    <div class="grid-3col">
+
+      <!-- ══ COLUMN 1 ══ -->
+      <div>
+
+        <!-- DEFENSE & AC -->
+        <div class="section">
+          <div class="section-title">Armor Class</div>
+          <div class="formula">AC = 10 + armor + shield + Dex + size + nat + deflect + misc</div>
+          <table>
+            <tr><th>AC Type</th><th>Excludes</th></tr>
+            <tr><td class="tbl-name">Touch AC</td><td>Armor, shield, natural armor</td></tr>
+            <tr><td class="tbl-name">Flat-Footed</td><td>Dex bonus, dodge bonuses</td></tr>
+          </table>
+          <div class="footnote" style="margin-top:3px">
+            Max Dex: armor limits Dex bonus. Arcane Spell Failure: light armor 10%, medium 20%, heavy 35%+.
+          </div>
+        </div>
+
+        <!-- SAVING THROWS -->
+        <div class="section">
+          <div class="section-title">Saving Throws</div>
+          <div class="formula">Save = base + ability mod + resistance + misc</div>
+          <table>
+            <tr><th>Save</th><th>Ability</th><th>Defends Against</th></tr>
+            <tr><td class="tbl-name">Fortitude</td><td>Con</td><td>Poison, disease, death effects, energy drain, exhaustion, massive damage</td></tr>
+            <tr><td class="tbl-name">Reflex</td><td>Dex</td><td>Area effects (fireballs, breath weapons), traps</td></tr>
+            <tr><td class="tbl-name">Will</td><td>Wis</td><td>Mind-affecting spells and abilities, enchantments, illusions</td></tr>
+          </table>
+          <table style="margin-top:4px">
+            <tr><th>Progression</th><th class="center">L1</th><th class="center">L10</th><th class="center">L20</th></tr>
+            <tr><td class="tbl-name">Good save</td><td class="center">+2</td><td class="center">+7</td><td class="center">+12</td></tr>
+            <tr><td class="tbl-name">Poor save</td><td class="center">+0</td><td class="center">+3</td><td class="center">+6</td></tr>
+          </table>
+          <div class="footnote">Good: ½ level + 2. Poor: ⅓ level (round down).</div>
+        </div>
+
+        <!-- BASE ATTACK BONUS -->
+        <div class="section">
+          <div class="section-title">Base Attack Bonus</div>
+          <table>
+            <tr><th>Progression</th><th class="center">L1</th><th class="center">L10</th><th class="center">L20</th></tr>
+            <tr><td class="tbl-name">Full (Fighter, etc.)</td><td class="center">+1</td><td class="center">+10</td><td class="center">+20</td></tr>
+            <tr><td class="tbl-name">¾ (Cleric, Rogue…)</td><td class="center">+0</td><td class="center">+7</td><td class="center">+15</td></tr>
+            <tr><td class="tbl-name">½ (Wizard, etc.)</td><td class="center">+0</td><td class="center">+5</td><td class="center">+10</td></tr>
+          </table>
+          <div class="footnote" style="margin-top:3px">
+            Iterative attacks at BAB +6/+1, +11/+6/+1, +16/+11/+6/+1 (−5 per additional attack).
+          </div>
+        </div>
+
+        <!-- ABILITY SCORE MODS -->
+        <div class="section">
+          <div class="section-title">Ability Score Modifiers</div>
+          <table>
+            <tr><th class="center">Score</th><th class="center">Modifier</th><th class="center">Score</th><th class="center">Modifier</th></tr>
+            <tr><td class="center">1</td><td class="center minus">−5</td><td class="center">18–19</td><td class="center plus">+4</td></tr>
+            <tr><td class="center">2–3</td><td class="center minus">−4</td><td class="center">20–21</td><td class="center plus">+5</td></tr>
+            <tr><td class="center">4–5</td><td class="center minus">−3</td><td class="center">22–23</td><td class="center plus">+6</td></tr>
+            <tr><td class="center">6–7</td><td class="center minus">−2</td><td class="center">24–25</td><td class="center plus">+7</td></tr>
+            <tr><td class="center">8–9</td><td class="center minus">−1</td><td class="center">26–27</td><td class="center plus">+8</td></tr>
+            <tr><td class="center">10–11</td><td class="center zero">0</td><td class="center">28–29</td><td class="center plus">+9</td></tr>
+            <tr><td class="center">12–13</td><td class="center plus">+1</td><td class="center">30–31</td><td class="center plus">+10</td></tr>
+            <tr><td class="center">14–15</td><td class="center plus">+2</td><td class="center">32–33</td><td class="center plus">+11</td></tr>
+            <tr><td class="center">16–17</td><td class="center plus">+3</td><td class="center">34–35</td><td class="center plus">+12</td></tr>
+          </table>
+          <div class="footnote">Formula: (score − 10) ÷ 2, round down.</div>
+        </div>
+
+      </div><!-- /col 1 -->
+
+      <!-- ══ COLUMN 2 ══ -->
+      <div>
+
+        <!-- MOVEMENT -->
+        <div class="section">
+          <div class="section-title">Movement &amp; Terrain</div>
+          <table>
+            <tr><th>Speed</th><th class="center">Move Action</th><th class="center">Full-Round Run</th><th class="center">Charge</th></tr>
+            <tr><td>20 ft</td><td class="center">20 ft</td><td class="center">80 ft (×4)</td><td class="center">20 ft</td></tr>
+            <tr><td>30 ft</td><td class="center">30 ft</td><td class="center">120 ft (×4)</td><td class="center">30 ft</td></tr>
+            <tr><td>40 ft</td><td class="center">40 ft</td><td class="center">160 ft (×4)</td><td class="center">40 ft</td></tr>
+          </table>
+          <table style="margin-top:4px">
+            <tr><th>Terrain / Encumbrance</th><th class="center">Effect</th></tr>
+            <tr><td>Difficult terrain</td><td class="center">×½ speed per square</td></tr>
+            <tr><td>Squeezing (tight space)</td><td class="center">×½ speed; −4 AC, attack</td></tr>
+            <tr><td>Medium load</td><td class="center">×¾ speed (min 5 ft)</td></tr>
+            <tr><td>Heavy load / armor check</td><td class="center">×½ speed (min 5 ft)</td></tr>
+            <tr><td>Run in heavy armor</td><td class="center">×3 speed (not ×4)</td></tr>
+          </table>
+          <div class="footnote">Charge: must move at least 10 ft; +2 attack; −2 AC until next turn.</div>
+        </div>
+
+        <!-- CARRYING CAPACITY -->
+        <div class="section">
+          <div class="section-title">Carrying Capacity (lbs) by Strength</div>
+          <table>
+            <tr><th class="center">Str</th><th class="center">Light</th><th class="center">Medium</th><th class="center">Heavy</th><th class="center">Str</th><th class="center">Light</th><th class="center">Medium</th><th class="center">Heavy</th></tr>
+            <tr><td class="center">7</td> <td class="center">23</td><td class="center">24–46</td> <td class="center">47–70</td>  <td class="center">14</td><td class="center">58</td><td class="center">59–116</td><td class="center">117–175</td></tr>
+            <tr><td class="center">8</td> <td class="center">26</td><td class="center">27–53</td> <td class="center">54–80</td>  <td class="center">15</td><td class="center">66</td><td class="center">67–133</td><td class="center">134–200</td></tr>
+            <tr><td class="center">9</td> <td class="center">30</td><td class="center">31–60</td> <td class="center">61–90</td>  <td class="center">16</td><td class="center">76</td><td class="center">77–153</td><td class="center">154–230</td></tr>
+            <tr><td class="center">10</td><td class="center">33</td><td class="center">34–66</td> <td class="center">67–100</td> <td class="center">17</td><td class="center">86</td><td class="center">87–173</td><td class="center">174–260</td></tr>
+            <tr><td class="center">11</td><td class="center">38</td><td class="center">39–76</td> <td class="center">77–115</td> <td class="center">18</td><td class="center">100</td><td class="center">101–200</td><td class="center">201–300</td></tr>
+            <tr><td class="center">12</td><td class="center">43</td><td class="center">44–86</td> <td class="center">87–130</td> <td class="center">19</td><td class="center">116</td><td class="center">117–233</td><td class="center">234–350</td></tr>
+            <tr><td class="center">13</td><td class="center">50</td><td class="center">51–100</td><td class="center">101–150</td><td class="center">20</td><td class="center">133</td><td class="center">134–266</td><td class="center">267–400</td></tr>
+          </table>
+          <div class="footnote">×2 each +5 Str above 20. Quadruped: ×1.5 capacity.</div>
+        </div>
+
+        <!-- VISION & LIGHT -->
+        <div class="section">
+          <div class="section-title">Vision &amp; Light Conditions</div>
+          <table>
+            <tr><th>Condition</th><th>Attacker</th><th>Defender</th></tr>
+            <tr><td class="tbl-name">Normal light</td><td>No penalty</td><td>No bonus</td></tr>
+            <tr><td class="tbl-name">Dim light (low-light)</td><td>No penalty</td><td>No bonus</td></tr>
+            <tr><td class="tbl-name">Darkness (darkvision)</td><td>No penalty</td><td>No bonus</td></tr>
+            <tr><td class="tbl-name">Concealment (20%)</td><td>−2 attack; 20% miss</td><td>+1 AC</td></tr>
+            <tr><td class="tbl-name">Total concealment (50%)</td><td>−4 attack; 50% miss</td><td>+2 AC</td></tr>
+            <tr><td class="tbl-name">Invisible attacker</td><td>+2 attack; miss% ignored</td><td>Lose Dex to AC</td></tr>
+          </table>
+          <div class="footnote">
+            Low-light vision: sees 2× as far in dim light. Darkvision: sees in darkness (60 ft, black &amp; white).
+          </div>
+        </div>
+
+        <!-- DEATH & DYING -->
+        <div class="section">
+          <div class="section-title">Death &amp; Dying</div>
+          <table>
+            <tr><th>HP</th><th>Status &amp; Effect</th></tr>
+            <tr><td class="center tbl-name">1+</td><td>Conscious and active</td></tr>
+            <tr><td class="center tbl-name">0</td><td>Disabled: only standard or move; strenuous = 1 damage</td></tr>
+            <tr><td class="center tbl-name">−1 to −9</td><td>Dying: unconscious; DC 10 Con each round or −1 HP; stabilize with DC 15 Heal</td></tr>
+            <tr><td class="center tbl-name">Stable</td><td>Still unconscious; regain 1 HP after 1 hour (then disabled)</td></tr>
+            <tr><td class="center tbl-name">−Con</td><td>Dead</td></tr>
+          </table>
+          <div class="footnote">Massive damage: if single blow deals ≥ 50 HP, DC 15 Fort or die. (Optional rule.)</div>
+        </div>
+
+      </div><!-- /col 2 -->
+
+      <!-- ══ COLUMN 3 ══ -->
+      <div>
+
+        <!-- BONUS TYPES (STACKING) -->
+        <div class="section">
+          <div class="section-title">Bonus Types — Stacking Rules</div>
+          <table>
+            <tr><th>Type</th><th class="center">Stack?</th><th>Common Source</th></tr>
+            <tr><td class="tbl-name">Alchemical</td>    <td class="center tbl-muted">No</td><td>Alchemical items</td></tr>
+            <tr><td class="tbl-name">Armor</td>         <td class="center tbl-muted">No</td><td>Armor, bracers of armor</td></tr>
+            <tr><td class="tbl-name">Circumstance</td>  <td class="center plus">Yes</td><td>Aid Another, flanking, cover</td></tr>
+            <tr><td class="tbl-name">Competence</td>    <td class="center tbl-muted">No</td><td>Guidance, skill-boost items</td></tr>
+            <tr><td class="tbl-name">Deflection</td>    <td class="center tbl-muted">No</td><td>Ring of protection, shield of faith</td></tr>
+            <tr><td class="tbl-name">Dodge</td>         <td class="center plus">Yes</td><td>Dodge feat, certain spells</td></tr>
+            <tr><td class="tbl-name">Enhancement</td>   <td class="center tbl-muted">No</td><td>Magic weapons, stat-boost spells</td></tr>
+            <tr><td class="tbl-name">Insight</td>       <td class="center tbl-muted">No</td><td>Divine favor, certain feats</td></tr>
+            <tr><td class="tbl-name">Luck</td>          <td class="center tbl-muted">No</td><td>Prayer, bestow luck</td></tr>
+            <tr><td class="tbl-name">Morale</td>        <td class="center tbl-muted">No</td><td>Bless, inspire courage, rage</td></tr>
+            <tr><td class="tbl-name">Natural Armor</td> <td class="center tbl-muted">No</td><td>Barkskin, amulet of nat. armor</td></tr>
+            <tr><td class="tbl-name">Profane</td>       <td class="center tbl-muted">No</td><td>Unholy aura, profane spells</td></tr>
+            <tr><td class="tbl-name">Racial</td>        <td class="center tbl-muted">No</td><td>Race traits</td></tr>
+            <tr><td class="tbl-name">Resistance</td>    <td class="center tbl-muted">No</td><td>Cloak of resistance, resistance</td></tr>
+            <tr><td class="tbl-name">Sacred</td>        <td class="center tbl-muted">No</td><td>Holy aura, sacred spells</td></tr>
+            <tr><td class="tbl-name">Shield</td>        <td class="center tbl-muted">No</td><td>Shields, shield spell</td></tr>
+            <tr><td class="tbl-name">Size</td>          <td class="center tbl-muted">No</td><td>Enlarge person, reduce person</td></tr>
+            <tr><td class="tbl-name">Trait</td>         <td class="center tbl-muted">No</td><td>Character traits</td></tr>
+            <tr><td class="tbl-name">Untyped</td>       <td class="center plus">Yes</td><td>Flanking (+2 attack), aid another</td></tr>
+          </table>
+          <div class="footnote">Same bonus type from different sources: only the highest applies. Different types always stack.</div>
+        </div>
+
+        <!-- CRITICAL HITS -->
+        <div class="section">
+          <div class="section-title">Critical Hits</div>
+          <table>
+            <tr><th>Weapon</th><th class="center">Threat</th><th class="center">Multiplier</th></tr>
+            <tr><td>Dagger, longsword, rapier, etc.</td><td class="center">19–20</td><td class="center">×2</td></tr>
+            <tr><td>Scimitar, falchion</td>            <td class="center">18–20</td><td class="center">×2</td></tr>
+            <tr><td>Greataxe, heavy pick</td>          <td class="center">20</td>   <td class="center">×3</td></tr>
+            <tr><td>Scythe</td>                        <td class="center">20</td>   <td class="center">×4</td></tr>
+          </table>
+          <div class="footnote" style="margin-top:3px">
+            Confirm: roll again with all modifiers; if ≥ target AC, critical hit confirmed. Keen doubles threat range. Improved Critical doubles threat range (same weapon, doesn't stack with keen).
+          </div>
+        </div>
+
+        <!-- SPELL SCHOOLS -->
+        <div class="section">
+          <div class="section-title">Spell Schools (brief)</div>
+          <table>
+            <tr><th>School</th><th>Summary</th></tr>
+            <tr><td class="tbl-name">Abjuration</td>   <td>Protective; counterspells, banishment, barriers</td></tr>
+            <tr><td class="tbl-name">Conjuration</td>  <td>Summoning, teleportation, healing (calling subschool)</td></tr>
+            <tr><td class="tbl-name">Divination</td>   <td>Knowledge, detection, foresight</td></tr>
+            <tr><td class="tbl-name">Enchantment</td>  <td>Mind-affecting; charm, compulsion, morale</td></tr>
+            <tr><td class="tbl-name">Evocation</td>    <td>Energy blasts, force effects, elemental damage</td></tr>
+            <tr><td class="tbl-name">Illusion</td>     <td>Phantasms, figments, shadows, glamers</td></tr>
+            <tr><td class="tbl-name">Necromancy</td>   <td>Death, undead, life drain, negative energy</td></tr>
+            <tr><td class="tbl-name">Transmutation</td><td>Physical alteration; polymorph, buff, debuff</td></tr>
+            <tr><td class="tbl-name">Universal</td>    <td>Not tied to a school; can't be barred (e.g., detect magic)</td></tr>
+          </table>
+        </div>
+
+      </div><!-- /col 3 -->
+
+    </div><!-- /grid-3col -->
+
+  </div><!-- /content -->
+</div><!-- /page 2 -->
+
+</body>
+</html>

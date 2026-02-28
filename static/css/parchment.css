@@ -81,6 +81,23 @@ body {
   margin-top: 4px;
   position: relative;
 }
+.banner-link {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--gold-pale);
+  text-decoration: none;
+  border: 1px solid rgba(184,134,11,.4);
+  padding: 4px 10px;
+  background: rgba(184,134,11,.1);
+  transition: all .15s;
+  position: relative;
+}
+.banner-link:hover { background: rgba(184,134,11,.3); color: #fff; }
 
 /* ── Step tracker ───────────────────────────────────── */
 .step-tracker {
