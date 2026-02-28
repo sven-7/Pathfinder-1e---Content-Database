@@ -1,5 +1,5 @@
 # Bugs, Improvements & Roadmap
-*Last updated: Feb 2026 — post Phase 11*
+*Last updated: Feb 2026 — post Phase 12a bug fixes*
 
 ---
 
@@ -20,33 +20,25 @@
 
 ## Critical Bugs (Fix in Phase 12a/12b)
 
-### C-1: HP Only Computes Level 1
-**Files:** `src/character_creator/builder.py`, `src/character_creator/exporter.py`
-**Problem:** `compute_hp()` calculates `HIT_DIE_AVG + CON_mod` — level 1 only.
-**Expected (Investigator L5, CON+1):** 30 HP (avg all) or 33 HP (max L1)
-**Actual:** 6 HP
-**Fix:** Loop levels 1..N: max at L1, average for L2+, minimum 1 per level, add FCB HP count.
-```
-HP = (die_max + CON) + sum(max(1, die_avg + CON) for L in 2..N) + fcb_hp_count
-```
+### ~~C-1: HP Only Computes Level 1~~ — FIXED (Phase 12a)
+**Files:** `exporter.py` now calls `get_hp()` from rules engine; `builder.py` uses max die at L1.
+`progression.py` has `_CLASS_HIT_DIE_FALLBACK` dict + DB `classes.hit_die` seeded for all 68 classes.
 
-### C-2: Race Name Bug (builder.py)
-**File:** `src/character_creator/builder.py`
-**Problem:** Check uses `"Humans"` (plural) — never matches DB value `"Human"` (singular).
-**Effect:** Human characters silently lose +1 skill rank per level.
-**Fix:** Change `== "Humans"` to `== "Human"`.
+### ~~C-2: Race Name Bug (builder.py)~~ — FIXED (Phase 12a)
+Changed `"Humans"` → `"Human"`, `"Half-Elves"` → `"Half-Elf"` in `feat_budget()` and `skill_budget()`.
 
-### C-3: Investigator Has Bad Spell Slot Data in DB
-**Location:** `db/pf1e.db` table `class_progression`, Investigator rows
-**Problem:** `spells_per_day` column is populated for Investigator but Investigator is not a spellcaster. This causes a spell slot panel to appear in the creator and sheet.
-**Fix:** Clear `spells_per_day` for Investigator rows, or add logic to suppress spell panel when `spellcasting_type IS NULL`.
+### ~~C-3: Investigator Spell Slots~~ — CLOSED (Not A Bug)
+The Investigator IS an alchemical/prepared spellcaster (extracts, like Alchemist, max spell level 6).
+DB data is correct: `spellcasting_type='alchemical'`, `spellcasting_style='prepared'`, `max_spell_level=6`.
+The spell panel appearing is correct behavior.
 
 ---
 
 ## Major Gaps (Phase 13 Scope)
 
-### M-1: Class Features List Empty in Exporter
-`exporter.py` splits `class_progression.special` on commas, producing empty or garbled output. Feature names themselves contain commas.
+### ~~M-1: Class Features List Empty in Exporter~~ — IMPROVED (Phase 12a)
+Comma-split of `class_progression.special` actually works correctly for all classes with populated data.
+Added fallback: when `special` is empty for all levels (OA classes), queries `class_features` table instead.
 
 ### M-2 / M-7: Talent Budget Not Enforced + Wrong Schedule
 All class talents shown regardless of level. No budget counter.
@@ -76,7 +68,7 @@ Investigator archetype picker shows archetypes from other classes.
 | ID | Description |
 |----|-------------|
 | MOD-1 | Standard Array chip UI layout broken (post chip-UI redesign) |
-| MOD-2 | Point Buy UX — no marginal cost display next to stepper buttons |
+| ~~MOD-2~~ | ~~Point Buy UX~~ — FIXED (Phase 12a): marginal cost shown on +/- buttons, budget check uses marginal cost |
 | MOD-3 | Feat prerequisites not validated in feat picker |
 | MOD-4 | Wizard/Monk/Cavalier/Magus bonus feats missing from featBudget() |
 | MOD-5 | Max ranks per skill (= character level) not enforced in skill stepper |
@@ -90,8 +82,8 @@ Investigator archetype picker shows archetypes from other classes.
 The rules engine in `src/rules_engine/` and `src/character_creator/` has several functions that need full audit for multi-level correctness:
 
 ### Functions to Audit
-1. `builder.py::compute_hp()` — broken (C-1)
-2. `builder.py::skill_budget()` — broken race check (C-2), needs multi-level sum
+1. `builder.py::compute_hp()` — ~~broken (C-1)~~ FIXED: max at L1
+2. `builder.py::skill_budget()` — ~~broken race check (C-2)~~ FIXED, needs multi-level sum
 3. `builder.py::feat_budget()` — missing class-specific bonus feat schedules
 4. `exporter.py::_compute_derived()` — HP (C-1), class features (M-1), trait bonuses (missing), ASI (missing)
 5. `progression.py::get_hp()` — verify if multi-level or not
@@ -127,7 +119,7 @@ Character files: `characters/Kairon_Investigator_sheet.html` and higher-level va
 
 | Stat | Expected | System Output | Bug |
 |------|----------|---------------|-----|
-| HP | 30 (avg) or 33 (max L1) | 6 | C-1 |
+| HP | 33 (max L1) | 33 | ~~C-1~~ FIXED |
 | BAB | +3 | +3 | ✓ |
 | Fort | +2 | +2 | ✓ |
 | Ref | +6 | +6 | ✓ |
@@ -139,8 +131,8 @@ Character files: `characters/Kairon_Investigator_sheet.html` and higher-level va
 | Skill budget | 50 ranks | 50 | ✓ |
 | Feat count | 3 | 3 | ✓ |
 | Talent count | 2 | Unlimited | M-2, M-7 |
-| Class features | Alchemy, Inspiration, etc. | Empty | M-1 |
-| Spell panel | Should not appear | Appears | C-3 |
+| Class features | Alchemy, Inspiration, etc. | 14 entries | ~~M-1~~ FIXED |
+| Spell panel | Should appear (extracts) | Appears | ~~C-3~~ Not a bug |
 | ASI (level 4) | 1 applied | Not tracked | M-4 |
 
 **Kairon L9 Expected:**
@@ -155,5 +147,5 @@ Character files: `characters/Kairon_Investigator_sheet.html` and higher-level va
 
 Each phase should end with: bugs fixed + Kairon test verified + this doc updated + git commit + push.
 
-**Current checkpoint:** Post Phase 11 + chip UI redesign + rules engine research.
-**Next conversation:** Start with Phase 12a (bug fixes) or 12b (engine audit) — prioritize C-1, C-2, C-3.
+**Current checkpoint:** Post Phase 12a — C-1, C-2, C-3, M-1, MOD-2 resolved.
+**Next conversation:** Phase 12b (rules engine audit) or Phase 13 (level-aware creator).

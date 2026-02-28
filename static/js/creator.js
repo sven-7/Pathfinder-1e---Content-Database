@@ -660,12 +660,17 @@ function renderPointBuy() {
   ${ABILITIES_ORDER.map(ab => {
     const v = scores[ab] || 10;
     const cost = PB_COSTS[v] || 0;
+    const nextCost = v < 18 ? ((PB_COSTS[v+1] || 0) - cost) : 0;
+    const prevRefund = v > 7 ? (cost - (PB_COSTS[v-1] || 0)) : 0;
+    const canIncrease = v < 18 && remaining >= nextCost;
     return `<div class="pb-row">
       <div class="pb-label">${ABILITY_LABELS[ab]}</div>
       <div class="pb-stepper">
-        <button class="pb-btn" onclick="pbChange('${ab}',-1)" ${v<=7?'disabled':''}>−</button>
+        <button class="pb-btn" onclick="pbChange('${ab}',-1)" ${v<=7?'disabled':''}
+          title="Refund ${prevRefund} pt${prevRefund!==1?'s':''}">−<span class="pb-marginal">${v>7?'-'+prevRefund:''}</span></button>
         <div class="pb-score">${v}</div>
-        <button class="pb-btn" onclick="pbChange('${ab}',+1)" ${v>=18||remaining<=0?'disabled':''}>+</button>
+        <button class="pb-btn" onclick="pbChange('${ab}',+1)" ${!canIncrease?'disabled':''}
+          title="Costs ${nextCost} pt${nextCost!==1?'s':''}">+<span class="pb-marginal">${v<18?'+'+nextCost:''}</span></button>
       </div>
       <div class="pb-cost">Cost: ${cost}</div>
       <div class="pb-mod ${mod(v)>0?'positive':mod(v)<0?'negative':''}">${modStr(v)}</div>
@@ -677,8 +682,11 @@ window.pbChange = function(ab, delta) {
   const current = state.baseScores[ab] || 10;
   const next = current + delta;
   if (next < 7 || next > 18) return;
+  const currentCost = PB_COSTS[current] || 0;
+  const nextCost = PB_COSTS[next] || 0;
   const totalCost = Object.values(state.baseScores).reduce((s,v) => s + (PB_COSTS[v]||0), 0);
-  if (delta > 0 && totalCost >= PB_BUDGET) return;
+  const newTotal = totalCost - currentCost + nextCost;
+  if (delta > 0 && newTotal > PB_BUDGET) return;
   state.baseScores[ab] = next;
   renderAbilityMethodPanel();
   document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();

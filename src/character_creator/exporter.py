@@ -79,7 +79,6 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
     """Compute derived stats from the character dict using the rules engine."""
     from src.rules_engine import Character, ClassLevel, get_bab, get_save, get_hp
     from src.rules_engine.skills import _ability_for_skill, get_class_skills
-    from src.character_creator.builder import CLASS_HIT_DIE, CLASS_SKILL_RANKS, HIT_DIE_AVG
 
     cls_levels = [ClassLevel.from_dict(cl) for cl in char.get("class_levels", [])]
     char_obj = Character(
@@ -145,12 +144,10 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
     cmd = 10 + bab + mods["str"] + mods["dex"]
     initiative = mods["dex"]
 
-    # HP
-    class_name = cls_levels[0].class_name if cls_levels else "Fighter"
-    hp_max = char.get("hp_max", 0)
-    if not hp_max:
-        hit_die = CLASS_HIT_DIE.get(class_name, "d8")
-        hp_max = max(1, HIT_DIE_AVG.get(hit_die, 5) + mods["con"])
+    # HP — always recompute from rules engine (character JSON hp_max may be stale)
+    fav_class_choice = char.get("fav_class_choice", "")
+    favored_class_hp = total_level if fav_class_choice == "hp" else 0
+    hp_max = get_hp(cls_levels, mods["con"], favored_class_hp, db)
     hp_current = char.get("hp_current", hp_max)
 
     # Skills
@@ -185,6 +182,7 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         class_row = db.get_class(cl.class_name)
         if class_row:
             progression = db.get_class_progression(class_row["id"])
+            has_special = False
             for prog_row in progression:
                 if prog_row["level"] <= cl.level:
                     special = prog_row.get("special") or ""
@@ -192,6 +190,15 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
                         feat_name = feat_name.strip()
                         if feat_name:
                             class_features.append(feat_name)
+                            has_special = True
+            # OA classes have no special text; fall back to class_features table
+            if not has_special:
+                for cf in db.get_class_features(class_row["id"]):
+                    cf_level = cf.get("level") or 0
+                    if cf_level <= cl.level:
+                        name = (cf.get("name") or "").strip()
+                        if name:
+                            class_features.append(name)
         # Archetype features (if selected)
         if cl.archetype_name:
             arch_row = db.get_archetype_for_class(cl.class_name, cl.archetype_name)

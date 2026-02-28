@@ -184,7 +184,7 @@ class CharacterBuilder:
         if class_name == "Fighter":
             budget += 1  # bonus combat feat at 1st
         race = self._data.get("race", "")
-        if race in ("Humans", "Half-Elves"):
+        if race in ("Human", "Half-Elf"):
             budget += 1  # bonus feat at 1st
         return budget
 
@@ -208,7 +208,7 @@ class CharacterBuilder:
         int_mod = (self._data["ability_scores"].get("int", 10) - 10) // 2
         total = max(1, ranks_per_level + int_mod)
         # Human bonus skill rank
-        if self._data.get("race") == "Humans":
+        if self._data.get("race") == "Human":
             total += 1
         return total
 
@@ -217,18 +217,24 @@ class CharacterBuilder:
 
     # ── HP calculation ───────────────────────────────────────────────── #
 
-    def compute_hp(self, method: str = "average") -> int:
+    def compute_hp(self, method: str = "max_first") -> int:
+        """Compute HP. Builder creates L1 characters so this is single-level.
+
+        method: 'max_first' / 'max' → max die; 'average' → avg die.
+        """
         class_name = self._data.get("class_name", "Fighter")
         hit_die = CLASS_HIT_DIE.get(class_name, "d8")
+        die_max = int(hit_die[1:])
+        die_avg = HIT_DIE_AVG.get(hit_die, die_max // 2 + 1)
         con_mod = (self._data["ability_scores"].get("con", 10) - 10) // 2
-        if method == "max":
-            base = int(hit_die[1:])
+        if method == "average":
+            base = die_avg
         else:
-            base = HIT_DIE_AVG.get(hit_die, 5)
-        hp = base + con_mod
-        self._data["hp_max"] = max(1, hp)
-        self._data["hp_current"] = self._data["hp_max"]
-        return self._data["hp_max"]
+            base = die_max
+        hp = max(1, base + con_mod)
+        self._data["hp_max"] = hp
+        self._data["hp_current"] = hp
+        return hp
 
     # ── Validation ───────────────────────────────────────────────────── #
 

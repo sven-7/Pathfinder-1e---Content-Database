@@ -39,6 +39,28 @@ _HIT_DIE_AVG = {
     "d12": 7,
 }
 
+# Fallback hit-die lookup when DB classes.hit_die is NULL (CRB/APG classes)
+_CLASS_HIT_DIE_FALLBACK: dict[str, str] = {
+    "Barbarian": "d12", "Unchained Barbarian": "d12",
+    "Bard": "d8", "Cleric": "d8", "Druid": "d8",
+    "Fighter": "d10",
+    "Monk": "d8", "Unchained Monk": "d10",
+    "Paladin": "d10", "Antipaladin": "d10",
+    "Ranger": "d10",
+    "Rogue": "d8", "Unchained Rogue": "d8",
+    "Sorcerer": "d6", "Wizard": "d6",
+    "Alchemist": "d8", "Cavalier": "d10", "Gunslinger": "d10",
+    "Inquisitor": "d8", "Magus": "d8", "Oracle": "d8",
+    "Summoner": "d8", "Unchained Summoner": "d8", "Witch": "d6",
+    "Arcanist": "d6", "Bloodrager": "d10", "Brawler": "d10",
+    "Hunter": "d8", "Investigator": "d8", "Shaman": "d8",
+    "Skald": "d8", "Slayer": "d10", "Swashbuckler": "d10", "Warpriest": "d8",
+    "Kineticist": "d8", "Medium": "d8", "Mesmerist": "d8",
+    "Occultist": "d8", "Psychic": "d6", "Spiritualist": "d8",
+    "Ninja": "d8", "Samurai": "d10", "Vigilante": "d8",
+    "Shifter": "d10", "Omdura": "d8",
+}
+
 
 # ------------------------------------------------------------------ #
 # HTML table parser for PSRD progression tables                        #
@@ -339,7 +361,7 @@ def get_hp(
     first = True
     for cl in class_levels:
         class_row = db.get_class(cl.class_name)
-        hit_die = (class_row or {}).get("hit_die") or "d8"
+        hit_die = (class_row or {}).get("hit_die") or _CLASS_HIT_DIE_FALLBACK.get(cl.class_name, "d8")
         die_max = int(hit_die.lstrip("d"))
         die_avg = _HIT_DIE_AVG.get(hit_die, die_max // 2 + 1)
 
