@@ -48,7 +48,7 @@ app.add_middleware(
 
 # ── Include API routers ──────────────────────────────────────────────────── #
 
-from src.api.routes import races, classes, feats, skills, traits, characters, spells, equipment  # noqa: E402
+from src.api.routes import races, classes, feats, skills, traits, characters, spells, equipment, campaigns  # noqa: E402
 from src.api.routes.auth import router as auth_router  # noqa: E402
 
 app.include_router(auth_router, prefix="/api/auth")
@@ -60,6 +60,7 @@ app.include_router(traits.router, prefix="/api")
 app.include_router(characters.router, prefix="/api")
 app.include_router(spells.router, prefix="/api")
 app.include_router(equipment.router, prefix="/api")
+app.include_router(campaigns.router, prefix="/api")
 
 # ── Static files + page routes ───────────────────────────────────────────── #
 
@@ -84,3 +85,8 @@ async def sheet_page():
 @app.get("/levelup", include_in_schema=False)
 async def levelup_page():
     return FileResponse(str(STATIC_DIR / "levelup.html"))
+
+
+@app.get("/campaigns", include_in_schema=False)
+async def campaigns_page():
+    return FileResponse(str(STATIC_DIR / "campaign.html"))
