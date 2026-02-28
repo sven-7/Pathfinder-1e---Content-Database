@@ -80,6 +80,8 @@ async def list_feats(
             "feat_type": r.get("feat_type") or "General",
             "prerequisites": r.get("prerequisites") or "",
             "benefit": r.get("benefit") or "",
+            "normal": r.get("normal") or "",
+            "special": r.get("special") or "",
             "description": r.get("description") or "",
         }
         for r in rows

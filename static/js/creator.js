@@ -4,6 +4,9 @@
 
 const API = '/api';
 
+// Expanded feat names — persists across list re-renders within the session
+const _expandedFeats = new Set();
+
 // 6 steps: Origins, Abilities, Feats & Traits, Extras, Skills, Review
 const STEPS = [
   { id: 'origins',   label: 'Origins' },
@@ -786,21 +789,52 @@ async function renderFeatsTraitsStep(c) {
 
 function featListHtml(feats) {
   return feats.slice(0, 300).map(f => {
-    const prereq  = f.prerequisites ? `<div class="list-item-detail"><em>Req:</em> ${esc(f.prerequisites.slice(0,90))}${f.prerequisites.length>90?'…':''}</div>` : '';
-    const benefit = f.benefit       ? `<div class="list-item-detail">${esc(f.benefit.slice(0,110))}${f.benefit.length>110?'…':''}</div>` : '';
+    const isSelected = state.feats.some(sf => sf.name === f.name);
+    const isExpanded = _expandedFeats.has(f.name);
+
+    // Collapsed preview (hidden when expanded)
+    const prereqPreview = !isExpanded && f.prerequisites
+      ? `<div class="list-item-detail"><em>Req:</em> ${esc(f.prerequisites.slice(0,90))}${f.prerequisites.length>90?'…':''}</div>` : '';
+    const benefitPreview = !isExpanded && f.benefit
+      ? `<div class="list-item-detail">${esc(f.benefit.slice(0,110))}${f.benefit.length>110?'…':''}</div>` : '';
+
+    // Full expanded detail panel
+    let detailHtml = '';
+    if (isExpanded) {
+      detailHtml = `<div class="feat-detail-panel" onclick="event.stopPropagation()">`;
+      if (f.description) detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Description</span><div class="feat-detail-text">${esc(f.description)}</div></div>`;
+      if (f.prerequisites) detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Prerequisites</span><div class="feat-detail-text">${esc(f.prerequisites)}</div></div>`;
+      if (f.benefit)       detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Benefit</span><div class="feat-detail-text">${esc(f.benefit)}</div></div>`;
+      if (f.normal)        detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Normal</span><div class="feat-detail-text">${esc(f.normal)}</div></div>`;
+      if (f.special)       detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Special</span><div class="feat-detail-text">${esc(f.special)}</div></div>`;
+      detailHtml += `</div>`;
+    }
+
     return `
-    <div class="list-item${state.feats.some(sf => sf.name === f.name)?' selected':''}"
+    <div class="list-item${isSelected?' selected':''}${isExpanded?' expanded':''}"
          data-name="${esc(f.name)}" data-type="${esc(f.feat_type)}"
          data-prereq="${esc(f.prerequisites)}" data-benefit="${esc(f.benefit.slice(0,200))}"
          onclick="toggleFeat(${jsAttr(f.name)})">
       <div style="flex:1;min-width:0;">
-        <div class="list-item-name">${f.name}</div>
-        ${prereq}${benefit}
+        <div class="list-item-name">${esc(f.name)}</div>
+        ${prereqPreview}${benefitPreview}
+        ${detailHtml}
       </div>
-      <div class="list-item-type" style="white-space:nowrap;">${f.feat_type}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+        <div class="list-item-type">${esc(f.feat_type)}</div>
+        <button class="feat-expand-btn" onclick="toggleFeatDetail(${jsAttr(f.name)},event)">${isExpanded?'▲ less':'▼ more'}</button>
+      </div>
     </div>`;
   }).join('');
 }
+
+window.toggleFeatDetail = function(name, event) {
+  event.stopPropagation();
+  if (_expandedFeats.has(name)) _expandedFeats.delete(name);
+  else _expandedFeats.add(name);
+  const listEl = document.getElementById('feat-list');
+  if (listEl) listEl.innerHTML = featListHtml(state._feats);
+};
 
 function traitListHtml(traits) {
   return traits.slice(0, 200).map(t => `
