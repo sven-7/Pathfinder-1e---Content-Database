@@ -68,6 +68,9 @@ const state = {
   equippedShield: null,// full shield object from API, or null
   weapons: [],         // list of full weapon objects from API
 
+  // ASI at levels 4/8/12/16/20
+  asiChoices: {},  // {4: 'str', 8: 'dex', ...}
+
   // Step 4: Skills
   skillRanks: {},
   favClassChoice: 'hp',   // 'hp' or 'skill'
@@ -147,6 +150,10 @@ function getFinalScores() {
   if (state.race?.flexible_bonus && state.flexBonus && state.flexBonus in result) {
     result[state.flexBonus] += 2;
   }
+  // ASI bonuses at levels 4/8/12/16/20
+  for (const [, ab] of Object.entries(state.asiChoices)) {
+    if (ab && ab in result) result[ab] += 1;
+  }
   return result;
 }
 
@@ -184,12 +191,23 @@ function usedSkillRanks() {
   return Object.values(state.skillRanks).reduce((s, v) => s + (v || 0), 0);
 }
 
+function classBonusFeats() {
+  if (state._progression) {
+    return state._progression
+      .filter(p => p.level <= state.startLevel && /bonus feat/i.test(p.special || ''))
+      .length;
+  }
+  // Fallback for Fighter when progression not loaded yet
+  if (state.className === 'Fighter') return Math.floor((state.startLevel + 2) / 2);
+  return 0;
+}
+
 function featBudget() {
   const level = state.startLevel;
   // General feats at levels 1, 3, 5, 7... = ceil(level/2)
   let budget = Math.ceil(level / 2);
-  // Fighter bonus combat feats at levels 1, 2, 4, 6, 8... = floor((level+2)/2)
-  if (state.className === 'Fighter') budget += Math.floor((level + 2) / 2);
+  // Class bonus feats (Fighter, Wizard, Monk, etc.) from progression data
+  budget += classBonusFeats();
   // Human / Half-Elf: +1 bonus feat at level 1
   const race = state.race?.name || '';
   if (race === 'Human' || race === 'Half-Elf') budget += 1;
@@ -568,6 +586,8 @@ async function renderAbilitiesStep(c) {
     ${abilityPreviewHtml()}
   </div>
 
+  ${asiPanelHtml()}
+
   <div class="nav-bar">
     <button class="btn" onclick="prevStep()">← Back</button>
     <div style="display:flex;align-items:center;gap:12px;">
@@ -890,10 +910,56 @@ function abilityPreviewHtml() {
   </div>`;
 }
 
+// ── ASI Panel (levels 4/8/12/16/20) ───────────────────────────────────────
+const ASI_LEVELS = [4, 8, 12, 16, 20];
+
+function asiPanelHtml() {
+  const asiLevels = ASI_LEVELS.filter(l => l <= state.startLevel);
+  if (asiLevels.length === 0) return '';
+  return `<div class="panel">
+    <div class="panel-title">Ability Score Increases
+      <span class="text-muted" style="font-weight:400;font-size:10px;"> — +1 to one ability at each listed level</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;">
+      ${asiLevels.map(lvl => {
+        const chosen = state.asiChoices[lvl] || '';
+        return `<div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+          <span style="font-family:var(--font-label);font-size:9px;color:var(--fade);">LEVEL ${lvl}</span>
+          <div style="display:flex;gap:4px;">
+            ${ABILITIES_ORDER.map(ab => {
+              const sel = chosen === ab;
+              return `<button class="pb-btn${sel ? ' selected' : ''}" style="width:36px;height:28px;font-size:10px;${sel?'background:var(--gold-bg);border-color:var(--gold);font-weight:700;':''}"
+                onclick="setAsi(${lvl},'${ab}')">${ABILITY_LABELS[ab]}</button>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+window.setAsi = function(level, ab) {
+  // Toggle: clicking same ability again clears the choice
+  if (state.asiChoices[level] === ab) {
+    delete state.asiChoices[level];
+  } else {
+    state.asiChoices[level] = ab;
+  }
+  // Re-render ASI panel and ability preview
+  const preview = document.getElementById('ability-preview');
+  if (preview) preview.innerHTML = abilityPreviewHtml();
+  renderAbilitiesStep(document.getElementById('step-content'));
+};
+
 // ── Step 2: Feats + Traits ────────────────────────────────────────────────
 async function renderFeatsTraitsStep(c) {
   if (!state._feats)  state._feats  = await apiFetch('/feats');
   if (!state._traits) state._traits = await apiFetch('/traits');
+  // Load progression for data-driven bonus feat counting
+  if (!state._progression && state.className) {
+    try { state._progression = await apiFetch(`/classes/${encodeURIComponent(state.className)}/progression`); }
+    catch(e) { state._progression = []; }
+  }
 
   const budget = featBudget();
 
@@ -963,23 +1029,74 @@ async function renderFeatsTraitsStep(c) {
   </div>`;
 }
 
+// ── Feat prerequisite checking ─────────────────────────────────────────────
+function checkFeatPrereqs(feat) {
+  const prereqStr = feat.prerequisites || '';
+  if (!prereqStr) return { met: true, unmet: [] };
+  const unmet = [];
+  const final = getFinalScores();
+
+  // Ability score requirements: "Str 13", "Dex 15", etc.
+  const abilityRe = /\b(Str|Dex|Con|Int|Wis|Cha)\s+(\d+)/gi;
+  let m;
+  while ((m = abilityRe.exec(prereqStr)) !== null) {
+    const ab = m[1].toLowerCase();
+    const req = parseInt(m[2]);
+    if ((final[ab] || 10) < req) unmet.push(`${m[1]} ${req}`);
+  }
+
+  // BAB requirement: "base attack bonus +6"
+  const babRe = /base attack bonus \+(\d+)/i;
+  const babMatch = babRe.exec(prereqStr);
+  if (babMatch) {
+    const reqBAB = parseInt(babMatch[1]);
+    let bab = 0;
+    if (state.classRow) {
+      const lvl = state.startLevel;
+      if (state.classRow.bab_progression === 'full') bab = lvl;
+      else if (state.classRow.bab_progression === 'three_quarter') bab = Math.floor(lvl * 3 / 4);
+      else bab = Math.floor(lvl / 2);
+    }
+    if (bab < reqBAB) unmet.push(`BAB +${reqBAB}`);
+  }
+
+  // Feat chain: check if prerequisite feats are selected
+  const prereqFeats = feat.prerequisite_feats || '';
+  if (prereqFeats) {
+    const reqFeatNames = prereqFeats.split(',').map(s => s.trim()).filter(Boolean);
+    const selectedNames = new Set(state.feats.map(f => f.name.toLowerCase()));
+    for (const rf of reqFeatNames) {
+      if (!selectedNames.has(rf.toLowerCase())) unmet.push(rf);
+    }
+  }
+
+  return { met: unmet.length === 0, unmet };
+}
+
 function featListHtml(feats) {
   return feats.slice(0, 300).map(f => {
     const isSelected = state.feats.some(sf => sf.name === f.name);
     const isExpanded = _expandedFeats.has(f.name);
+    const prereqCheck = f.prerequisites ? checkFeatPrereqs(f) : { met: true, unmet: [] };
+    const hasUnmet = !prereqCheck.met && !isSelected;
 
     // Collapsed preview (hidden when expanded)
     const prereqPreview = !isExpanded && f.prerequisites
-      ? `<div class="list-item-detail"><em>Req:</em> ${esc(f.prerequisites.slice(0,90))}${f.prerequisites.length>90?'…':''}</div>` : '';
+      ? `<div class="list-item-detail" style="${hasUnmet?'color:var(--red-wax);':''}"><em>Req:</em> ${esc(f.prerequisites.slice(0,90))}${f.prerequisites.length>90?'…':''}</div>` : '';
     const benefitPreview = !isExpanded && f.benefit
       ? `<div class="list-item-detail">${esc(f.benefit.slice(0,110))}${f.benefit.length>110?'…':''}</div>` : '';
+
+    // Unmet prereq badge
+    const unmetBadge = hasUnmet
+      ? `<span style="font-size:9px;color:var(--red-wax);background:rgba(180,40,40,.1);padding:1px 5px;border-radius:3px;white-space:nowrap;" title="Unmet: ${esc(prereqCheck.unmet.join(', '))}">Unmet: ${esc(prereqCheck.unmet.slice(0,3).join(', '))}${prereqCheck.unmet.length>3?'…':''}</span>`
+      : '';
 
     // Full expanded detail panel
     let detailHtml = '';
     if (isExpanded) {
       detailHtml = `<div class="feat-detail-panel" onclick="event.stopPropagation()">`;
       if (f.description) detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Description</span><div class="feat-detail-text">${esc(f.description)}</div></div>`;
-      if (f.prerequisites) detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Prerequisites</span><div class="feat-detail-text">${esc(f.prerequisites)}</div></div>`;
+      if (f.prerequisites) detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Prerequisites</span><div class="feat-detail-text" style="${hasUnmet?'color:var(--red-wax);':''}">${esc(f.prerequisites)}</div></div>`;
       if (f.benefit)       detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Benefit</span><div class="feat-detail-text">${esc(f.benefit)}</div></div>`;
       if (f.normal)        detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Normal</span><div class="feat-detail-text">${esc(f.normal)}</div></div>`;
       if (f.special)       detailHtml += `<div class="feat-detail-section"><span class="feat-detail-label">Special</span><div class="feat-detail-text">${esc(f.special)}</div></div>`;
@@ -990,13 +1107,14 @@ function featListHtml(feats) {
     <div class="list-item${isSelected?' selected':''}${isExpanded?' expanded':''}"
          data-name="${esc(f.name)}" data-type="${esc(f.feat_type)}"
          data-prereq="${esc(f.prerequisites)}" data-benefit="${esc(f.benefit.slice(0,200))}"
-         onclick="toggleFeat(${jsAttr(f.name)})">
+         onclick="toggleFeat(${jsAttr(f.name)})"${hasUnmet?' style="border-left:3px solid var(--red-wax);"':''}>
       <div style="flex:1;min-width:0;">
         <div class="list-item-name">${esc(f.name)}</div>
         ${prereqPreview}${benefitPreview}
         ${detailHtml}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+        ${unmetBadge}
         <div class="list-item-type">${esc(f.feat_type)}</div>
         <button class="feat-expand-btn" onclick="toggleFeatDetail(${jsAttr(f.name)},event)">${isExpanded?'▲ less':'▼ more'}</button>
       </div>
@@ -1122,6 +1240,27 @@ const CLASS_TALENT_MAP = {
   'Unchained Rogue':     'Unchained Rogue Talent',
 };
 
+// Talent budget schedules per class
+const TALENT_SCHEDULE_EVEN = new Set([
+  'Barbarian','Rogue','Alchemist','Witch','Magus','Ninja','Slayer',
+  'Shaman','Kineticist','Unchained Barbarian','Unchained Rogue',
+  'Bloodrager','Hunter','Mesmerist','Psychic','Medium','Occultist',
+  'Spiritualist','Vigilante','Shifter','Swashbuckler','Warpriest',
+  'Unchained Monk','Skald',
+]);
+const TALENT_SCHEDULE_ODD3 = new Set(['Investigator']);
+const TALENT_SCHEDULE_ODD1 = new Set(['Arcanist']);
+
+function talentBudget() {
+  const lvl = state.startLevel;
+  const cls = state.className || '';
+  if (TALENT_SCHEDULE_EVEN.has(cls))  return Math.floor(lvl / 2);
+  if (TALENT_SCHEDULE_ODD3.has(cls))  return lvl >= 3 ? Math.floor((lvl - 1) / 2) : 0;
+  if (TALENT_SCHEDULE_ODD1.has(cls))  return Math.ceil(lvl / 2);
+  // Unknown class — no budget enforced (unlimited)
+  return Infinity;
+}
+
 async function renderExtrasStep(c) {
   const className    = state.className || '';
   const classRow     = state.classRow;
@@ -1191,10 +1330,12 @@ async function renderExtrasStep(c) {
     // No fallback to Math.ceil — if a class has no spells at this level, spellLevels stays []
   }
 
+  const tBudget = talentBudget();
+  const tBudgetLabel = isFinite(tBudget) ? `${state.classTalents.length} / ${tBudget}` : `${state.classTalents.length}`;
   const talentSection = talentType ? `
     <div class="panel">
       <div class="panel-title">${talentType}s
-        <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${state.classTalents.length} selected</span>
+        <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${tBudgetLabel} selected</span>
       </div>
       <div style="margin-bottom:10px;" id="talent-selected">
         ${state.classTalents.map(t => `<span class="tag">${t}<button class="tag-remove" onclick="removeTalent(${jsAttr(t)})">✕</button></span>`).join('')}
@@ -1487,6 +1628,11 @@ window.toggleTalent = function(name) {
   if (state.classTalents.includes(name)) {
     state.classTalents = state.classTalents.filter(t => t !== name);
   } else {
+    const budget = talentBudget();
+    if (isFinite(budget) && state.classTalents.length >= budget) {
+      showErrors([`Maximum ${budget} talent${budget !== 1 ? 's' : ''} at level ${state.startLevel}.`]);
+      return;
+    }
     state.classTalents.push(name);
   }
   // Re-render selected area without full step re-render
@@ -1671,7 +1817,7 @@ async function renderSkillsStep(c) {
             <td>
               <div class="rank-stepper">
                 <button class="rank-btn" onclick="changeRank('${esc(sk.name)}',-1)" ${ranks<=0?'disabled':''}>−</button>
-                <span class="rank-val">${ranks}</span>
+                <span class="rank-val">${ranks}${ranks>=maxRanks && ranks>0 ? ' <span style="font-size:8px;color:var(--gold);font-weight:700;">(max)</span>' : ''}</span>
                 <button class="rank-btn" onclick="changeRank('${esc(sk.name)}',1)" ${remaining<=0||ranks>=maxRanks?'disabled':''}>+</button>
               </div>
             </td>
@@ -1777,6 +1923,13 @@ async function renderReviewStep(c) {
               <span class="review-val">${final[ab]} (${fm(mod(final[ab]))})</span>
             </div>`).join('')}
         </div>
+
+        ${Object.keys(state.asiChoices).length > 0 ? `<div class="review-section">
+          <div class="review-section-title">Ability Score Increases</div>
+          ${Object.entries(state.asiChoices).sort(([a],[b])=>a-b).map(([lvl, ab]) =>
+            `<div class="review-row"><span class="review-key">Level ${lvl}</span><span class="review-val">+1 ${ABILITY_LABELS[ab]}</span></div>`
+          ).join('')}
+        </div>` : ''}
 
         <div class="review-section">
           <div class="review-section-title">Feats (${state.feats.length}/${featBudget()})</div>
@@ -1967,6 +2120,7 @@ function buildCharDict() {
     fav_class_choice: state.favClassChoice,
     class_talents: [...state.classTalents],
     spells: { ...state.spells },
+    asi_choices: { ...state.asiChoices },
     notes: '',
   };
 }
@@ -2067,6 +2221,7 @@ window.loadChar = async function(id) {
   state.favClassChoice = char.fav_class_choice || 'hp';
   state.classTalents   = char.class_talents    || [];
   state.spells         = char.spells           || {};
+  state.asiChoices     = char.asi_choices      || {};
   state.equipment      = char.equipment        || [];
   state.equippedArmor  = char.equipped_armor   || null;
   state.equippedShield = char.equipped_shield  || null;
