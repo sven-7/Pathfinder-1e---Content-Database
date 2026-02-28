@@ -708,6 +708,20 @@ function renderSkills() {
   }).join('');
 }
 
+// ── Spellcasting type map (mirrors DB spellcasting_type + spellcasting_style) ──
+const SPELLCASTING_TYPE = {
+  alchemical:  ['Alchemist','Investigator'],
+  prepared:    ['Wizard','Witch','Magus','Cleric','Druid','Paladin','Ranger',
+                'Inquisitor','Shaman','Warpriest','Arcanist','Occultist'],
+  spontaneous: ['Sorcerer','Bard','Summoner','Unchained Summoner','Bloodrager',
+                'Skald','Oracle','Hunter','Psychic','Medium','Mesmerist','Spiritualist'],
+};
+function spellTypeFor(className) {
+  if (SPELLCASTING_TYPE.alchemical.includes(className)) return 'alchemical';
+  if (SPELLCASTING_TYPE.spontaneous.includes(className)) return 'spontaneous';
+  return 'prepared';
+}
+
 // ── renderSpells ───────────────────────────────────────────────────────────
 // D.spells can be:
 //   {level_key: [name, ...]}  — current format from creator.js (object with string keys)
@@ -736,12 +750,22 @@ function renderSpells() {
   const scores = D.ability_scores || {};
   let html = '';
 
+  // Update section title based on primary class type
+  const primaryType = spellTypeFor(classNames[0] || '');
+  const secTitle = sec.querySelector('.section-title');
+  if (secTitle) {
+    secTitle.textContent = primaryType === 'alchemical' ? 'Formulae / Extracts'
+                         : primaryType === 'spontaneous' ? 'Spells Known'
+                         : 'Spells Prepared';
+  }
+
   classNames.forEach((className, ci) => {
     const slots = spellSlots[className];
     if (classNames.length > 1) html += `<div class="spell-class-sep">${className}</div>`;
 
     const spAbility = SPELLCASTING_ABILITY[className] || 'int';
     const spMod = abilityMod(scores[spAbility] || 10);
+    const spType = spellTypeFor(className);
 
     const sortedLevels = Object.keys(slots).map(Number).sort((a,b) => a-b);
 
@@ -749,7 +773,12 @@ function renderSpells() {
       const count = slots[lvl];
       if (!count || count <= 0) return;
 
-      const lvlLabel = lvl === 0 ? 'Cantrips / Orisons' : `Level ${lvl}`;
+      // Level label: Orisons for divine L0, Extract N for alchemical, else Cantrips/Level N
+      const isDivine = ['Cleric','Druid','Paladin','Ranger','Inquisitor',
+                        'Oracle','Shaman','Warpriest','Hunter'].includes(className);
+      const lvlLabel = lvl === 0 ? (isDivine ? 'Orisons' : 'Cantrips')
+                     : spType === 'alchemical' ? `Extract ${lvl}`
+                     : `Level ${lvl}`;
       const dc = 10 + lvl + spMod;
       const spellsHere = spellsByLevel[String(lvl)] || [];
 

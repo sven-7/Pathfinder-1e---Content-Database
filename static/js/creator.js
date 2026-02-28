@@ -916,7 +916,37 @@ async function renderExtrasStep(c) {
   const className    = state.className || '';
   const classRow     = state.classRow;
   const talentType   = CLASS_TALENT_MAP[className] || null;
-  const isSpellcaster = !!classRow?.spellcasting_type;
+
+  // Spellcasting type/style from DB; fallback set covers classes not yet seeded
+  const SPELLCASTER_FALLBACK = new Set([
+    'Wizard','Sorcerer','Cleric','Druid','Bard','Paladin','Ranger',
+    'Witch','Oracle','Magus','Alchemist','Inquisitor','Summoner',
+    'Kineticist','Psychic','Medium','Mesmerist','Occultist','Spiritualist',
+  ]);
+  const spellType  = classRow?.spellcasting_type  || null;
+  const spellStyle = classRow?.spellcasting_style || null;
+  const isSpellcaster = !!(spellType || SPELLCASTER_FALLBACK.has(className));
+  const isAlchemical  = spellType === 'alchemical';
+  const isPrepared    = spellStyle === 'prepared';
+  const isSpontaneous = spellStyle === 'spontaneous';
+
+  // Human-readable labels derived from type + style
+  const spellPanelTitle = isAlchemical  ? 'Formulae / Extracts'
+                        : isSpontaneous ? 'Spells Known'
+                        : spellType === 'arcane' ? 'Spellbook'
+                        : 'Spells Prepared';
+
+  const spellPanelDesc = isAlchemical
+    ? `Select formulae for your ${className}'s formula book. Each day you prepare any known formula as an extract.`
+    : isSpontaneous
+    ? `Select spells your ${className} knows. You may cast any known spell using available spell slots.`
+    : spellType === 'arcane'
+    ? `Select spells for your ${className}'s spellbook. Each day you may prepare any known spell from the book.`
+    : `Select spells your ${className} prepares each day. You may change prepared spells after each rest.`;
+
+  const spellNoSlotsMsg = isAlchemical
+    ? `${className} does not prepare extracts at level ${state.startLevel}.`
+    : `${className} does not gain spell slots at level ${state.startLevel}.`;
 
   // Load class talents if applicable
   let talents = [];
@@ -939,13 +969,12 @@ async function renderExtrasStep(c) {
     if (progRow?.spells_per_day) {
       try {
         const slots = JSON.parse(progRow.spells_per_day);
-        // Keys are actual spell levels: 0 = cantrips/orisons, 1 = 1st-level, etc.
+        // Keys: 0 = cantrips/orisons, 1 = 1st-level, etc.
         const numLevels = Object.keys(slots).map(Number).filter(n => !isNaN(n)).sort((a,b) => a-b);
         for (const lvl of numLevels) { spellLevels.push(lvl); spellSlots[lvl] = slots[String(lvl)]; }
-        // Sorcerer/Bard/Witch: no key "0" but they still have at-will cantrips
-        // Add a cantrips tab so player can record known cantrips
-        if (!spellSlots[0] && classRow.spellcasting_type !== 'alchemical' && numLevels.length > 0) {
-          spellLevels.unshift(0);  // prepend cantrips tab
+        // Spontaneous casters without tracked cantrips (Sorcerer/Bard etc.) still need a cantrips tab
+        if (!spellSlots[0] && !isAlchemical && numLevels.length > 0) {
+          spellLevels.unshift(0);
         }
       } catch(e) {}
     }
@@ -979,20 +1008,25 @@ async function renderExtrasStep(c) {
     </div>` : '';
 
   const firstSpellTab = spellLevels[0] ?? 0;
+  // Tab label: divine uses "Orisons" for level 0; alchemical uses "Extract N"
+  const spellTabLabel = (lvl) => {
+    if (lvl === 0) return spellType === 'divine' ? 'Orisons' : 'Cantrips';
+    return isAlchemical ? `Extract ${lvl}` : `Level ${lvl}`;
+  };
+
   const spellSection = isSpellcaster && spellLevels.length > 0 ? `
     <div class="panel">
-      <div class="panel-title">Spells Known / Prepared</div>
-      <p class="text-muted" style="font-size:11px;margin-bottom:10px;">
-        Select spells for your ${className}. Use the spell level tabs below.
-        ${classRow.spellcasting_type === 'alchemical' ? '(Formulae / Extracts)' : ''}
-      </p>
+      <div class="panel-title">${spellPanelTitle}</div>
+      <p class="text-muted" style="font-size:11px;margin-bottom:10px;">${spellPanelDesc}</p>
       <div class="method-tabs" id="spell-level-tabs">
         ${spellLevels.map(lvl => {
-          const label = lvl === 0 ? 'Cantrips' : `Level ${lvl}`;
-          const slotCnt = spellSlots[lvl];
-          // Cantrips are at-will in play; show "at will" rather than a count
-          const slotNote = lvl === 0 ? ` <span style="font-size:9px;opacity:.7;">(at will)</span>`
-                         : slotCnt !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slotCnt}/day)</span>` : '';
+          const label    = spellTabLabel(lvl);
+          const slotCnt  = spellSlots[lvl];
+          const slotNote = lvl === 0
+            ? ` <span style="font-size:9px;opacity:.7;">(at will)</span>`
+            : slotCnt !== undefined
+            ? ` <span style="font-size:9px;opacity:.7;">(${slotCnt}/day)</span>`
+            : '';
           return `<div class="method-tab${lvl===firstSpellTab?' active':''}" data-splvl="${lvl}" onclick="setSpellTab(${lvl})">${label}${slotNote}</div>`;
         }).join('')}
       </div>
@@ -1001,8 +1035,8 @@ async function renderExtrasStep(c) {
       </div>
     </div>` : (isSpellcaster ? `
     <div class="panel">
-      <div class="panel-title">Spells</div>
-      <p class="text-muted" style="font-size:12px;">${className} does not gain spell slots at level ${state.startLevel}.</p>
+      <div class="panel-title">${spellPanelTitle}</div>
+      <p class="text-muted" style="font-size:12px;">${spellNoSlotsMsg}</p>
     </div>` : '');
 
   // Load weapons and armor from API (cached)
