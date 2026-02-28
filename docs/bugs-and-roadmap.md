@@ -12,6 +12,7 @@
 | 12a | Complete | Creator Bug Fixes — chip UI, Point Buy UX, talent budget enforcement, HP fix |
 | 12b | Complete | Rules Engine Audit — 71 pytest tests, multi-class exporter fix, levelup.html auth fix |
 | 13 | Complete | Level-Aware Creator — ASI selection, expanded feat budget, talent budget enforcement, feat prereq indicators, skill max label |
+| PWA-0 | Planned | PWA Scaffolding — manifest.json, service worker, responsive meta, offline shell (locally hosted LAN model) |
 | 14 | Planned | Encounter & Combat Tracker |
 | 15 | Planned | Equipment Phase — full armor/weapon/gear UI overhaul |
 | 16+ | Future | Party Inventory, Kingmaker tools |

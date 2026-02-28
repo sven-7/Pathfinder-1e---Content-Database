@@ -62,6 +62,12 @@ A comprehensive Pathfinder 1st Edition campaign management platform: structured 
 | **9** | **Spell & Formula Book Panel** — Dedicated spellcaster view: spell dots per level, prepared vs. spontaneous workflow, Alchemist formula book with tactical groupings (combat buffs / defensive / utility / social), infusion tracking | Spellcasters have a complete, playable spell workflow |
 | **10** | **Cheat Sheet — Modular Panels** — Situation-based panels (Combat, Resources, Skills, Abilities); drag-and-drop to rearrange; toggle visibility; action economy icons (● standard, ◐ move, ◑ swift, ◆ immediate, ○ free); print to 1–2 pages | Players assemble a custom reference card for the session |
 
+### Infrastructure: PWA & Offline
+
+| Phase | Description | Deliverable |
+|-------|-------------|-------------|
+| **PWA-0** | **PWA Scaffolding** — manifest.json, service worker, responsive viewport meta, offline shell. Locally hosted model: host runs server, table devices access via LAN and install as PWA | App installable on iPad/tablet, works offline for sheet viewing and state updates |
+
 ### Long-Term: Multi-User & Group Play
 
 | Phase | Description | Deliverable |
@@ -260,6 +266,7 @@ Skill total verified: Kyra Heal (1 rank + WIS +4 + class +3) = **+8** ✓
 - **Alchemist spell selection** — Alchemist uses "formulae" not "spells"; creator shows "Spells" label but should say "Formulae / Extracts"
 - **Saving throw names** — DB column is `fort_save`/`ref_save`/`will_save`; JS sometimes assumes `fort`/`ref`/`will` keys; both work in practice but inconsistent
 - **HP at level 1** — Creator correctly uses max die at level 1, but the exporter fallback (`hp_max = HIT_DIE_AVG + CON`) uses average die even at level 1 if `hp_max` wasn't saved in the character dict
+- Remove references to host machine
 
 ### Verified Working (do not regress)
 - BAB/saves/HP for all 4 CRB classes at level 1 ✓
@@ -277,6 +284,16 @@ Skill total verified: Kyra Heal (1 rank + WIS +4 + class +3) = **+8** ✓
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+│
+├── .claude/                             # Architectural decision records for AI contributors
+│   ├── AI_CONTEXT.md                   # Always-on context: vision, goals, constraints
+│   ├── AI_WORKFLOW.md                  # Coding standards and regression checklist
+│   ├── CAMPAIGN_ARCHITECTURE.md        # Dual-DB design, JSONB shape, campaign tables
+│   ├── LLM_LAYER.md                   # AI/RAG integration discipline (Phase 17)
+│   ├── NON_REGRESSION_CHECKLIST.md     # Pre-merge automated + manual checks
+│   ├── PWA_REQUIREMENTS.md            # Service worker, manifest, offline MVP
+│   ├── UI_MODIFICATION_PROTOCOL.md    # UI change protocol (PWA/tablet/accessibility)
+│   └── UI_STYLE_GUIDE.md             # Modern app shell + classic RPG sheet duality
 │
 ├── db/
 │   └── pf1e.db                        # SQLite database (~48 MB)
