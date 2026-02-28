@@ -318,16 +318,22 @@ Skill total verified: Kyra Heal (1 rank + WIS +4 + class +3) = **+8** ✓
 
 These Pathfinder Society iconic characters are used to verify rules engine correctness. All verified against official Paizo stat blocks (20-point buy).
 
-| Character | Race | Class | STR | DEX | CON | INT | WIS | CHA | Key Verification |
-|-----------|------|-------|-----|-----|-----|-----|-----|-----|-----------------|
-| **Valeros** | Human | Fighter 1 | 18 | 14 | 14 | 10 | 12 | 8 | BAB +1, Fort +4, Ref +2, Will +1 ✓ |
-| **Kyra** | Human | Cleric 1 | 14 | 10 | 12 | 10 | 18 | 14 | BAB +0, Fort +3, Ref +0, Will +6 ✓ |
-| **Merisiel** | Elf | Rogue 1 | 10 | 20 | 12 | 14 | 10 | 14 | BAB +0, Fort +1, Ref +7, Will +0 ✓ |
-| **Ezren** | Human | Wizard 1 | 10 | 14 | 12 | 18 | 12 | 11 | BAB +0, Fort +1, Ref +2, Will +3 ✓ |
-| **Amiri** | Human | Barbarian 1 | 20 | 15 | 15 | 10 | 12 | 8 | BAB +1, Fort +4, Ref +2, Will +1 |
-| **Harsk** | Dwarf | Ranger 1 | 14 | 16 | 14 | 10 | 14 | 6 | BAB +1, Fort +4, Ref +5, Will +2 |
-| **Seoni** | Human | Sorcerer 1 | 10 | 14 | 12 | 10 | 12 | 20 | BAB +0, Fort +1, Ref +2, Will +3 |
-| **Seelah** | Human | Paladin 1 | 16 | 12 | 14 | 10 | 14 | 17 | BAB +1, Fort +5, Ref +1, Will +4 |
+All scores below are **final scores** (racial mods applied). ✓ = verified against official Paizo stat block. ≈ = estimated from standard PFS 20-point buy guidance.
+
+| Character | Race | Class | STR | DEX | CON | INT | WIS | CHA | BAB | Fort | Ref | Will |
+|-----------|------|-------|-----|-----|-----|-----|-----|-----|-----|------|-----|------|
+| **Valeros** | Human | Fighter 1 | 18 | 14 | 14 | 10 | 12 | 8 | +1 ✓ | +4 ✓ | +2 ✓ | +1 ✓ |
+| **Kyra** | Human | Cleric 1 | 14 | 10 | 12 | 10 | 18 | 14 | +0 ✓ | +3 ✓ | +0 ✓ | +6 ✓ |
+| **Merisiel** | Elf | Rogue 1 | 10 | 20 | 12 | 14 | 10 | 14 | +0 ✓ | +1 ✓ | +7 ✓ | +0 ✓ |
+| **Ezren** | Human | Wizard 1 | 10 | 14 | 12 | 18 | 12 | 11 | +0 ✓ | +1 ✓ | +2 ✓ | +3 ✓ |
+| **Amiri** | Human | Barbarian 1 | 20 | 15 | 15 | 10 | 12 | 8 | +1 ≈ | +4 ≈ | +2 ≈ | +1 ≈ |
+| **Harsk** | Dwarf | Ranger 1 | 14 | 16 | 16 | 10 | 14 | 6 | +1 ≈ | +5 ≈ | +5 ≈ | +2 ≈ |
+| **Seoni** | Human | Sorcerer 1 | 10 | 14 | 12 | 10 | 12 | 20 | +0 ≈ | +1 ≈ | +2 ≈ | +3 ≈ |
+| **Seelah** | Human | Paladin 1 | 16 | 12 | 14 | 10 | 14 | 17 | +1 ≈ | +4 ≈ | +1 ≈ | +4 ≈ |
+| **Lem** | Halfling | Bard 1 | 8 | 17 | 12 | 14 | 10 | 18 | +0 ≈ | +1 ≈ | +5 ≈ | +2 ≈ |
+| **Lini** | Gnome | Druid 1 | 6 | 14 | 14 | 12 | 18 | 14 | +0 ≈ | +4 ≈ | +2 ≈ | +6 ≈ |
+
+> Note: Paladin Divine Grace (CHA to all saves) activates at **Level 2** — Level 1 saves are standard.
 
 **Recreation checklist for PFS standard builds:**
 - 20-point ability buy (PFS standard)
