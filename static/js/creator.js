@@ -52,6 +52,9 @@ const state = {
   saAssign:    {},
   rollValues:  null,
   rollAssign:  {},
+  selectedChip: null,   // index of the currently selected chip (int | null)
+  activeSlot:   null,   // ability key awaiting a chip ('str' | null)
+  rollDice:     null,   // [[d1,d2,d3,d4], ...] raw 4d6 per roll; d[0] is dropped
 
   // Step 2: Feats & Traits
   feats:  [],   // [{name, level, method}, ...]
@@ -578,6 +581,8 @@ async function renderAbilitiesStep(c) {
 
 window.setAbilityMethod = function(method) {
   state.abilityMethod = method;
+  state.selectedChip = null;
+  state.activeSlot   = null;
   document.querySelectorAll('.method-tab').forEach((t, i) => {
     t.classList.toggle('active', ['standard','pointbuy','roll','manual'][i] === method);
   });
@@ -596,34 +601,52 @@ function renderAbilityMethodPanel() {
 }
 
 function renderStandardArray() {
-  const used = {};
+  // Build reverse map: score string -> ability
+  const valToAb = {};
   for (const [ab, val] of Object.entries(state.saAssign)) {
-    if (val) used[val] = (used[val] || 0) + 1;
+    if (val) valToAb[String(val)] = ab;
   }
-  const hasDup = Object.values(used).some(c => c > 1);
-  return `<p class="text-muted" style="font-size:12px;margin-bottom:12px;">
-    Assign each value from [${STANDARD_ARRAY.join(', ')}] to one ability score.
-  </p>
-  ${ABILITIES_ORDER.map(ab => {
-    const v = state.saAssign[ab] || '';
-    return `<div class="ability-assign-row">
-      <div class="ability-assign-label">${ABILITY_LABELS[ab]}</div>
-      <select class="ability-assign-select" onchange="setSA('${ab}',this.value)">
-        <option value="">—</option>
-        ${STANDARD_ARRAY.map(s => `<option value="${s}" ${v==s?'selected':''}>${s}</option>`).join('')}
-      </select>
-      <div class="ability-assign-mod">${v ? modStr(+v) : '—'}</div>
-    </div>`;
-  }).join('')}
-  ${hasDup ? '<p class="text-red mt-sm" style="font-size:11px;">⚠ Each value may only be assigned once.</p>' : ''}`;
-}
 
-window.setSA = function(ab, val) {
-  state.saAssign[ab] = val;
-  computeBaseScores();
-  document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
-  renderAbilityMethodPanel();
-};
+  const poolHtml = `<div class="score-pool">
+    ${STANDARD_ARRAY.map((score, idx) => {
+      const usedBy = valToAb[String(score)];
+      const isSelected = state.selectedChip === idx;
+      const isUsed = !!usedBy;
+      let cls = 'score-chip';
+      if (isSelected) cls += ' selected';
+      else if (isUsed) cls += ' used';
+      return `<div class="${cls}" onclick="clickChip(${idx})">
+        <div class="chip-val">${score}</div>
+        <div class="chip-mod">${modStr(score)}</div>
+        ${isUsed ? `<div class="chip-used-label">${ABILITY_LABELS[usedBy]}</div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  const slotsHtml = ABILITIES_ORDER.map(ab => {
+    const assignedVal = state.saAssign[ab] ? parseInt(state.saAssign[ab]) : null;
+    const isActive = state.activeSlot === ab;
+    const isFilled = assignedVal !== null;
+    let slotCls = 'score-slot';
+    if (isActive) slotCls += ' active';
+    else if (isFilled) slotCls += ' filled';
+    const slotContent = isFilled
+      ? `<span class="slot-val">${assignedVal}</span><span class="slot-mod">${modStr(assignedVal)}</span>`
+      : `<span class="slot-empty">click to select</span>`;
+    return `<div class="ability-slot-row">
+      <div class="ability-slot-label">${ABILITY_LABELS[ab]}</div>
+      <div class="${slotCls}" onclick="clickSlot('${ab}')">${slotContent}</div>
+    </div>`;
+  }).join('');
+
+  const hint = state.selectedChip !== null
+    ? '<div class="slot-hint">Now click a slot to assign this value.</div>'
+    : state.activeSlot !== null
+    ? '<div class="slot-hint">Now click a chip to assign to this slot.</div>'
+    : '';
+
+  return poolHtml + slotsHtml + hint;
+}
 
 function renderPointBuy() {
   const scores = state.baseScores;
@@ -667,46 +690,75 @@ function renderRoll() {
       <button class="btn btn-primary" onclick="doRoll()">🎲 Roll 4d6 Drop Lowest</button>
     </div>`;
   }
-  return `<div style="text-align:center;padding:8px 0 16px;">
-    <button class="btn" onclick="doRoll()">🎲 Re-roll</button>
+
+  // Build reverse map: chipIdx -> ability
+  const idxToAb = {};
+  for (const [ab, idx] of Object.entries(state.rollAssign)) {
+    if (idx !== undefined) idxToAb[idx] = ab;
+  }
+
+  const poolHtml = `<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <button class="btn" onclick="doRoll()" style="font-size:12px;">🎲 Re-roll</button>
   </div>
-  <p class="text-muted" style="font-size:12px;margin-bottom:12px;">Assign each rolled value to an ability score.</p>
-  ${ABILITIES_ORDER.map(ab => {
-    const assigned = state.rollAssign[ab];
-    return `<div class="ability-assign-row">
-      <div class="ability-assign-label">${ABILITY_LABELS[ab]}</div>
-      <select class="ability-assign-select" onchange="setRollAssign('${ab}',this.value)">
-        <option value="">—</option>
-        ${state.rollValues.map((v,i) => `<option value="${i}" ${assigned===i?'selected':''}>${v}</option>`).join('')}
-      </select>
-      <div class="ability-assign-mod">${assigned !== undefined ? modStr(state.rollValues[assigned]) : '—'}</div>
+  <div class="score-pool">
+    ${state.rollValues.map((score, idx) => {
+      const usedBy = idxToAb[idx];
+      const isSelected = state.selectedChip === idx;
+      const isUsed = !!usedBy;
+      let cls = 'score-chip';
+      if (isSelected) cls += ' selected';
+      else if (isUsed) cls += ' used';
+      let diceHtml = '';
+      if (state.rollDice && state.rollDice[idx]) {
+        const d = state.rollDice[idx];
+        diceHtml = `<div class="chip-dice"><s style="color:var(--red-wax)">${d[0]}</s>+${d[1]}+${d[2]}+${d[3]}</div>`;
+      }
+      return `<div class="${cls}" onclick="clickChip(${idx})">
+        <div class="chip-val">${score}</div>
+        <div class="chip-mod">${modStr(score)}</div>
+        ${diceHtml}
+        ${isUsed ? `<div class="chip-used-label">${ABILITY_LABELS[usedBy]}</div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  const slotsHtml = ABILITIES_ORDER.map(ab => {
+    const idx = state.rollAssign[ab];
+    const assignedVal = (idx !== undefined && state.rollValues) ? state.rollValues[idx] : null;
+    const isActive = state.activeSlot === ab;
+    const isFilled = assignedVal !== null;
+    let slotCls = 'score-slot';
+    if (isActive) slotCls += ' active';
+    else if (isFilled) slotCls += ' filled';
+    const slotContent = isFilled
+      ? `<span class="slot-val">${assignedVal}</span><span class="slot-mod">${modStr(assignedVal)}</span>`
+      : `<span class="slot-empty">click to select</span>`;
+    return `<div class="ability-slot-row">
+      <div class="ability-slot-label">${ABILITY_LABELS[ab]}</div>
+      <div class="${slotCls}" onclick="clickSlot('${ab}')">${slotContent}</div>
     </div>`;
-  }).join('')}`;
+  }).join('');
+
+  const hint = state.selectedChip !== null
+    ? '<div class="slot-hint">Now click a slot to assign this value.</div>'
+    : state.activeSlot !== null
+    ? '<div class="slot-hint">Now click a chip to assign to this slot.</div>'
+    : '';
+
+  return poolHtml + slotsHtml + hint;
 }
 
 window.doRoll = function() {
-  state.rollValues = Array.from({length:6}, () => {
+  const rolls = Array.from({length:6}, () => {
     const d = Array.from({length:4}, () => 1 + Math.floor(Math.random()*6));
-    d.sort((a,b) => a-b);
-    return d[1]+d[2]+d[3];
+    d.sort((a,b) => a-b);          // d[0] = lowest (dropped)
+    return { total: d[1]+d[2]+d[3], dice: d };
   });
-  state.rollAssign = {};
-  renderAbilityMethodPanel();
-};
-
-window.setRollAssign = function(ab, idx) {
-  const parsed = idx === '' ? undefined : parseInt(idx);
-  // Clear any other ability that was already using this index
-  if (parsed !== undefined) {
-    for (const other of ABILITIES_ORDER) {
-      if (other !== ab && state.rollAssign[other] === parsed) {
-        state.rollAssign[other] = undefined;
-      }
-    }
-  }
-  state.rollAssign[ab] = parsed;
-  computeBaseScores();
-  document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
+  state.rollValues   = rolls.map(r => r.total);
+  state.rollDice     = rolls.map(r => r.dice);
+  state.rollAssign   = {};
+  state.selectedChip = null;
+  state.activeSlot   = null;
   renderAbilityMethodPanel();
 };
 
@@ -726,6 +778,85 @@ function renderManual() {
 window.setManual = function(ab, val) {
   state.baseScores[ab] = Math.max(3, Math.min(20, parseInt(val)||10));
   document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
+};
+
+// ── Chip-pool assignment helpers ──────────────────────────────────────────
+
+function _assignToSlot(ab, chipIdx) {
+  if (state.abilityMethod === 'standard') {
+    const val = String(STANDARD_ARRAY[chipIdx]);
+    // Clear any conflict
+    for (const other of ABILITIES_ORDER) {
+      if (other !== ab && state.saAssign[other] === val) state.saAssign[other] = undefined;
+    }
+    state.saAssign[ab] = val;
+  } else if (state.abilityMethod === 'roll') {
+    // Clear any conflict
+    for (const other of ABILITIES_ORDER) {
+      if (other !== ab && state.rollAssign[other] === chipIdx) state.rollAssign[other] = undefined;
+    }
+    state.rollAssign[ab] = chipIdx;
+  }
+  computeBaseScores();
+  document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
+}
+
+window.clickChip = function(idx) {
+  if (state.activeSlot !== null) {
+    // Slot is waiting — assign immediately
+    _assignToSlot(state.activeSlot, idx);
+    state.selectedChip = null;
+    state.activeSlot   = null;
+  } else if (idx === state.selectedChip) {
+    // Toggle off
+    state.selectedChip = null;
+  } else {
+    // Check if chip is already used — unassign first, then select
+    let usedBy = null;
+    if (state.abilityMethod === 'standard') {
+      const val = String(STANDARD_ARRAY[idx]);
+      for (const ab of ABILITIES_ORDER) {
+        if (state.saAssign[ab] === val) { usedBy = ab; break; }
+      }
+    } else if (state.abilityMethod === 'roll') {
+      for (const ab of ABILITIES_ORDER) {
+        if (state.rollAssign[ab] === idx) { usedBy = ab; break; }
+      }
+    }
+    if (usedBy) {
+      if (state.abilityMethod === 'standard') state.saAssign[usedBy] = undefined;
+      else state.rollAssign[usedBy] = undefined;
+      computeBaseScores();
+      document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
+    }
+    state.selectedChip = idx;
+  }
+  renderAbilityMethodPanel();
+};
+
+window.clickSlot = function(ab) {
+  if (state.selectedChip !== null) {
+    // Chip is selected — assign immediately
+    _assignToSlot(ab, state.selectedChip);
+    state.selectedChip = null;
+    state.activeSlot   = null;
+  } else {
+    const isFilled = state.abilityMethod === 'standard'
+      ? !!state.saAssign[ab]
+      : state.rollAssign[ab] !== undefined;
+    if (isFilled) {
+      // Unassign and set slot active
+      if (state.abilityMethod === 'standard') state.saAssign[ab] = undefined;
+      else state.rollAssign[ab] = undefined;
+      computeBaseScores();
+      document.getElementById('ability-preview').innerHTML = abilityPreviewHtml();
+      state.activeSlot = ab;
+    } else {
+      // Toggle active slot
+      state.activeSlot = (state.activeSlot === ab) ? null : ab;
+    }
+  }
+  renderAbilityMethodPanel();
 };
 
 function abilityPreviewHtml() {
@@ -1721,6 +1852,11 @@ function validateCurrentStep() {
         if (assigned.length < 6) return ['Assign all 6 ability scores.'];
         const dups = assigned.filter((v,i) => assigned.indexOf(v) !== i);
         if (dups.length) return ['Each value can only be assigned once.'];
+      }
+      if (state.abilityMethod === 'roll') {
+        if (!state.rollValues) return ['Roll your ability scores first.'];
+        const assigned = ABILITIES_ORDER.filter(ab => state.rollAssign[ab] !== undefined);
+        if (assigned.length < 6) return ['Assign all 6 rolled values to ability scores.'];
       }
       return [];
     }

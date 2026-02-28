@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Character Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --paper: #f0e8d5;
+    --gold: #b8860b;
+    --gold-light: #d4a82a;
+    --gold-pale: #f5e6a3;
+    --red-wax: #8b1a1a;
+    --fade: #6b5c3e;
+    --accent-line: #c9a84c;
+    --active-blue: #2a6496;
+    --active-blue-bg: rgba(42,100,150,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  @media print {
+    body { background:white; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .page { box-shadow:none; margin:0; width:8.5in; min-height:11in; }
+    .toolbar,.dice-bar,.hp-calc,.stat-block-roll,.roll-result-display { display:none!important; }
+  }
+
+  body { background:#2c2416; display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:0 20px 20px; font-family:'Crimson Text',Georgia,serif; }
+
+  /* TOOLBAR */
+  .toolbar { position:sticky; top:0; z-index:1000; width:8.5in; display:flex; align-items:center; gap:6px; padding:6px 12px; background:linear-gradient(135deg,#1a1208,#2c2416); border-bottom:2px solid var(--gold); font-family:'Special Elite',monospace; font-size:11px; color:var(--gold-pale); flex-wrap:wrap; }
+  .toolbar-title { font-family:'Cinzel',serif; font-weight:700; font-size:12px; color:var(--gold-light); letter-spacing:.08em; margin-right:8px; }
+  .toolbar-btn { font-family:'Special Elite',monospace; font-size:10px; letter-spacing:.06em; padding:3px 10px; border:1px solid var(--gold); background:rgba(184,134,11,.15); color:var(--gold-pale); cursor:pointer; transition:all .15s; }
+  .toolbar-btn:hover { background:rgba(184,134,11,.35); color:#fff; }
+  .toolbar-sep { width:1px; height:18px; background:rgba(184,134,11,.4); margin:0 4px; }
+  .toolbar-status { font-size:9px; color:var(--fade); margin-left:auto; }
+
+  /* DICE BAR */
+  .dice-bar { position:sticky; top:36px; z-index:999; width:8.5in; display:flex; align-items:center; gap:8px; padding:5px 12px; background:linear-gradient(135deg,#0e1a2e,#1a2840); border-bottom:2px solid #4a7ab5; font-family:'Special Elite',monospace; font-size:11px; color:#a8c8e8; }
+  .dice-icon { font-size:16px; }
+  .dice-field { display:flex; align-items:center; gap:3px; }
+  .dice-field-label { font-size:9px; letter-spacing:.06em; color:#6a9aca; text-transform:uppercase; }
+  .dice-field input { width:36px; padding:2px 4px; background:rgba(74,122,181,.15); border:1px solid rgba(74,122,181,.4); color:#e0f0ff; font-family:'Special Elite',monospace; font-size:12px; text-align:center; outline:none; }
+  .dice-field input:focus { border-color:#4a7ab5; background:rgba(74,122,181,.3); }
+  .dice-field input::-webkit-inner-spin-button,.dice-field input::-webkit-outer-spin-button { -webkit-appearance:none; }
+  .dice-field input[type=number] { -moz-appearance:textfield; }
+  .dice-clear-btn { font-size:11px; padding:2px 8px; border:1px solid rgba(74,122,181,.4); background:rgba(74,122,181,.1); color:#6a9aca; cursor:pointer; }
+  .dice-clear-btn:hover { background:rgba(200,80,80,.3); border-color:#c85050; color:#ffaaaa; }
+  .roll-result-display { font-family:'Special Elite',monospace; font-size:11px; color:#a8c8e8; margin-left:6px; min-width:80px; }
+  .roll-nat20 { color:#d4a017; font-weight:900; }
+  .roll-nat1 { color:#c85050; font-weight:700; font-style:italic; }
+
+  /* PAGE */
+  .page { width:8.5in; min-height:11in; background:var(--paper); position:relative; padding:.22in .33in; box-shadow:0 20px 80px rgba(0,0,0,.8),inset 0 0 60px rgba(0,0,0,.08); overflow:hidden; margin-top:12px; }
+  .page::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 10% 10%,rgba(180,140,60,.12)0%,transparent 50%),radial-gradient(ellipse at 90% 85%,rgba(120,80,20,.10)0%,transparent 50%); pointer-events:none; z-index:0; }
+  .border-outer { position:absolute; inset:.16in; border:2px solid var(--gold); pointer-events:none; z-index:1; }
+  .border-inner { position:absolute; inset:.22in; border:1px solid var(--accent-line); pointer-events:none; z-index:1; }
+  .content { position:relative; z-index:2; }
+
+  /* SECTION */
+  .section { background:#f4eedf; border:1px solid var(--accent-line); padding:4px 7px 5px; break-inside:avoid; display:block; width:100%; vertical-align:top; }
+  .section+.section { margin-top:3px; }
+  .section-title { font-family:'Cinzel',serif; font-size:8px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--ink); background:var(--gold); margin:-5px -7px 4px; padding:2px 7px; display:flex; align-items:center; gap:5px; }
+
+  /* HEADER BANNER */
+  .header-banner { display:flex; align-items:center; gap:.08in; padding-bottom:.025in; border-bottom:3px double var(--gold); }
+  .hb-name { font-family:'Cinzel',serif; font-size:28px; font-weight:900; color:var(--ink); letter-spacing:.06em; line-height:1; text-shadow:1px 1px 0 rgba(200,160,70,.3); flex-shrink:0; }
+  .hb-center { flex:1; text-align:center; }
+  .hb-eyebrow { font-family:'Special Elite',monospace; font-size:7px; letter-spacing:.28em; color:var(--fade); text-transform:uppercase; line-height:1.3; }
+  .hb-class { font-family:'Cinzel',serif; font-size:8.5px; color:var(--fade); letter-spacing:.13em; margin-top:2px; }
+  .hb-align { font-family:'Cinzel',serif; font-size:10px; color:var(--red-wax); letter-spacing:.08em; margin-top:2px; }
+  .hb-scores { display:grid; grid-template-columns:repeat(6,1fr); gap:2px; flex-shrink:0; }
+  .hb-score { text-align:center; background:rgba(184,134,11,.1); border:1px solid rgba(184,134,11,.3); padding:1px 4px 2px; min-width:26px; }
+  .hb-score-lbl { font-family:'Special Elite',monospace; font-size:5px; color:var(--fade); letter-spacing:.04em; text-transform:uppercase; line-height:1.3; }
+  .hb-score-val { font-family:'Cinzel',serif; font-size:10px; font-weight:700; color:var(--ink); line-height:1; }
+  .hb-score-mod { font-family:'Special Elite',monospace; font-size:5.8px; color:var(--red-wax); line-height:1.1; }
+
+  /* STAT STRIP */
+  .stat-strip { display:grid; grid-template-columns:.65fr 1.2fr 2fr 2fr 1.7fr; background:rgba(184,134,11,.22); border:1px solid var(--gold); border-top:2px solid var(--gold); margin-top:.04in; }
+  .stat-block { text-align:center; padding:3px 5px; border-right:1px solid rgba(184,134,11,.4); transition:background .2s; }
+  .stat-block:last-child { border-right:none; }
+  .stat-block-label { font-family:'Special Elite',monospace; font-size:5.3px; letter-spacing:.1em; color:var(--fade); text-transform:uppercase; line-height:1.3; white-space:nowrap; }
+  .stat-block-val { font-family:'Cinzel',serif; font-weight:900; font-size:14px; color:var(--ink); line-height:1; white-space:nowrap; }
+  .stat-block-val.sm { font-size:9.5px; line-height:1.2; }
+  .buffed { color:#1a6b1a; }
+  .debuffed { color:var(--red-wax); }
+  .stat-block-roll { font-family:'Special Elite',monospace; font-size:6.5px; color:#4a7ab5; letter-spacing:.03em; min-height:8px; transition:all .2s; }
+  .stat-block-roll:empty { display:none; }
+  .stat-block-roll strong { color:#2a6cb5; font-weight:900; }
+
+  /* HP POPUP */
+  .hp-clickable { cursor:pointer; position:relative; }
+  .hp-clickable:hover .stat-block-label { text-decoration:underline; text-decoration-style:dotted; }
+  .hp-calc { position:absolute; top:100%; left:50%; transform:translateX(-50%); background:var(--ink); border:2px solid var(--gold); padding:6px 8px; z-index:200; display:none; min-width:140px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,.6); }
+  .hp-calc.open { display:block; }
+  .hp-calc-label { font-family:'Special Elite',monospace; font-size:8px; color:var(--gold-pale); letter-spacing:.08em; margin-bottom:4px; }
+  .hp-calc-input { font-family:'Cinzel',serif; font-size:14px; font-weight:700; color:var(--gold-light); background:rgba(255,255,255,.08); border:1px solid var(--gold); width:100%; text-align:center; padding:3px; outline:none; }
+  .hp-calc-hint { font-family:'Special Elite',monospace; font-size:6.5px; color:var(--fade); margin-top:3px; line-height:1.4; }
+  .hp-calc-hint kbd { background:rgba(184,134,11,.2); padding:0 3px; border-radius:2px; color:var(--gold-pale); }
+
+  /* WEAPONS */
+  .weapon-entry { margin-bottom:4px; padding-bottom:4px; border-bottom:1px dotted rgba(184,134,11,.35); }
+  .weapon-entry:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+  .weapon-name { font-family:'Cinzel',serif; font-size:7.5px; font-weight:600; color:var(--red-wax); letter-spacing:.03em; line-height:1.3; cursor:pointer; }
+  .weapon-name:hover { text-decoration:underline; text-decoration-style:dotted; }
+  .weapon-row { display:flex; align-items:baseline; gap:4px; margin-top:1px; line-height:1.4; }
+  .weapon-row-lbl { font-family:'Special Elite',monospace; font-size:5.5px; color:var(--fade); letter-spacing:.06em; text-transform:uppercase; flex-shrink:0; width:30px; padding-top:1px; }
+  .weapon-row-val { font-family:'Special Elite',monospace; font-size:7px; color:var(--ink); letter-spacing:.02em; }
+  .weapon-roll-res { font-family:'Special Elite',monospace; font-size:6.5px; color:#4a7ab5; padding:1px 0 1px 34px; letter-spacing:.03em; min-height:0; }
+  .weapon-roll-res:empty { display:none; }
+  .weapon-roll-res strong { color:#2a6cb5; font-weight:900; }
+
+  /* SKILLS */
+  .skill-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 4px; margin-top:2px; }
+  .skill-row { display:flex; justify-content:space-between; align-items:baseline; padding:.5px 0; border-bottom:1px dotted rgba(184,134,11,.18); font-family:'Crimson Text',serif; font-size:6.6px; color:#2a1f0e; line-height:1.35; cursor:pointer; transition:background .1s; }
+  .skill-row:hover { background:rgba(184,134,11,.08); }
+  .skill-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .skill-name.cs { color:var(--red-wax); font-weight:600; }
+  .skill-ranks { font-family:'Special Elite',monospace; font-size:5.8px; color:var(--fade); margin:0 2px; flex-shrink:0; }
+  .skill-total { font-family:'Cinzel',serif; font-size:6.6px; font-weight:600; color:var(--red-wax); flex-shrink:0; margin-left:3px; }
+
+  /* SLOT DOTS */
+  .slot-dot { display:inline-block; width:9px; height:9px; border:1.5px solid var(--gold); border-radius:50%; background:transparent; flex-shrink:0; cursor:pointer; transition:background .15s,border-color .15s; }
+  .slot-dot:hover { transform:scale(1.15); }
+  .slot-dot.prepared { background:var(--gold-light); }
+  .slot-dot.active-slot { background:var(--active-blue); border-color:var(--active-blue); }
+  .slot-dot.expended { background:var(--red-wax); border-color:var(--red-wax); }
+
+  /* SPELL LEVELS */
+  .formulae-level { padding-bottom:5px; border-bottom:1px solid rgba(184,134,11,.2); margin-bottom:4px; }
+  .formulae-level:last-child { border-bottom:none; padding-bottom:0; margin-bottom:0; }
+  .formulae-level-header { display:flex; align-items:center; gap:5px; margin-bottom:3px; padding-bottom:2px; border-bottom:1px solid rgba(184,134,11,.35); }
+  .flvl-title { font-family:'Cinzel',serif; font-size:8px; font-weight:600; color:var(--red-wax); letter-spacing:.05em; flex-shrink:0; }
+  .flvl-dc { font-family:'Special Elite',monospace; font-size:6px; color:var(--fade); background:rgba(184,134,11,.15); padding:1px 4px; letter-spacing:.06em; flex-shrink:0; }
+  .flvl-slots { display:flex; align-items:center; gap:2px; margin-left:auto; flex-shrink:0; }
+  .spell-class-sep { font-family:'Cinzel',serif; font-size:7px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); background:rgba(184,134,11,.15); margin:4px -7px 4px; padding:1px 7px; border-top:1px solid rgba(184,134,11,.3); border-bottom:1px solid rgba(184,134,11,.3); }
+  .fname { font-family:'Crimson Text',serif; font-size:7.2px; color:#2a1f0e; padding:1px 0; border-bottom:1px dotted rgba(184,134,11,.15); line-height:1.3; }
+  .fname:last-child { border-bottom:none; }
+
+  /* RESOURCE DOTS */
+  .resource-entry { margin-bottom:4px; padding-bottom:4px; border-bottom:1px dotted rgba(184,134,11,.25); }
+  .resource-entry:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+  .resource-label { font-family:'Cinzel',serif; font-size:7.5px; font-weight:600; color:var(--red-wax); letter-spacing:.03em; margin-bottom:2px; }
+  .resource-dots { display:flex; flex-wrap:wrap; gap:2px; align-items:center; }
+  .rdot { display:inline-block; width:11px; height:11px; border:1.5px solid var(--gold); border-radius:50%; background:transparent; cursor:pointer; transition:background .15s,border-color .15s; flex-shrink:0; }
+  .rdot:hover { transform:scale(1.12); }
+  .rdot.used { background:var(--gold); box-shadow:inset 0 0 3px rgba(0,0,0,.3); }
+
+  /* CONDITIONS */
+  .cond-row { display:flex; align-items:center; gap:4px; padding:2px 0; border-bottom:1px dotted rgba(184,134,11,.18); transition:background .15s; }
+  .cond-row:last-child { border-bottom:none; }
+  .cond-row.active { background:rgba(184,134,11,.1); }
+  .cond-cb { width:10px; height:10px; flex-shrink:0; accent-color:var(--red-wax); cursor:pointer; }
+  .cond-name { font-family:'Cinzel',serif; font-size:7px; font-weight:600; color:var(--red-wax); flex-shrink:0; }
+  .cond-row.active .cond-name { color:#8b1a1a; }
+  .cond-detail { font-family:'Special Elite',monospace; font-size:5.8px; color:var(--fade); letter-spacing:.03em; line-height:1.3; flex:1; }
+
+  /* FEATURES / FEATS / TRAITS */
+  .feat-entry { font-size:7.2px; line-height:1.4; padding:2px 0; border-bottom:1px dotted rgba(184,134,11,.18); }
+  .feat-entry:last-child { border-bottom:none; }
+  .feat-name { font-family:'Crimson Text',serif; font-weight:600; color:var(--ink); }
+  .feat-tag { font-family:'Special Elite',monospace; font-size:5.5px; background:rgba(184,134,11,.15); border:1px solid rgba(184,134,11,.4); border-radius:2px; padding:0 3px; color:var(--fade); letter-spacing:.03em; margin-left:3px; }
+
+  /* LANG / NOTES */
+  .lang-list { font-family:'Special Elite',monospace; font-size:6.8px; color:#1c3a5e; letter-spacing:.06em; margin-top:3px; line-height:1.6; }
+  .notes-area { margin-top:4px; width:100%; min-height:80px; background:transparent; border:none; font-family:'Special Elite',monospace; font-size:7.5px; color:var(--ink); line-height:1.85; outline:none; resize:none; background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent 13px,rgba(184,134,11,.25)13px,rgba(184,134,11,.25)14px); background-attachment:local; padding:0 2px; }
+
+  /* 3-COLUMN BODY */
+  .sheet-body { display:grid; grid-template-columns:1fr 1.1fr 1fr; gap:.1in; margin-top:.06in; align-items:start; }
+  .sheet-body > div { min-width:0; }
+
+  /* FOOTER */
+  .footer { text-align:center; margin-top:.05in; padding-top:.04in; border-top:3px double var(--gold); }
+  .footer-text { font-family:'Special Elite',monospace; font-size:6.5px; color:var(--fade); letter-spacing:.15em; text-transform:uppercase; }
+  .star-row { color:var(--gold-light); font-size:8px; letter-spacing:.3em; margin:1px 0; }
+
+  /* MISC */
+  .sub-title { font-family:'Cinzel',serif; font-size:7px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); background:rgba(184,134,11,.15); margin:4px -7px 3px; padding:1px 7px; border-top:1px solid rgba(184,134,11,.3); border-bottom:1px solid rgba(184,134,11,.3); }
+  .text-muted { font-family:'Special Elite',monospace; font-size:6.5px; color:var(--fade); font-style:italic; }
+  .divider { border:none; height:1px; background:linear-gradient(to right,transparent,var(--accent-line),transparent); margin:3px 0; }
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-title" id="tb-name">—</span>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn" onclick="window.print()">Print</button>
+  <button class="toolbar-btn" onclick="exportSheet()">Download HTML</button>
+  <button class="toolbar-btn" id="levelup-btn" onclick="">Level Up</button>
+  <button class="toolbar-btn" onclick="window.location.href='/'">+ New Character</button>
+  <div class="toolbar-sep"></div>
+  <span class="toolbar-status" id="tb-status">—</span>
+</div>
+
+<!-- Dice bar -->
+<div class="dice-bar">
+  <span class="dice-icon">🎲</span>
+  <div class="dice-field">
+    <span class="dice-field-label">Count</span>
+    <input type="number" id="dice-count" min="1" max="20" value="1">
+  </div>
+  <div class="dice-field">
+    <span class="dice-field-label">Sides</span>
+    <input type="number" id="dice-sides" min="2" max="100" value="20">
+  </div>
+  <div class="dice-field">
+    <span class="dice-field-label">Mod</span>
+    <input type="number" id="dice-mod" min="-99" max="99" value="0">
+  </div>
+  <button class="toolbar-btn" onclick="rollDice()">Roll</button>
+  <button class="dice-clear-btn" onclick="clearDice()">✕</button>
+  <span id="roll-result" class="roll-result-display"></span>
+</div>
+
+<!-- Sheet -->
+<div class="page">
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+
+  <div class="content">
+
+    <!-- HEADER BANNER -->
+    <div class="header-banner">
+      <div class="hb-name" id="hb-name">—</div>
+      <div class="hb-center">
+        <div class="hb-eyebrow">PATHFINDER CHARACTER SHEET</div>
+        <div class="hb-class" id="hb-class">—</div>
+        <div class="hb-align" id="hb-align">—</div>
+      </div>
+      <div class="hb-scores" id="hb-scores"><!-- JS --></div>
+    </div>
+
+    <!-- STAT STRIP -->
+    <div class="stat-strip">
+      <div class="stat-block" style="cursor:pointer" onclick="rollWithMod((D.derived||{}).initiative||0,'Init')">
+        <div class="stat-block-label">INITIATIVE</div>
+        <div class="stat-block-val" id="ss-init">+0</div>
+        <div class="stat-block-roll" id="ss-init-roll"></div>
+      </div>
+      <div class="stat-block hp-clickable" id="hp-block" onclick="openHpCalc(event)">
+        <div class="stat-block-label">HIT POINTS</div>
+        <div class="stat-block-val" id="ss-hp">
+          <span id="ss-hp-cur">0</span><span style="font-size:7px;color:var(--fade)"> / </span><span id="ss-hp-max">0</span>
+        </div>
+        <div class="hp-calc" id="hp-calc" onclick="event.stopPropagation()">
+          <div class="hp-calc-label">ADJUST HP</div>
+          <input class="hp-calc-input" id="hp-calc-input" type="text" placeholder="±0"
+                 onkeydown="if(event.key==='Enter')hpCalcApply()" onclick="event.stopPropagation()">
+          <div class="hp-calc-hint">−5 damage · +3 heal · 12 set<br><kbd>Enter</kbd> to apply</div>
+          <button class="toolbar-btn" style="margin-top:5px;width:100%" onclick="hpCalcApply()">Apply</button>
+        </div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-block-label">ARMOR CLASS</div>
+        <div class="stat-block-val sm" id="ss-ac">10 · 10t · 10ff</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-block-label">FORT · REF · WILL</div>
+        <div class="stat-block-val sm" id="ss-saves">+0 · +0 · +0</div>
+        <div class="stat-block-roll" id="ss-saves-roll"></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-block-label">BAB / CMB / CMD</div>
+        <div class="stat-block-val sm" id="ss-bab">+0 / +0 / 10</div>
+      </div>
+    </div>
+
+    <!-- 3-COLUMN BODY -->
+    <div class="sheet-body">
+
+      <!-- COL 1: Features, Feats, Traits, Resources, Notes -->
+      <div>
+        <div class="section">
+          <div class="section-title">Class Features</div>
+          <div id="s-features"><span class="text-muted">—</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Feats</div>
+          <div id="s-feats"><span class="text-muted">—</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Traits</div>
+          <div id="s-traits"><span class="text-muted">—</span></div>
+        </div>
+        <div class="section" id="resources-section" style="display:none">
+          <div class="section-title">Resources</div>
+          <div id="s-resources"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Languages &amp; Notes</div>
+          <div class="lang-list" id="s-langs">—</div>
+          <hr class="divider">
+          <textarea class="notes-area" id="s-notes" rows="6" placeholder="Notes…" oninput="saveNotes(this.value)"></textarea>
+        </div>
+      </div>
+
+      <!-- COL 2: Weapons, Conditions, Skills -->
+      <div>
+        <div class="section">
+          <div class="section-title">Weapons &amp; Attacks</div>
+          <div id="s-weapons"><span class="text-muted">— none selected —</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Conditions</div>
+          <div id="s-conditions"><!-- JS --></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Skills</div>
+          <div class="skill-grid" id="s-skills"><!-- JS --></div>
+        </div>
+      </div>
+
+      <!-- COL 3: Spells -->
+      <div>
+        <div class="section" id="spells-section" style="display:none">
+          <div class="section-title">Spells / Formulae</div>
+          <div id="s-spells"><!-- JS --></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Equipment &amp; Gear</div>
+          <div id="s-equipment"><span class="text-muted">— none —</span></div>
+        </div>
+      </div>
+
+    </div><!-- /sheet-body -->
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="star-row">✦ ✦ ✦</div>
+      <div class="footer-text" id="footer-text">Pathfinder Roleplaying Game · Paizo Inc.</div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /page -->
+
+<script>
+// ── Injected character data ────────────────────────────────────────────────
+const D = {"id": "test-wiz-lvl3", "name": "Ezren", "race": "Human", "alignment": "LN", "class_levels": [{"class_name": "Wizard", "level": 3, "archetype_name": null}], "ability_scores": {"str": 8, "dex": 12, "con": 12, "int": 18, "wis": 10, "cha": 10}, "feats": ["Spell Focus (Evocation)", "Scribe Scroll"], "feat_details": [{"name": "Spell Focus (Evocation)", "level": 1, "method": "Level 1 feat"}, {"name": "Scribe Scroll", "level": 1, "method": "Bonus feat"}], "traits": ["Magical Lineage"], "skills": {"Spellcraft": 3, "K. Arcana": 3}, "spells": {"0": ["Detect Magic", "Prestidigitation", "Ray of Frost", "Read Magic"], "1": ["Grease", "Magic Missile", "Shield"], "2": ["Scorching Ray"]}, "hp_max": 17, "languages": ["Common", "Draconic", "Dwarven", "Elvish"], "notes": "Arcane bond: Ring. Opposed schools: Necromancy, Enchantment.", "derived": {"bab": 1, "fort": 2, "ref": 2, "will": 3, "ac": {"total": 11, "touch": 11, "flat_footed": 10, "armor_bonus": 0, "shield_bonus": 0, "dex_mod": 1}, "cmb": 0, "cmd": 11, "initiative": 1, "total_level": 3, "hp_max": 17, "hp_current": 17, "skill_totals": {"Acrobatics": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Appraise": {"ranks": 0, "ability": "int", "ability_mod": 4, "trained_bonus": 0, "total": 4, "is_class_skill": true}, "Bluff": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Climb": {"ranks": 0, "ability": "str", "ability_mod": -1, "trained_bonus": 0, "total": -1, "is_class_skill": false}, "Craft": {"ranks": 0, "ability": "int", "ability_mod": 4, "trained_bonus": 0, "total": 4, "is_class_skill": true}, "Diplomacy": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": true}, "Disable Device": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Disguise": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Escape Artist": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Fly": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Handle Animal": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Heal": {"ranks": 0, "ability": "wis", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": true}, "Intimidate": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Knowledge": {"ranks": 0, "ability": "int", "ability_mod": 4, "trained_bonus": 0, "total": 4, "is_class_skill": true}, "Linguistics": {"ranks": 0, "ability": "int", "ability_mod": 4, "trained_bonus": 0, "total": 4, "is_class_skill": true}, "Perception": {"ranks": 0, "ability": "wis", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Perform": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Profession": {"ranks": 0, "ability": "wis", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": true}, "Ride": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Sense Motive": {"ranks": 0, "ability": "wis", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": true}, "Sleight of Hand": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Spellcraft": {"ranks": 3, "ability": "int", "ability_mod": 4, "trained_bonus": 3, "total": 10, "is_class_skill": true}, "Stealth": {"ranks": 0, "ability": "dex", "ability_mod": 1, "trained_bonus": 0, "total": 1, "is_class_skill": false}, "Survival": {"ranks": 0, "ability": "wis", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}, "Swim": {"ranks": 0, "ability": "str", "ability_mod": -1, "trained_bonus": 0, "total": -1, "is_class_skill": false}, "Use Magic Device": {"ranks": 0, "ability": "cha", "ability_mod": 0, "trained_bonus": 0, "total": 0, "is_class_skill": false}}, "ability_mods": {"str": -1, "dex": 1, "con": 1, "int": 4, "wis": 0, "cha": 0}, "class_features": ["Arcane bond", "arcane school", "cantrips", "Scribe Scroll"], "feat_details": [{"name": "Spell Focus (Evocation)", "level": 1, "method": "Level 1 feat"}, {"name": "Scribe Scroll", "level": 1, "method": "Bonus feat"}], "weapons_derived": [], "spell_slots": {"Wizard": {"0": 4, "1": 2, "2": 1}}, "class_resources": []}};
+const CHAR_ID = (D && D.id) ? D.id : 'standalone';
+const STORAGE_KEY = `pf1e_sheet_v1_${CHAR_ID}`;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmtMod(n) { return (n >= 0 ? '+' : '') + n; }
+function abilityMod(score) { return Math.floor(((score || 10) - 10) / 2); }
+
+const AB_ORDER  = ['str','dex','con','int','wis','cha'];
+const AB_LABELS = {str:'STR', dex:'DEX', con:'CON', int:'INT', wis:'WIS', cha:'CHA'};
+
+const SPELLCASTING_ABILITY = {
+  Wizard:'int', Arcanist:'int', Witch:'int', Magus:'int', Alchemist:'int', Investigator:'int',
+  Psychic:'int', Occultist:'int',
+  Cleric:'wis', Druid:'wis', Ranger:'wis', Paladin:'wis', Inquisitor:'wis', Hunter:'wis',
+  Warpriest:'wis', Shaman:'wis', Spiritualist:'wis',
+  Sorcerer:'cha', Bard:'cha', Oracle:'cha', Summoner:'cha', 'Unchained Summoner':'cha',
+  Skald:'cha', Bloodrager:'cha', Medium:'cha', Mesmerist:'cha',
+};
+
+// ── Condition deltas ───────────────────────────────────────────────────────
+// Each entry: {ac, attack, fort, ref, will, init, no_dex_to_ac}
+const COND_DELTAS = {
+  'Blinded':     {ac:-2, attack:-2, ref:-2},
+  'Confused':    {},
+  'Cowering':    {ac:-2},
+  'Dazed':       {},
+  'Dazzled':     {attack:-1},
+  'Deafened':    {init:-4},
+  'Disabled':    {},
+  'Dying':       {},
+  'Entangled':   {attack:-2, ref:-2, init:-4},
+  'Exhausted':   {attack:-6},
+  'Fatigued':    {attack:-2},
+  'Flat-Footed': {no_dex_to_ac:true},
+  'Frightened':  {attack:-2, fort:-2, ref:-2, will:-2},
+  'Grappled':    {attack:-2, ref:-2, init:-4},
+  'Helpless':    {ac:-4},
+  'Incorporeal': {},
+  'Invisible':   {attack:2},
+  'Nauseated':   {},
+  'Panicked':    {attack:-2, fort:-2, ref:-2, will:-2},
+  'Paralyzed':   {ac:-4, no_dex_to_ac:true},
+  'Pinned':      {ac:-4, attack:-4, ref:-4},
+  'Prone':       {ac:-4, attack:-4},
+  'Shaken':      {attack:-2, fort:-2, ref:-2, will:-2},
+  'Sickened':    {attack:-2, fort:-2, ref:-2, will:-2},
+  'Staggered':   {},
+  'Stunned':     {ac:-2, no_dex_to_ac:true},
+  'Unconscious': {},
+};
+const ALL_CONDITIONS = Object.keys(COND_DELTAS);
+
+// ── State ──────────────────────────────────────────────────────────────────
+let state = {};
+
+function defaultState() {
+  return {
+    hp_current: (D && D.derived) ? (D.derived.hp_current || D.derived.hp_max || 10) : 10,
+    spell_dots: {},
+    resource_dots: {},
+    conditions: {},
+    notes: (D && D.notes) ? D.notes : '',
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = Object.assign(defaultState(), parsed);
+      return;
+    }
+  } catch(e) {}
+  state = defaultState();
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────────
+function fmtSigned(n) {
+  if (n === null || n === undefined) return '—';
+  return (n >= 0 ? '+' : '') + n;
+}
+
+// ── renderHeader ───────────────────────────────────────────────────────────
+function renderHeader() {
+  if (!D) return;
+  const classLevels = D.class_levels || [];
+  const classStr = classLevels.map(cl => {
+    let s = `${cl.class_name} ${cl.level}`;
+    if (cl.archetype_name) s += ` (${cl.archetype_name})`;
+    return s;
+  }).join(' / ');
+  const totalLevel = classLevels.reduce((s, cl) => s + (cl.level || 0), 0);
+
+  document.title = `${D.name || 'Character'} — ${classStr}`;
+  document.getElementById('page-title').textContent = `${D.name || 'Character'} — Sheet`;
+  document.getElementById('tb-name').textContent = D.name || '—';
+  document.getElementById('tb-status').textContent = `Level ${totalLevel} · ${D.race || '—'}`;
+  document.getElementById('hb-name').textContent  = D.name || '—';
+  document.getElementById('hb-class').textContent = classStr || '—';
+  document.getElementById('hb-align').textContent = D.alignment || '—';
+
+  const charId = D.id || '';
+  document.getElementById('levelup-btn').onclick = () =>
+    window.location.href = '/levelup#char=' + encodeURIComponent(charId);
+
+  document.getElementById('footer-text').textContent =
+    `${D.name || '—'} · ${D.race || '—'} · Level ${totalLevel} · Pathfinder Roleplaying Game`;
+}
+
+// ── renderAbilityScores ────────────────────────────────────────────────────
+function renderAbilityScores() {
+  if (!D) return;
+  const scores = D.ability_scores || {};
+  const html = AB_ORDER.map(ab => {
+    const score = scores[ab] || 10;
+    const m = abilityMod(score);
+    const modCls = m > 0 ? 'buffed' : m < 0 ? 'debuffed' : '';
+    return `<div class="hb-score">
+      <div class="hb-score-lbl">${AB_LABELS[ab]}</div>
+      <div class="hb-score-val">${score}</div>
+      <div class="hb-score-mod ${modCls}">${fmtMod(m)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('hb-scores').innerHTML = html;
+}
+
+// ── renderStatStrip ────────────────────────────────────────────────────────
+function renderStatStrip() {
+  if (!D || !D.derived) return;
+  const dr = D.derived;
+  // HP
+  document.getElementById('ss-hp-cur').textContent = state.hp_current;
+  document.getElementById('ss-hp-max').textContent = dr.hp_max || 0;
+  // Init
+  document.getElementById('ss-init').textContent = fmtMod(dr.initiative || 0);
+  // AC, saves, BAB — computed via recalcStats
+  recalcStats(false);
+}
+
+// ── recalcStats ────────────────────────────────────────────────────────────
+function recalcStats(animate) {
+  if (!D || !D.derived) return;
+  const dr = D.derived;
+  const baseAc   = (dr.ac && dr.ac.total)       !== undefined ? dr.ac.total       : 10;
+  const baseTch  = (dr.ac && dr.ac.touch)        !== undefined ? dr.ac.touch       : 10;
+  const baseFF   = (dr.ac && dr.ac.flat_footed)  !== undefined ? dr.ac.flat_footed : 10;
+  const baseFort = dr.fort  !== undefined ? dr.fort  : 0;
+  const baseRef  = dr.ref   !== undefined ? dr.ref   : 0;
+  const baseWill = dr.will  !== undefined ? dr.will  : 0;
+  const baseInit = dr.initiative !== undefined ? dr.initiative : 0;
+  const baseDex  = (dr.ac && dr.ac.dex_mod) !== undefined ? dr.ac.dex_mod : 0;
+
+  let dAc=0, dFort=0, dRef=0, dWill=0, dInit=0, noDex=false;
+
+  for (const [name, active] of Object.entries(state.conditions)) {
+    if (!active) continue;
+    const d = COND_DELTAS[name] || {};
+    dAc   += (d.ac   || 0);
+    dFort += (d.fort || 0);
+    dRef  += (d.ref  || 0);
+    dWill += (d.will || 0);
+    dInit += (d.init || 0);
+    if (d.no_dex_to_ac) noDex = true;
+  }
+
+  // Apply no-DEX-to-AC (flat-footed / stunned / paralyzed)
+  let acFinal = baseAc + dAc;
+  let tchFinal = baseTch + dAc;
+  let ffFinal  = baseFF + dAc;
+  if (noDex && baseDex > 0) {
+    acFinal  -= baseDex;
+    tchFinal -= baseDex;
+  }
+
+  const fortFinal = baseFort + dFort;
+  const refFinal  = baseRef  + dRef;
+  const willFinal = baseWill + dWill;
+  const initFinal = baseInit + dInit;
+
+  function span(v, base) {
+    const cls = v !== base ? (v > base ? 'buffed' : 'debuffed') : '';
+    return cls ? `<span class="${cls}">${fmtMod(v)}</span>` : fmtMod(v);
+  }
+  function spanN(v, base) {
+    const cls = v !== base ? (v > base ? 'buffed' : 'debuffed') : '';
+    return cls ? `<span class="${cls}">${v}</span>` : String(v);
+  }
+
+  const ssAc = document.getElementById('ss-ac');
+  if (ssAc) {
+    const acCls = acFinal !== baseAc ? (acFinal > baseAc ? 'buffed' : 'debuffed') : '';
+    ssAc.innerHTML =
+      `<span class="${acCls}">${acFinal}</span>` +
+      ` · <span style="font-size:9px">${tchFinal}t</span>` +
+      ` · <span style="font-size:9px">${ffFinal}ff</span>`;
+  }
+
+  const ssSaves = document.getElementById('ss-saves');
+  if (ssSaves) {
+    ssSaves.innerHTML =
+      `<span onclick="rollWithMod(${fortFinal},'Fort')" style="cursor:pointer">F${span(fortFinal,baseFort)}</span>` +
+      ` · <span onclick="rollWithMod(${refFinal},'Ref')" style="cursor:pointer">R${span(refFinal,baseRef)}</span>` +
+      ` · <span onclick="rollWithMod(${willFinal},'Will')" style="cursor:pointer">W${span(willFinal,baseWill)}</span>`;
+  }
+
+  const ssInit = document.getElementById('ss-init');
+  if (ssInit) {
+    ssInit.innerHTML = `<span onclick="rollWithMod(${initFinal},'Init')" style="cursor:pointer">${span(initFinal,baseInit)}</span>`;
+  }
+
+  const ssBab = document.getElementById('ss-bab');
+  if (ssBab) {
+    ssBab.textContent = `${fmtMod(dr.bab||0)} / ${fmtMod(dr.cmb||0)} / ${dr.cmd||10}`;
+  }
+}
+
+// ── renderFeatures ─────────────────────────────────────────────────────────
+function renderFeatures() {
+  if (!D || !D.derived) return;
+  const features = D.derived.class_features || [];
+  const el = document.getElementById('s-features');
+  if (!features.length) { el.innerHTML = '<span class="text-muted">—</span>'; return; }
+  el.innerHTML = features.map(f =>
+    `<div class="feat-entry"><span class="feat-name">${f}</span></div>`
+  ).join('');
+}
+
+// ── renderFeats ────────────────────────────────────────────────────────────
+function renderFeats() {
+  if (!D) return;
+  const feats = D.feats || [];
+  const details = D.feat_details || [];
+  const el = document.getElementById('s-feats');
+  if (!feats.length) { el.innerHTML = '<span class="text-muted">—</span>'; return; }
+  el.innerHTML = feats.map((f, i) => {
+    const name = typeof f === 'string' ? f : (f.name || f);
+    const det = details[i];
+    const tag = det ? `<span class="feat-tag">${det.method} · Lvl ${det.level}</span>` : '';
+    return `<div class="feat-entry"><span class="feat-name">${name}</span>${tag}</div>`;
+  }).join('');
+}
+
+// ── renderTraits ───────────────────────────────────────────────────────────
+function renderTraits() {
+  if (!D) return;
+  const traits = D.traits || [];
+  const el = document.getElementById('s-traits');
+  if (!traits.length) { el.innerHTML = '<span class="text-muted">—</span>'; return; }
+  el.innerHTML = traits.map(t =>
+    `<div class="feat-entry"><span class="feat-name">${t}</span></div>`
+  ).join('');
+}
+
+// ── renderResources ────────────────────────────────────────────────────────
+function renderResources() {
+  if (!D || !D.derived) return;
+  const resources = D.derived.class_resources || [];
+  const sec = document.getElementById('resources-section');
+  const el  = document.getElementById('s-resources');
+  if (!resources.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  el.innerHTML = resources.map(r => {
+    const uses = r.uses_per_day || 0;
+    const dots = Array.from({length: uses}, (_, i) => {
+      const key = `${r.name}_${i}`;
+      const used = state.resource_dots[key] || false;
+      return `<span class="rdot${used ? ' used' : ''}" onclick="toggleResource('${r.name}',${i})"></span>`;
+    }).join('');
+    return `<div class="resource-entry">
+      <div class="resource-label">${r.label || r.name}</div>
+      <div class="resource-dots">${dots || '<span class="text-muted">—</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── renderWeapons ──────────────────────────────────────────────────────────
+function renderWeapons() {
+  if (!D || !D.derived) return;
+  const weapons = D.derived.weapons_derived || [];
+  const el = document.getElementById('s-weapons');
+  if (!weapons.length) { el.innerHTML = '<span class="text-muted">— none selected —</span>'; return; }
+
+  el.innerHTML = weapons.map((w, wi) => {
+    const rollId = `wroll-${wi}`;
+    return `<div class="weapon-entry">
+      <div class="weapon-name" onclick="rollWeapon(${wi})">${w.name}</div>
+      <div class="weapon-row">
+        <span class="weapon-row-lbl">ATK</span>
+        <span class="weapon-row-val">${w.attack}</span>
+      </div>
+      <div class="weapon-row">
+        <span class="weapon-row-lbl">DMG</span>
+        <span class="weapon-row-val">${w.damage || '—'}</span>
+        <span class="weapon-row-lbl" style="margin-left:6px">CRIT</span>
+        <span class="weapon-row-val">${w.critical || '×2'}</span>
+        ${w.range && w.range !== '—' ? `<span class="weapon-row-lbl" style="margin-left:6px">RNG</span><span class="weapon-row-val">${w.range}</span>` : ''}
+      </div>
+      ${w.special ? `<div class="weapon-row"><span class="weapon-row-lbl">SPEC</span><span class="weapon-row-val" style="font-size:6px">${w.special}</span></div>` : ''}
+      <div class="weapon-roll-res" id="${rollId}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── renderConditions ───────────────────────────────────────────────────────
+function renderConditions() {
+  const el = document.getElementById('s-conditions');
+  const preActive = (D && D.conditions) ? D.conditions : [];
+  // Merge preActive into state
+  preActive.forEach(c => { if (COND_DELTAS[c] !== undefined) state.conditions[c] = true; });
+
+  el.innerHTML = ALL_CONDITIONS.map(name => {
+    const active = state.conditions[name] || false;
+    const delta = COND_DELTAS[name] || {};
+    const parts = [];
+    if (delta.ac)     parts.push(`AC ${fmtMod(delta.ac)}`);
+    if (delta.attack) parts.push(`Atk ${fmtMod(delta.attack)}`);
+    if (delta.fort)   parts.push(`Fort ${fmtMod(delta.fort)}`);
+    if (delta.ref)    parts.push(`Ref ${fmtMod(delta.ref)}`);
+    if (delta.will)   parts.push(`Will ${fmtMod(delta.will)}`);
+    if (delta.init)   parts.push(`Init ${fmtMod(delta.init)}`);
+    if (delta.no_dex_to_ac) parts.push('no DEX to AC');
+    const detail = parts.join(' · ');
+    return `<div class="cond-row${active ? ' active' : ''}" id="crow-${name.replace(/[^a-zA-Z]/g,'')}">
+      <input type="checkbox" class="cond-cb" ${active ? 'checked' : ''}
+             onchange="toggleCondition('${name}',this.checked)">
+      <span class="cond-name">${name}</span>
+      ${detail ? `<span class="cond-detail">${detail}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── renderSkills ───────────────────────────────────────────────────────────
+function renderSkills() {
+  if (!D || !D.derived) return;
+  const skillTotals = D.derived.skill_totals || {};
+  const el = document.getElementById('s-skills');
+
+  const sorted = Object.entries(skillTotals).sort(([a],[b]) => a.localeCompare(b));
+  if (!sorted.length) { el.innerHTML = '<span class="text-muted">No skill data.</span>'; return; }
+
+  el.innerHTML = sorted.map(([name, sk]) => {
+    const cs = sk.is_class_skill ? ' cs' : '';
+    const totalClass = sk.total > 0 ? '' : (sk.total < 0 ? ' debuffed' : '');
+    return `<div class="skill-row" onclick="rollWithMod(${sk.total},'${name.replace(/'/g,"\\'")}')">
+      <span class="skill-name${cs}" title="${name}">${name}</span>
+      <span class="skill-ranks">${sk.ranks > 0 ? sk.ranks : ''}</span>
+      <span class="skill-total${totalClass}">${fmtMod(sk.total)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── renderSpells ───────────────────────────────────────────────────────────
+// D.spells can be:
+//   {level_key: [name, ...]}  — current format from creator.js (object with string keys)
+//   [name, ...]               — legacy flat array (old saved characters)
+//   undefined                 — non-spellcaster
+function renderSpells() {
+  if (!D || !D.derived) return;
+  const spellSlots = D.derived.spell_slots || {};
+  const sec = document.getElementById('spells-section');
+  const el  = document.getElementById('s-spells');
+
+  const classNames = Object.keys(spellSlots);
+  if (!classNames.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  // Normalize D.spells to {levelStr: [names]}
+  const spellsByLevel = {};
+  let flatFallback = [];
+  if (Array.isArray(D.spells)) {
+    // Legacy format — flat list with no level info; show at bottom
+    flatFallback = D.spells;
+  } else if (D.spells && typeof D.spells === 'object') {
+    Object.assign(spellsByLevel, D.spells);
+  }
+
+  const scores = D.ability_scores || {};
+  let html = '';
+
+  classNames.forEach((className, ci) => {
+    const slots = spellSlots[className];
+    if (classNames.length > 1) html += `<div class="spell-class-sep">${className}</div>`;
+
+    const spAbility = SPELLCASTING_ABILITY[className] || 'int';
+    const spMod = abilityMod(scores[spAbility] || 10);
+
+    const sortedLevels = Object.keys(slots).map(Number).sort((a,b) => a-b);
+
+    sortedLevels.forEach(lvl => {
+      const count = slots[lvl];
+      if (!count || count <= 0) return;
+
+      const lvlLabel = lvl === 0 ? 'Cantrips / Orisons' : `Level ${lvl}`;
+      const dc = 10 + lvl + spMod;
+      const spellsHere = spellsByLevel[String(lvl)] || [];
+
+      html += `<div class="formulae-level">`;
+      html += `<div class="formulae-level-header">`;
+      html += `<div class="flvl-title">${lvlLabel}</div>`;
+      if (lvl > 0) html += `<div class="flvl-dc">DC ${dc}</div>`;
+      html += `<div class="flvl-slots">`;
+      for (let i = 0; i < count; i++) {
+        const dotKey = `${className}_${lvl}_${i}`;
+        const dotState = state.spell_dots[dotKey] || 0;
+        const dotClasses = ['','prepared','active-slot','expended'];
+        html += `<span class="slot-dot ${dotClasses[dotState]}"
+          onclick="toggleSpellDot('${className}',${lvl},${i})"></span>`;
+      }
+      html += `</div></div>`; // flvl-slots, formulae-level-header
+
+      // Spells belonging to this level, inline under the header
+      if (spellsHere.length > 0) {
+        html += spellsHere.map(s => {
+          const name = typeof s === 'string' ? s : (s.name || '—');
+          return `<div class="fname">${name}</div>`;
+        }).join('');
+      }
+
+      html += `</div>`; // formulae-level
+    });
+  });
+
+  // Legacy flat list fallback (old characters saved before level keys were stored)
+  if (flatFallback.length > 0) {
+    html += `<div class="sub-title">Known / Prepared</div>`;
+    html += flatFallback.map(s => {
+      const name = typeof s === 'string' ? s : (s.name || '—');
+      return `<div class="fname">${name}</div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+}
+
+// ── renderNotes ────────────────────────────────────────────────────────────
+function renderNotes() {
+  if (!D) return;
+  // Languages
+  const langs = D.languages || [];
+  const el = document.getElementById('s-langs');
+  el.textContent = langs.length ? langs.join(', ') : 'Common';
+
+  // Notes textarea
+  const ta = document.getElementById('s-notes');
+  ta.value = state.notes || D.notes || '';
+
+  // Equipment (gear list)
+  const equip = D.equipment || [];
+  const equEl = document.getElementById('s-equipment');
+  if (equip.length) {
+    equEl.innerHTML = equip.map(e => `<div class="feat-entry"><span class="feat-name">${e}</span></div>`).join('');
+  } else {
+    // Show equipped armor/shield if any
+    const parts = [];
+    if (D.equipped_armor)  parts.push(`${D.equipped_armor.name} (armor +${D.equipped_armor.armor_bonus})`);
+    if (D.equipped_shield) parts.push(`${D.equipped_shield.name} (shield +${D.equipped_shield.armor_bonus})`);
+    equEl.innerHTML = parts.length
+      ? parts.map(p => `<div class="feat-entry"><span class="feat-name">${p}</span></div>`).join('')
+      : '<span class="text-muted">— none —</span>';
+  }
+}
+
+// ── HP popup ───────────────────────────────────────────────────────────────
+function openHpCalc(e) {
+  e.stopPropagation();
+  const calc = document.getElementById('hp-calc');
+  const isOpen = calc.classList.contains('open');
+  calc.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    setTimeout(() => document.getElementById('hp-calc-input').focus(), 50);
+  }
+}
+
+function closeHpCalc() {
+  document.getElementById('hp-calc').classList.remove('open');
+}
+
+function hpCalcApply() {
+  const input = document.getElementById('hp-calc-input');
+  const raw = input.value.trim();
+  if (!raw) { closeHpCalc(); return; }
+
+  const dr = (D && D.derived) || {};
+  const hpMax = dr.hp_max || 0;
+  let current = state.hp_current;
+
+  if (raw.startsWith('+')) {
+    current = Math.min(hpMax, current + parseInt(raw.slice(1)) || 0);
+  } else if (raw.startsWith('-')) {
+    current = Math.max(0, current - (parseInt(raw.slice(1)) || 0));
+  } else {
+    const n = parseInt(raw);
+    if (!isNaN(n)) current = Math.max(0, Math.min(hpMax, n));
+  }
+
+  state.hp_current = current;
+  document.getElementById('ss-hp-cur').textContent = current;
+  saveState();
+  input.value = '';
+  closeHpCalc();
+}
+
+// Close HP popup on outside click
+document.addEventListener('click', (e) => {
+  const block = document.getElementById('hp-block');
+  if (block && !block.contains(e.target)) closeHpCalc();
+});
+
+// ── Spell dot toggle ───────────────────────────────────────────────────────
+function toggleSpellDot(className, level, idx) {
+  const key = `${className}_${level}_${idx}`;
+  const cur = state.spell_dots[key] || 0;
+  state.spell_dots[key] = (cur + 1) % 4;
+  saveState();
+  // Re-render spells section to refresh dot classes
+  renderSpells();
+}
+
+// ── Resource dot toggle ────────────────────────────────────────────────────
+function toggleResource(name, idx) {
+  const key = `${name}_${idx}`;
+  state.resource_dots[key] = !state.resource_dots[key];
+  saveState();
+  renderResources();
+}
+
+// ── Condition toggle ───────────────────────────────────────────────────────
+function toggleCondition(name, checked) {
+  state.conditions[name] = checked;
+  const row = document.getElementById('crow-' + name.replace(/[^a-zA-Z]/g,''));
+  if (row) row.classList.toggle('active', checked);
+  saveState();
+  recalcStats(true);
+}
+
+// ── Dice roller ────────────────────────────────────────────────────────────
+function rollDice() {
+  const count = Math.min(20, parseInt(document.getElementById('dice-count').value) || 1);
+  const sides = parseInt(document.getElementById('dice-sides').value) || 20;
+  const bonus = parseInt(document.getElementById('dice-mod').value) || 0;
+
+  const rolls = Array.from({length: count}, () => 1 + Math.floor(Math.random() * sides));
+  const total = rolls.reduce((s,v) => s+v, 0) + bonus;
+  const rollStr = rolls.length > 1 ? `[${rolls.join('+')}]` : rolls[0];
+  const bonusStr = bonus !== 0 ? (bonus > 0 ? `+${bonus}` : `${bonus}`) : '';
+
+  let resultHtml = `${rollStr}${bonusStr} = `;
+  const isNat20 = count === 1 && sides === 20 && rolls[0] === 20;
+  const isNat1  = count === 1 && sides === 20 && rolls[0] === 1;
+  if (isNat20) resultHtml += `<span class="roll-nat20">${total} ★</span>`;
+  else if (isNat1) resultHtml += `<span class="roll-nat1">${total} ✗</span>`;
+  else resultHtml += total;
+
+  document.getElementById('roll-result').innerHTML = resultHtml;
+}
+
+function rollWithMod(m, label) {
+  document.getElementById('dice-count').value = 1;
+  document.getElementById('dice-sides').value = 20;
+  document.getElementById('dice-mod').value = m;
+  rollDice();
+  const roll = parseInt(document.getElementById('dice-mod').value);
+  // Show roll inline in stat strip if label matches
+  if (label === 'Init') {
+    const el = document.getElementById('ss-init-roll');
+    if (el) el.innerHTML = `→ <strong>${parseInt(document.getElementById('roll-result').textContent.split('=').pop())}</strong>`;
+  }
+}
+
+function rollWeapon(idx) {
+  if (!D || !D.derived) return;
+  const w = (D.derived.weapons_derived || [])[idx];
+  if (!w) return;
+  // Parse the first attack bonus from the attack string (e.g. "+5/+0" → 5)
+  const atkStr = (w.attack || '+0').split('/')[0].replace('+','');
+  const atkMod = parseInt(atkStr) || 0;
+  rollWithMod(atkMod, null);
+  const el = document.getElementById(`wroll-${idx}`);
+  if (el) {
+    const resultEl = document.getElementById('roll-result');
+    el.innerHTML = `Atk: ${resultEl.innerHTML}`;
+  }
+}
+
+function clearDice() {
+  document.getElementById('roll-result').textContent = '';
+  document.getElementById('dice-mod').value = '0';
+  const initRoll = document.getElementById('ss-init-roll');
+  if (initRoll) initRoll.textContent = '';
+  const savesRoll = document.getElementById('ss-saves-roll');
+  if (savesRoll) savesRoll.textContent = '';
+}
+
+// ── Save notes ─────────────────────────────────────────────────────────────
+function saveNotes(text) {
+  state.notes = text;
+  saveState();
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+function exportSheet() {
+  const html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(D && D.name || 'character').replace(/\s+/g,'_')}_sheet.html`;
+  a.click();
+}
+
+// ── init ───────────────────────────────────────────────────────────────────
+function init() {
+  if (!D) {
+    document.getElementById('hb-name').textContent = 'No character data loaded.';
+    return;
+  }
+  loadState();
+  renderHeader();
+  renderAbilityScores();
+  renderFeatures();
+  renderFeats();
+  renderTraits();
+  renderResources();
+  renderWeapons();
+  renderConditions();
+  renderSkills();
+  renderSpells();
+  renderNotes();
+  renderStatStrip(); // calls recalcStats internally
+}
+
+init();
+</script>
+</body>
+</html>
