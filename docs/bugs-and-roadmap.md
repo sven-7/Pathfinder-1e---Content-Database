@@ -43,9 +43,11 @@ Added fallback: when `special` is empty for all levels (OA classes), queries `cl
 ### ~~M-2 / M-7: Talent Budget Not Enforced + Wrong Schedule~~ — FIXED (Phase 13)
 `talentBudget()` in `creator.js` enforces class-specific schedules. Budget counter shown in talent panel title.
 `toggleTalent()` blocks selection when at budget. Three schedule types: even (most classes), odd3 (Investigator), odd1 (Arcanist).
+**User report (Feb 2026):** Reports still being able to select unlimited talents — may affect classes not in a schedule set (returns `Infinity`). Investigate which class triggered this.
 
 ### M-3: No Level or Prerequisite Gating on Talents
 Talents should be filtered to: (a) unlocked at or below character level, (b) prerequisites met by selected talents.
+**User-confirmed (Feb 2026):** Can still select talents with prerequisites without meeting them.
 
 ### ~~M-4: No Ability Score Increase (ASI) Selection~~ — FIXED (Phase 13)
 ASI panel added to Abilities step when `startLevel >= 4`. Choices stored in `asiChoices` state and `asi_choices` in character JSON. `getFinalScores()` sums ASI bonuses.
@@ -55,9 +57,65 @@ ASI panel added to Abilities step when `startLevel >= 4`. Choices stored in `asi
 
 ### M-6: Alchemist Formula Book Not Tracked
 Formula book needs per-spell-level tracking: `INT_mod+3` starting 1st-level formulas; `INT_mod` new formulas per level; accessible by spell level unlocked per class level.
+**See also M-14:** Spell/formula acquisition source tracking and M-15: spell limits enforcement per tables.
 
 ### M-8: Archetype Filter Too Broad
 Investigator archetype picker shows archetypes from other classes.
+
+### M-9: Roll Method UX — Assigned Values Still Appear Selectable
+**Status:** Open (user-reported Feb 2026)
+When rolling 4d6 for stats, if you assign a rolled 15 to DEX, the 15 chip still appears available when assigning STR. Clicking it blanks out DEX. While the chip-pool logic handles this (re-assigns), the UX is confusing — assigned values should appear clearly locked/unavailable until explicitly unassigned.
+
+### M-10: Missing Core Feats in Database
+**Status:** Open (user-reported Feb 2026)
+Several important CRB/core feats are missing or not showing in the picker: Weapon Focus, Weapon Finesse, Rapid Shot. Makes it hard to build martial characters (e.g. Ranger). Likely a data import gap — investigate which feats from CRB are missing from the `feats` table.
+
+### M-11: Racial Traits Not Listed / Trait Section Needs Overhaul
+**Status:** Open (user-reported Feb 2026)
+The Traits section only shows campaign/combat/faith/magic/social/regional character traits. PF1e racial traits (Alternate Racial Traits that replace default racial abilities, e.g. Darkvision, Weapon Familiarity) are not listed anywhere. The entire trait selection UX needs reevaluation against PF1e core rules:
+- **Character Traits:** 2 traits from different categories (current implementation, partially works)
+- **Racial Traits:** default racial abilities + optional alternate racial traits (swaps) — NOT implemented
+- **Class Traits:** not the same as character traits — currently conflated
+
+### M-12: Armor Data Gaps — Missing Items and Variants
+**Status:** Open (user-reported Feb 2026)
+Only 28 armor rows in DB. Missing common items (e.g. Studded Leather). No support for:
+- Masterwork variants (ACP reduced by 1)
+- Magic armor (+1, +2, etc. — increased armor bonus)
+- Special materials (Mithral, Darkwood, etc.)
+Related to Phase 15 Equipment scope.
+
+### M-13: No Weapon Proficiency Enforcement
+**Status:** Open (user-reported Feb 2026)
+Characters can equip any weapon regardless of class proficiency. A Wizard can equip a Greatsword (martial) with no warning. Should check class weapon proficiencies and flag non-proficient selections (−4 attack penalty).
+
+### M-14: Spell/Formula Acquisition Source Tracking
+**Status:** Open (user-reported Feb 2026)
+No way to record HOW a spell/formula was learned: initial allotment, level-up choice, scroll/spellbook copy, or DM award. Needed for Wizard spellbooks and Alchemist formula books to track which spells are "free" (from leveling) vs. found/purchased. Proposed JSON: `{spell_name, source: 'initial'|'levelup'|'scroll'|'dm_award', level_gained}`.
+
+### M-15: Spell/Formula Known Limits Not Enforced
+**Status:** Open (user-reported Feb 2026)
+No enforcement of how many spells/formulae a character can know per class tables. Should limit level-up selections per class progression tables, while allowing unlimited additions via DM Award or scroll/spellbook sources. Related to M-6 (Alchemist formula book).
+
+### M-16: Feat Level/Method Assignment Missing
+**Status:** Open (user-reported Feb 2026)
+Currently all feats are tagged as `method: 'general'` at current `startLevel`. Should allow selecting which level a feat was gained and how (Level 1 general, Level 3 general, Fighter Bonus L1, DM Award, etc.). Important for multi-level characters to track feat progression accurately.
+
+### M-17: "Extra Talent" Feats Need Special Handling
+**Status:** Open (user-reported Feb 2026)
+Feats like "Extra Investigator Talent", "Extra Rage Power", "Extra Rogue Talent" etc. grant an additional class talent selection. These feats should increase `talentBudget()` by 1 per instance. Currently no link between feat selection and talent budget.
+
+---
+
+## Bugs — Creator UX (user-reported Feb 2026)
+
+### UX-1: Recent Characters "Sheet" Link Returns Auth Error
+**Status:** Open
+Clicking "Sheet" in the Recent Characters sidebar opens `/api/characters/${id}/sheet` in a new tab via `<a>` tag. This is an unauthenticated GET request — returns `{"detail":"Not authenticated"}`. The JWT token is in localStorage but `<a href>` navigation doesn't include auth headers. Need either: (a) a session cookie fallback, (b) a token query param, or (c) open via JS `fetch()` + blob URL.
+
+### UX-2: Feat Overbudget Does Not Block Step Progression
+**Status:** Open
+If you select feats, then go back and change level/class (reducing budget), the feats step shows "4/3" but `validateCurrentStep()` for case 2 (feats) returns `[]` — no validation. User can proceed to review with more feats than allowed. Should either block progression or warn.
 
 ---
 
@@ -67,7 +125,7 @@ Investigator archetype picker shows archetypes from other classes.
 |----|-------------|
 | MOD-1 | Standard Array chip UI layout broken (post chip-UI redesign) |
 | ~~MOD-2~~ | ~~Point Buy UX~~ — FIXED (Phase 12a): marginal cost shown on +/- buttons, budget check uses marginal cost |
-| ~~MOD-3~~ | ~~Feat prerequisites not validated in feat picker~~ — FIXED (Phase 13): `checkFeatPrereqs()` parses ability scores, BAB, and feat chains. Unmet prereqs shown with red text/border (still selectable as DM override). |
+| ~~MOD-3~~ | ~~Feat prerequisites not validated in feat picker~~ — FIXED (Phase 13): `checkFeatPrereqs()` parses ability scores, BAB, and feat chains. Unmet prereqs shown with red text/border (still selectable as DM override). **User report (Feb 2026):** Wants hard block or at minimum a confirmation before selecting unmet-prereq feats, not just visual indicators. |
 | ~~MOD-4~~ | ~~Wizard/Monk/Cavalier/Magus bonus feats missing from featBudget()~~ — FIXED (Phase 13): `classBonusFeats()` counts "bonus feat" in progression data. Falls back to Fighter formula when progression not loaded. |
 | ~~MOD-5~~ | ~~Max ranks per skill (= character level) not enforced in skill stepper~~ — FIXED (Phase 13): "(max)" label shown when ranks equal level cap. Already enforced by `changeRank()`. |
 | MOD-6 | Non-spellcasters get spell panel if DB has bad spells_per_day data |
