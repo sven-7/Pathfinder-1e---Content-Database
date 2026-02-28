@@ -5,6 +5,7 @@ Usage:
     python scripts/run_app.py
 """
 
+import os
 import pathlib
 import sys
 import threading
@@ -16,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 import uvicorn  # noqa: E402 (must come after sys.path manipulation)
 
-HOST = "127.0.0.1"
+HOST = os.getenv("HOST", "127.0.0.1")
 PORT = 8000
 URL = f"http://{HOST}:{PORT}"
 

@@ -21,6 +21,7 @@ services:
     environment:
       # Override localhost → db service name inside Docker network
       DATABASE_URL: postgresql+asyncpg://pf1e:${PG_PASSWORD:-pf1epass}@db:5432/pf1e_users
+      HOST: "0.0.0.0"
     ports:
       - "8000:8000"
     depends_on:
