@@ -64,7 +64,7 @@ async def get_class_archetypes(name: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Class '{name}' not found")
 
     archetypes = db._many(
-        "SELECT * FROM archetypes WHERE class_id = ? ORDER BY name",
+        "SELECT * FROM archetypes WHERE class_id = ? AND is_paizo_official = 1 ORDER BY name",
         (cls_row["id"],),
     )
     return [
