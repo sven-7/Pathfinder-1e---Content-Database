@@ -1,15 +1,28 @@
-"""Read-only DB access layer for the rules engine."""
+"""Read-only DB access layer for the rules engine.
 
+Supports two backends:
+  - SQLite  (default) — file:path?mode=ro
+  - PostgreSQL        — postgresql://... DSN via psycopg2
+"""
+
+import re
 import sqlite3
 from typing import Any
 
 
 class RulesDB:
-    """Wraps a read-only SQLite connection. All queries return plain dicts."""
+    """Wraps a read-only database connection. All queries return plain dicts."""
 
-    def __init__(self, db_path: str):
-        self._conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-        self._conn.row_factory = sqlite3.Row
+    def __init__(self, dsn: str):
+        self._pg = dsn.startswith("postgresql://") or dsn.startswith("postgres://")
+        if self._pg:
+            import psycopg2
+            import psycopg2.extras
+            self._conn = psycopg2.connect(dsn, cursor_factory=psycopg2.extras.RealDictCursor)
+            self._conn.set_session(readonly=True, autocommit=True)
+        else:
+            self._conn = sqlite3.connect(f"file:{dsn}?mode=ro", uri=True)
+            self._conn.row_factory = sqlite3.Row
 
     def close(self):
         self._conn.close()
@@ -24,12 +37,59 @@ class RulesDB:
     # Internal helpers                                                     #
     # ------------------------------------------------------------------ #
 
+    def _tbl(self, name: str) -> str:
+        """Return schema-qualified table name for PG, bare name for SQLite."""
+        return f"content.{name}" if self._pg else name
+
+    def _normalize_sql(self, sql: str) -> str:
+        """Convert SQLite ? placeholders to %s for psycopg2."""
+        if self._pg:
+            return sql.replace("?", "%s")
+        return sql
+
+    def _qualify_tables(self, sql: str) -> str:
+        """Prefix bare content table names with 'content.' for PG backend."""
+        if not self._pg:
+            return sql
+        tables = [
+            "sources", "classes", "class_skills", "class_features",
+            "class_progression", "archetypes", "archetype_features",
+            "races", "racial_traits", "feats", "skills", "spells",
+            "spell_class_levels", "equipment", "weapons", "armor",
+            "magic_items", "monsters", "traits", "search_index",
+        ]
+        result = sql
+        for t in tables:
+            # Match table names at word boundaries, but not already prefixed
+            result = re.sub(
+                rf'(?<!content\.)(?<!\w){re.escape(t)}(?=\s|[,;).]|$)',
+                f'content.{t}',
+                result,
+            )
+        return result
+
     def _one(self, sql: str, params: tuple = ()) -> dict[str, Any] | None:
-        row = self._conn.execute(sql, params).fetchone()
-        return dict(row) if row else None
+        sql = self._qualify_tables(self._normalize_sql(sql))
+        if self._pg:
+            cur = self._conn.cursor()
+            cur.execute(sql, params)
+            row = cur.fetchone()
+            cur.close()
+            return dict(row) if row else None
+        else:
+            row = self._conn.execute(sql, params).fetchone()
+            return dict(row) if row else None
 
     def _many(self, sql: str, params: tuple = ()) -> list[dict[str, Any]]:
-        return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
+        sql = self._qualify_tables(self._normalize_sql(sql))
+        if self._pg:
+            cur = self._conn.cursor()
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            cur.close()
+            return [dict(r) for r in rows]
+        else:
+            return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
 
     # ------------------------------------------------------------------ #
     # Feats                                                                #
@@ -182,7 +242,17 @@ class RulesDB:
     # ------------------------------------------------------------------ #
 
     def search(self, query: str, limit: int = 20) -> list[dict]:
-        """FTS5 search across all content types."""
+        """Full-text search across all content types."""
+        if self._pg:
+            return self._many(
+                """SELECT name, content_type, description, source, content_id,
+                          ts_rank(tsv, plainto_tsquery('english', %s)) AS rank
+                   FROM content.search_index
+                   WHERE tsv @@ plainto_tsquery('english', %s)
+                   ORDER BY rank DESC
+                   LIMIT %s""",
+                (query, query, limit),
+            )
         return self._many(
             "SELECT * FROM search_index WHERE search_index MATCH ? ORDER BY rank LIMIT ?",
             (query, limit),

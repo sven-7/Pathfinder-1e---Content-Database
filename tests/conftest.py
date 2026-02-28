@@ -1,5 +1,6 @@
 """Shared fixtures for PF1e rules engine tests."""
 
+import os
 import pathlib
 import pytest
 
@@ -11,8 +12,14 @@ DB_PATH = pathlib.Path(__file__).parent.parent / "db" / "pf1e.db"
 
 @pytest.fixture(scope="session")
 def db():
-    """Read-only SQLite connection to the content database."""
-    rdb = RulesDB(str(DB_PATH))
+    """Content database — uses PG if CONTENT_DATABASE_URL is set, else SQLite."""
+    content_dsn = os.getenv("CONTENT_DATABASE_URL")
+    if content_dsn:
+        # Strip +asyncpg suffix if someone copies the async DSN
+        dsn = content_dsn.replace("+asyncpg", "")
+        rdb = RulesDB(dsn)
+    else:
+        rdb = RulesDB(str(DB_PATH))
     yield rdb
     rdb.close()
 

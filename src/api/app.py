@@ -23,7 +23,15 @@ CHARS_DIR = ROOT / "characters"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from src.rules_engine import RulesDB
-    app.state.db = RulesDB(str(DB_PATH))
+
+    content_dsn = os.getenv("CONTENT_DATABASE_URL")
+    if content_dsn:
+        # Use PostgreSQL content schema; strip +asyncpg if copied from async DSN
+        pg_dsn = content_dsn.replace("+asyncpg", "")
+        app.state.db = RulesDB(pg_dsn)
+    else:
+        app.state.db = RulesDB(str(DB_PATH))
+
     CHARS_DIR.mkdir(exist_ok=True)
 
     from src.api.pg_database import init_db

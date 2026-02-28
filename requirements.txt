@@ -26,6 +26,9 @@ bcrypt>=4.0.0
 alembic>=1.13.0
 python-dotenv>=1.0.0
 
+# Phase 15a: Content DB → PostgreSQL
+psycopg2-binary>=2.9.0
+
 # Phase 12b: Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
