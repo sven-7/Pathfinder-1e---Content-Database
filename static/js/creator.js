@@ -81,9 +81,26 @@ const state = {
   _progression: null,  // class progression rows, cleared when class changes
 };
 
+// ── Auth helpers ──────────────────────────────────────────────────────────
+function getAuthHeader() {
+  const token = localStorage.getItem('pf1e_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+function handleUnauth() {
+  localStorage.removeItem('pf1e_token');
+  window.location.href = '/login';
+}
+
+window.signOut = function() {
+  localStorage.removeItem('pf1e_token');
+  window.location.href = '/login';
+};
+
 // ── API helpers ──────────────────────────────────────────────────────────
 async function apiFetch(path) {
-  const r = await fetch(API + path);
+  const r = await fetch(API + path, { headers: getAuthHeader() });
+  if (r.status === 401) { handleUnauth(); return; }
   if (!r.ok) throw new Error(`API error ${r.status}: ${path}`);
   return r.json();
 }
@@ -91,9 +108,10 @@ async function apiFetch(path) {
 async function apiPost(path, body) {
   const r = await fetch(API + path, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'application/json', ...getAuthHeader()},
     body: JSON.stringify(body),
   });
+  if (r.status === 401) { handleUnauth(); return; }
   if (!r.ok) throw new Error(`API error ${r.status}`);
   return r.json();
 }
@@ -101,9 +119,10 @@ async function apiPost(path, body) {
 async function apiPut(path, body) {
   const r = await fetch(API + path, {
     method: 'PUT',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'application/json', ...getAuthHeader()},
     body: JSON.stringify(body),
   });
+  if (r.status === 401) { handleUnauth(); return; }
   if (!r.ok) throw new Error(`API error ${r.status}`);
   return r.json();
 }
@@ -1956,6 +1975,11 @@ function jsAttr(val) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-renderTracker();
-renderStep();
-renderHistory();
+// Redirect to login if no token stored
+if (!localStorage.getItem('pf1e_token')) {
+  window.location.href = '/login';
+} else {
+  renderTracker();
+  renderStep();
+  renderHistory();
+}

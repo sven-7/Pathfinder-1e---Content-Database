@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — PF1e Character Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --paper: #f0e8d5;
+    --gold: #b8860b;
+    --gold-light: #d4a82a;
+    --gold-pale: #f5e6a3;
+    --red-wax: #8b1a1a;
+    --fade: #6b5c3e;
+    --accent-line: #c9a84c;
+    --active-blue: #2a6496;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #2c2416;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Crimson Text', Georgia, serif;
+    padding: 20px;
+  }
+
+  .card {
+    background: var(--paper);
+    width: 100%;
+    max-width: 400px;
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6), inset 0 0 40px rgba(184,134,11,.06);
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, #1a1208, #2c2416);
+    border-bottom: 2px solid var(--gold);
+    padding: 20px 24px 16px;
+    text-align: center;
+  }
+
+  .card-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: var(--gold-light);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .card-subtitle {
+    font-family: 'Special Elite', monospace;
+    font-size: 10px;
+    color: var(--fade);
+    letter-spacing: .1em;
+    margin-top: 4px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--accent-line);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: .08em;
+    color: var(--fade);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+
+  .tab.active {
+    color: var(--gold-light);
+    border-bottom-color: var(--gold);
+  }
+
+  .tab:hover:not(.active) {
+    color: var(--ink);
+  }
+
+  /* Form */
+  .form-body {
+    padding: 24px;
+    display: none;
+  }
+
+  .form-body.active { display: block; }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: var(--fade);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  .field input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--accent-line);
+    border-radius: 3px;
+    background: rgba(255,255,255,.6);
+    font-family: 'Crimson Text', serif;
+    font-size: 15px;
+    color: var(--ink);
+    transition: border-color .15s, box-shadow .15s;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(184,134,11,.2);
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: 1px solid var(--gold);
+    border-radius: 3px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    color: #1a1208;
+    cursor: pointer;
+    transition: filter .15s;
+    margin-top: 4px;
+  }
+
+  .btn-submit:hover { filter: brightness(1.1); }
+  .btn-submit:active { filter: brightness(.95); }
+  .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+  .error-msg {
+    font-size: 13px;
+    color: var(--red-wax);
+    background: rgba(139,26,26,.08);
+    border: 1px solid rgba(139,26,26,.3);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  .error-msg.visible { display: block; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--accent-line);
+    margin: 16px 0 0;
+    opacity: .5;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">PF1e Character Creator</div>
+    <div class="card-subtitle">PATHFINDER FIRST EDITION &middot; CHARACTER VAULT</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('login')">Sign In</button>
+    <button class="tab" onclick="showTab('register')">Register</button>
+  </div>
+
+  <!-- Login form -->
+  <div class="form-body active" id="tab-login">
+    <div class="error-msg" id="login-error"></div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="login-username" autocomplete="username" placeholder="your_username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn-submit" id="login-btn" onclick="doLogin()">ENTER THE VAULT</button>
+  </div>
+
+  <!-- Register form -->
+  <div class="form-body" id="tab-register">
+    <div class="error-msg" id="reg-error"></div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="reg-username" autocomplete="username" placeholder="your_username">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="reg-email" autocomplete="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="reg-password" autocomplete="new-password" placeholder="••••••••">
+    </div>
+    <button class="btn-submit" id="reg-btn" onclick="doRegister()">CREATE ACCOUNT</button>
+  </div>
+</div>
+
+<script>
+const API = '/api/auth';
+
+// ── On load: if token already valid, redirect to creator ─────────────────── #
+(async function checkExisting() {
+  const token = localStorage.getItem('pf1e_token');
+  if (!token) return;
+  try {
+    const r = await fetch(`${API}/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (r.ok) { window.location.href = '/'; }
+  } catch (_) { /* ignore network errors */ }
+})();
+
+// ── Tab switch ───────────────────────────────────────────────────────────── #
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const tabName = i === 0 ? 'login' : 'register';
+    t.classList.toggle('active', tabName === name);
+  });
+  document.querySelectorAll('.form-body').forEach(f => f.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ── Enter key support ────────────────────────────────────────────────────── #
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const loginActive = document.getElementById('tab-login').classList.contains('active');
+  if (loginActive) doLogin(); else doRegister();
+});
+
+// ── Login ────────────────────────────────────────────────────────────────── #
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+
+  errEl.classList.remove('visible');
+  if (!username || !password) { showErr(errEl, 'Username and password required.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    const r = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (r.ok) {
+      const { access_token } = await r.json();
+      localStorage.setItem('pf1e_token', access_token);
+      window.location.href = '/';
+    } else {
+      const data = await r.json().catch(() => ({}));
+      showErr(errEl, data.detail || 'Login failed.');
+    }
+  } catch (err) {
+    showErr(errEl, 'Network error — is the server running?');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ENTER THE VAULT';
+  }
+}
+
+// ── Register ─────────────────────────────────────────────────────────────── #
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errEl = document.getElementById('reg-error');
+  const btn = document.getElementById('reg-btn');
+
+  errEl.classList.remove('visible');
+  if (!username || !email || !password) { showErr(errEl, 'All fields are required.'); return; }
+  if (password.length < 8) { showErr(errEl, 'Password must be at least 8 characters.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account…';
+  try {
+    const r = await fetch(`${API}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    if (r.ok) {
+      const { access_token } = await r.json();
+      localStorage.setItem('pf1e_token', access_token);
+      window.location.href = '/';
+    } else {
+      const data = await r.json().catch(() => ({}));
+      showErr(errEl, data.detail || 'Registration failed.');
+    }
+  } catch (err) {
+    showErr(errEl, 'Network error — is the server running?');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'CREATE ACCOUNT';
+  }
+}
+
+function showErr(el, msg) {
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+</script>
+</body>
+</html>
