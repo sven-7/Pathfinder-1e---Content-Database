@@ -778,16 +778,21 @@ async function renderFeatsTraitsStep(c) {
 }
 
 function featListHtml(feats) {
-  return feats.slice(0, 300).map(f => `
+  return feats.slice(0, 300).map(f => {
+    const prereq  = f.prerequisites ? `<div class="list-item-detail"><em>Req:</em> ${esc(f.prerequisites.slice(0,90))}${f.prerequisites.length>90?'…':''}</div>` : '';
+    const benefit = f.benefit       ? `<div class="list-item-detail">${esc(f.benefit.slice(0,110))}${f.benefit.length>110?'…':''}</div>` : '';
+    return `
     <div class="list-item${state.feats.some(sf => sf.name === f.name)?' selected':''}"
          data-name="${esc(f.name)}" data-type="${esc(f.feat_type)}"
+         data-prereq="${esc(f.prerequisites)}" data-benefit="${esc(f.benefit.slice(0,200))}"
          onclick="toggleFeat(${jsAttr(f.name)})">
-      <div>
+      <div style="flex:1;min-width:0;">
         <div class="list-item-name">${f.name}</div>
-        ${f.prerequisites ? `<div class="list-item-detail">Req: ${f.prerequisites.slice(0,80)}${f.prerequisites.length>80?'…':''}</div>` : ''}
+        ${prereq}${benefit}
       </div>
-      <div class="list-item-type">${f.feat_type}</div>
-    </div>`).join('');
+      <div class="list-item-type" style="white-space:nowrap;">${f.feat_type}</div>
+    </div>`;
+  }).join('');
 }
 
 function traitListHtml(traits) {
@@ -843,7 +848,9 @@ window.filterFeats = function() {
   const q = (document.getElementById('feat-search')?.value || '').toLowerCase();
   const t = document.getElementById('feat-type-filter')?.value || '';
   document.querySelectorAll('#feat-list .list-item').forEach(el => {
-    const nameMatch = !q || el.dataset.name.toLowerCase().includes(q);
+    const nameMatch = !q || el.dataset.name.toLowerCase().includes(q)
+                         || (el.dataset.prereq || '').toLowerCase().includes(q)
+                         || (el.dataset.benefit || '').toLowerCase().includes(q);
     const typeMatch = !t || el.dataset.type === t;
     el.style.display = (nameMatch && typeMatch) ? '' : 'none';
   });

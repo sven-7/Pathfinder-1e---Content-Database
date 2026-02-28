@@ -9,8 +9,8 @@ from fastapi import APIRouter, Query, Request
 
 router = APIRouter(tags=["feats"])
 
-# Feat types that don't apply during normal character creation
-_NON_PLAYER_TYPES = {"monster", "mythic"}
+# Feat types excluded from character creation by default
+_NON_PLAYER_TYPES = {"monster", "mythic", "mythic path ability", "item (invalid)"}
 
 
 @router.get("/feats")
@@ -19,7 +19,8 @@ async def list_feats(
     available_for: str | None = Query(default=None, description="Base64-encoded character JSON"),
     feat_type: str | None = Query(default=None),
     search: str | None = Query(default=None),
-    include_all: bool = Query(default=False, description="Include monster/mythic feats"),
+    include_all: bool = Query(default=False, description="Include monster/mythic/invalid feats"),
+    paizo_only: bool = Query(default=True, description="Exclude 3pp content"),
 ):
     db = request.app.state.db
     rows = db.get_all_feats()
@@ -27,6 +28,10 @@ async def list_feats(
     # Exclude non-player feat types by default
     if not include_all:
         rows = [r for r in rows if (r.get("feat_type") or "").lower() not in _NON_PLAYER_TYPES]
+
+    # Exclude 3pp content
+    if paizo_only:
+        rows = [r for r in rows if r.get("is_paizo_official", 1)]
 
     # Filter by type
     if feat_type:
