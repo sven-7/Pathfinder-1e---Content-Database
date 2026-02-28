@@ -55,9 +55,12 @@ const state = {
   traits: [],
 
   // Step 3: Extras
-  classTalents: [],   // selected class talent names
-  spells: {},         // {0: ['...'], 1: ['...']}
-  equipment: [],      // string items
+  classTalents: [],    // selected class talent names
+  spells: {},          // {0: ['...'], 1: ['...']}
+  equipment: [],       // misc string items (freeform)
+  equippedArmor: null, // full armor object from API, or null
+  equippedShield: null,// full shield object from API, or null
+  weapons: [],         // list of full weapon objects from API
 
   // Step 4: Skills
   skillRanks: {},
@@ -70,6 +73,8 @@ const state = {
   _traits:     null,
   _skills:     null,
   _classSkills: null,
+  _weapons:    null,
+  _armor:      null,
 };
 
 // ── API helpers ──────────────────────────────────────────────────────────
@@ -948,18 +953,118 @@ async function renderExtrasStep(c) {
       </div>
     </div>` : '';
 
+  // Load weapons and armor from API (cached)
+  if (!state._weapons) {
+    try { state._weapons = await apiFetch('/equipment/weapons'); } catch(e) { state._weapons = []; }
+  }
+  if (!state._armor) {
+    try { state._armor = await apiFetch('/equipment/armor'); } catch(e) { state._armor = []; }
+  }
+
+  const armorList  = (state._armor || []).filter(a => a.armor_type !== 'shield');
+  const shieldList = (state._armor || []).filter(a => a.armor_type === 'shield');
+  const weaponList = state._weapons || [];
+
+  // ── Armor dropdown ────────────────────────────────────────────────────
+  function armorOption(item, selectedName) {
+    const sel = (selectedName === item.name) ? ' selected' : '';
+    const label = `${item.name} (AC+${item.armor_bonus}, MaxDex ${item.max_dex ?? '—'}, ACP ${item.armor_check_penalty})`;
+    return `<option value="${esc(item.name)}"${sel}>${esc(label)}</option>`;
+  }
+  const currentArmorName  = state.equippedArmor?.name || '';
+  const currentShieldName = state.equippedShield?.name || '';
+
+  // Group armor by type for optgroups
+  function armorOptgroups(list, selectedName) {
+    const groups = { 'light': [], 'medium': [], 'heavy': [] };
+    for (const a of list) {
+      const t = a.armor_type;
+      if (groups[t]) groups[t].push(a);
+    }
+    return Object.entries(groups).map(([type, items]) =>
+      items.length ? `<optgroup label="${type.charAt(0).toUpperCase()+type.slice(1)} Armor">${items.map(a => armorOption(a, selectedName)).join('')}</optgroup>` : ''
+    ).join('');
+  }
+
+  const armorSection = `
+  <div class="panel">
+    <div class="panel-title">Armor &amp; Shield</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <label class="field-label">Armor</label>
+        <select class="field-input" id="armor-select" onchange="onArmorChange()">
+          <option value="">— None —</option>
+          ${armorOptgroups(armorList, currentArmorName)}
+        </select>
+        ${state.equippedArmor ? `<div class="text-muted" style="font-size:10px;margin-top:4px;">
+          AC+${state.equippedArmor.armor_bonus} · MaxDex ${state.equippedArmor.max_dex ?? '—'} · ACP ${state.equippedArmor.armor_check_penalty} · ASF ${state.equippedArmor.arcane_spell_failure}%
+          · Speed ${state.equippedArmor.speed_30}
+        </div>` : ''}
+      </div>
+      <div>
+        <label class="field-label">Shield</label>
+        <select class="field-input" id="shield-select" onchange="onShieldChange()">
+          <option value="">— None —</option>
+          ${shieldList.map(a => `<option value="${esc(a.name)}"${a.name===currentShieldName?' selected':''}>${esc(a.name)} (AC+${a.armor_bonus}, ACP ${a.armor_check_penalty})</option>`).join('')}
+        </select>
+        ${state.equippedShield ? `<div class="text-muted" style="font-size:10px;margin-top:4px;">
+          AC+${state.equippedShield.armor_bonus} · ACP ${state.equippedShield.armor_check_penalty} · ASF ${state.equippedShield.arcane_spell_failure}%
+        </div>` : ''}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Weapon picker ──────────────────────────────────────────────────────
+  const weaponSection = `
+  <div class="panel">
+    <div class="panel-title">Weapons
+      <span class="text-muted" style="font-weight:400;font-size:10px;"> — ${state.weapons.length} selected</span>
+    </div>
+    <div style="margin-bottom:8px;" id="weapon-selected">
+      ${state.weapons.map(w => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;background:var(--parchment-dark);padding:4px 8px;border-radius:3px;">
+          <span style="flex:1;font-size:12px;"><strong>${esc(w.name)}</strong>
+            ${w.damage_medium ? ` ${esc(w.damage_medium)}` : ''}
+            ${w.critical ? ` ${esc(w.critical)}` : ''}
+            ${w.damage_type ? ` <em>${esc(w.damage_type)}</em>` : ''}
+            ${w.range_increment ? ` · ${esc(w.range_increment)}` : ''}
+          </span>
+          <button class="tag-remove" onclick="removeWeapon(${jsAttr(w.name)})">✕</button>
+        </div>`).join('')}
+      ${state.weapons.length === 0 ? '<span class="text-muted" style="font-size:12px;">No weapons selected.</span>' : ''}
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="weapon-search" placeholder="Search weapons…" oninput="filterWeapons()">
+    </div>
+    <div style="margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap;">
+      ${['simple','martial','exotic'].map(p => `<button class="method-tab" id="wprof-${p}" onclick="setWeaponProf('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`).join('')}
+      ${['melee','ranged'].map(t => `<button class="method-tab" id="wtype-${t}" onclick="setWeaponType('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}
+      <button class="method-tab method-tab-clear" onclick="clearWeaponFilters()">All</button>
+    </div>
+    <div class="scroll-list" style="max-height:200px;" id="weapon-list">
+      ${weaponListHtml(weaponList)}
+    </div>
+    <p class="text-muted" style="font-size:10px;margin-top:6px;">Click a weapon to add/remove. Up to 4 weapons.</p>
+  </div>`;
+
+  // ── Misc equipment textarea ────────────────────────────────────────────
+  const miscSection = `
+  <div class="panel">
+    <div class="panel-title">Other Equipment</div>
+    <p class="text-muted" style="font-size:11px;margin-bottom:8px;">Adventuring gear, magic items, etc. — one item per line.</p>
+    <textarea class="field-input" id="equipment-input" rows="4" style="width:100%;resize:vertical;"
+              placeholder="Backpack&#10;Rope, silk (50 ft.)&#10;Potion of Cure Light Wounds">${state.equipment.join('\n')}</textarea>
+  </div>`;
+
   const noExtras = !talentSection && !spellSection;
   c.innerHTML = `
   ${talentSection}
   ${spellSection}
-  ${noExtras ? `<div class="panel"><p class="text-muted" style="font-size:12px;">No class-specific options for <b>${esc(className || 'this class')}</b>. Add equipment below or click Next: Skills.</p></div>` : ''}
-
-  <div class="panel">
-    <div class="panel-title">Equipment</div>
-    <p class="text-muted" style="font-size:11px;margin-bottom:8px;">Enter starting equipment, one item per line.</p>
-    <textarea class="field-input" id="equipment-input" rows="5" style="width:100%;resize:vertical;"
-              placeholder="Longsword&#10;Chain shirt&#10;Backpack">${state.equipment.join('\n')}</textarea>
-  </div>
+  ${noExtras ? `<div class="panel"><p class="text-muted" style="font-size:12px;">No class-specific options for <b>${esc(className || 'this class')}</b>.</p></div>` : ''}
+  ${armorSection}
+  ${weaponSection}
+  ${miscSection}
 
   <div class="nav-bar">
     <button class="btn" onclick="prevStep()">← Back</button>
@@ -972,6 +1077,115 @@ async function renderExtrasStep(c) {
   // Kick off loading spell list for level 0 if spellcaster
   if (isSpellcaster) loadSpellList(0);
 }
+
+function weaponListHtml(weapons) {
+  const q      = (document.getElementById('weapon-search')?.value || '').toLowerCase();
+  const prof   = window._weaponProfFilter || '';
+  const wtype  = window._weaponTypeFilter || '';
+  return weapons
+    .filter(w => {
+      if (q    && !w.name.toLowerCase().includes(q)) return false;
+      if (prof  && w.proficiency !== prof) return false;
+      if (wtype && w.weapon_type !== wtype) return false;
+      return true;
+    })
+    .slice(0, 200)
+    .map(w => {
+      const sel = state.weapons.some(sw => sw.name === w.name);
+      return `<div class="list-item${sel?' selected':''}" data-name="${esc(w.name)}"
+               onclick="toggleWeapon(${jsAttr(w.name)})">
+        <div style="flex:1;min-width:0;">
+          <div class="list-item-name">${esc(w.name)}</div>
+          <div class="list-item-detail">
+            ${w.damage_medium ? esc(w.damage_medium)+' ' : ''}${w.critical ? esc(w.critical) : ''}${w.damage_type ? ' · '+esc(w.damage_type) : ''}${w.range_increment ? ' · '+esc(w.range_increment) : ''}${w.special ? ' · '+esc(w.special) : ''}
+          </div>
+        </div>
+        <div class="list-item-type" style="white-space:nowrap;">${w.proficiency}</div>
+      </div>`;
+    }).join('') || '<div class="text-muted" style="padding:8px;font-size:12px;">No weapons match.</div>';
+}
+
+window.onArmorChange = function() {
+  const name = document.getElementById('armor-select')?.value || '';
+  state.equippedArmor = (state._armor || []).find(a => a.name === name) || null;
+  renderExtrasStep(document.getElementById('step-content'));
+};
+
+window.onShieldChange = function() {
+  const name = document.getElementById('shield-select')?.value || '';
+  state.equippedShield = (state._armor || []).find(a => a.name === name) || null;
+  renderExtrasStep(document.getElementById('step-content'));
+};
+
+window.toggleWeapon = function(name) {
+  if (state.weapons.some(w => w.name === name)) {
+    state.weapons = state.weapons.filter(w => w.name !== name);
+  } else {
+    if (state.weapons.length >= 4) return;
+    const w = (state._weapons || []).find(w => w.name === name);
+    if (w) state.weapons.push(w);
+  }
+  // Refresh just the selected list and weapon list (don't re-render whole step)
+  const sel = document.getElementById('weapon-selected');
+  const list = document.getElementById('weapon-list');
+  if (sel) sel.outerHTML = weaponSelectedHtml();
+  if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+  // re-query after outerHTML replacement
+  document.getElementById('weapon-selected')?.querySelectorAll('.tag-remove').forEach(() => {});
+};
+
+function weaponSelectedHtml() {
+  return `<div style="margin-bottom:8px;" id="weapon-selected">
+    ${state.weapons.map(w => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;background:var(--parchment-dark);padding:4px 8px;border-radius:3px;">
+        <span style="flex:1;font-size:12px;"><strong>${esc(w.name)}</strong>
+          ${w.damage_medium ? ` ${esc(w.damage_medium)}` : ''}
+          ${w.critical ? ` ${esc(w.critical)}` : ''}
+          ${w.damage_type ? ` <em>${esc(w.damage_type)}</em>` : ''}
+          ${w.range_increment ? ` · ${esc(w.range_increment)}` : ''}
+        </span>
+        <button class="tag-remove" onclick="removeWeapon(${jsAttr(w.name)})">✕</button>
+      </div>`).join('')}
+    ${state.weapons.length === 0 ? '<span class="text-muted" style="font-size:12px;">No weapons selected.</span>' : ''}
+  </div>`;
+}
+
+window.removeWeapon = function(name) {
+  state.weapons = state.weapons.filter(w => w.name !== name);
+  const sel  = document.getElementById('weapon-selected');
+  const list = document.getElementById('weapon-list');
+  if (sel)  sel.outerHTML = weaponSelectedHtml();
+  if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+};
+
+window._weaponProfFilter = '';
+window._weaponTypeFilter = '';
+
+window.setWeaponProf = function(prof) {
+  window._weaponProfFilter = (window._weaponProfFilter === prof) ? '' : prof;
+  window._weaponTypeFilter = '';
+  const list = document.getElementById('weapon-list');
+  if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+};
+
+window.setWeaponType = function(wtype) {
+  window._weaponTypeFilter = (window._weaponTypeFilter === wtype) ? '' : wtype;
+  window._weaponProfFilter = '';
+  const list = document.getElementById('weapon-list');
+  if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+};
+
+window.clearWeaponFilters = function() {
+  window._weaponProfFilter = '';
+  window._weaponTypeFilter = '';
+  const list = document.getElementById('weapon-list');
+  if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+};
+
+window.filterWeapons = function() {
+  const list = document.getElementById('weapon-list');
+  if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+};
 
 window.toggleTalent = function(name) {
   if (state.classTalents.includes(name)) {
@@ -1237,7 +1451,11 @@ async function renderReviewStep(c) {
   const fort = fort_base + conMod;
   const ref  = ref_base  + dexMod;
   const will = will_base + wisMod;
-  const ac   = 10 + dexMod;
+  const armorBonus  = state.equippedArmor?.armor_bonus  || 0;
+  const shieldBonus = state.equippedShield?.armor_bonus || 0;
+  const maxDexArmor = state.equippedArmor?.max_dex;
+  const effDex = maxDexArmor !== undefined && maxDexArmor !== null ? Math.min(dexMod, maxDexArmor) : dexMod;
+  const ac   = 10 + effDex + armorBonus + shieldBonus;
   const fm   = m => m >= 0 ? `+${m}` : `${m}`;
 
   c.innerHTML = `
@@ -1291,6 +1509,9 @@ async function renderReviewStep(c) {
           <div class="review-row"><span class="review-key">Will</span><span class="review-val">${fm(will)}</span></div>
           <div class="review-row"><span class="review-key">CMB</span><span class="review-val">${fm(bab+strMod)}</span></div>
           <div class="review-row"><span class="review-key">CMD</span><span class="review-val">${10+bab+strMod+dexMod}</span></div>
+          ${state.equippedArmor ? `<div class="review-row"><span class="review-key">Armor</span><span class="review-val">${esc(state.equippedArmor.name)}</span></div>` : ''}
+          ${state.equippedShield ? `<div class="review-row"><span class="review-key">Shield</span><span class="review-val">${esc(state.equippedShield.name)}</span></div>` : ''}
+          ${state.weapons.length ? state.weapons.map(w => `<div class="review-row"><span class="review-key">Weapon</span><span class="review-val">${esc(w.name)} ${w.damage_medium||''} ${w.critical||''}</span></div>`).join('') : ''}
         </div>
 
         <div class="review-section">
@@ -1436,6 +1657,9 @@ function buildCharDict() {
     traits: [...state.traits],
     skills: { ...state.skillRanks },
     equipment: [...state.equipment],
+    equipped_armor:  state.equippedArmor  || null,
+    equipped_shield: state.equippedShield || null,
+    weapons: [...state.weapons],
     conditions: [],
     hp_max: hp,
     hp_current: hp,
@@ -1537,12 +1761,15 @@ window.loadChar = async function(id) {
     return detail ? { name: detail.name, level: detail.level, method: detail.method }
                   : { name: String(f), level: 1, method: 'general' };
   });
-  state.traits        = char.traits          || [];
-  state.skillRanks    = char.skills          || {};
+  state.traits         = char.traits           || [];
+  state.skillRanks     = char.skills           || {};
   state.favClassChoice = char.fav_class_choice || 'hp';
-  state.classTalents  = char.class_talents   || [];
-  state.spells        = char.spells          || {};
-  state.equipment     = char.equipment       || [];
+  state.classTalents   = char.class_talents    || [];
+  state.spells         = char.spells           || {};
+  state.equipment      = char.equipment        || [];
+  state.equippedArmor  = char.equipped_armor   || null;
+  state.equippedShield = char.equipped_shield  || null;
+  state.weapons        = char.weapons          || [];
 
   document.getElementById('char-list-modal').style.display = 'none';
   state.currentStep = 5;

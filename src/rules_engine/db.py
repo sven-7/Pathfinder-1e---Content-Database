@@ -149,6 +149,35 @@ class RulesDB:
         return self._one("SELECT * FROM traits WHERE name = ?", (name,))
 
     # ------------------------------------------------------------------ #
+    # Equipment                                                            #
+    # ------------------------------------------------------------------ #
+
+    def get_weapons(self) -> list[dict]:
+        """Return all weapons joined with equipment base data."""
+        return self._many(
+            """SELECT e.id as equipment_id, e.name, e.cost, e.weight,
+                      w.id as weapon_id, w.proficiency, w.weapon_type, w.handedness,
+                      w.damage_small, w.damage_medium, w.critical,
+                      w.range_increment, w.damage_type, w.special
+               FROM weapons w
+               JOIN equipment e ON e.id = w.equipment_id
+               WHERE w.weapon_type != 'ammunition'
+               ORDER BY w.proficiency, w.handedness, e.name"""
+        )
+
+    def get_armor(self) -> list[dict]:
+        """Return all armor/shields joined with equipment base data."""
+        return self._many(
+            """SELECT e.id as equipment_id, e.name, e.cost, e.weight,
+                      a.id as armor_id, a.armor_type, a.armor_bonus, a.max_dex,
+                      a.armor_check_penalty, a.arcane_spell_failure,
+                      a.speed_30, a.speed_20
+               FROM armor a
+               JOIN equipment e ON e.id = a.equipment_id
+               ORDER BY a.armor_type, a.armor_bonus, e.name"""
+        )
+
+    # ------------------------------------------------------------------ #
     # Full-text search                                                     #
     # ------------------------------------------------------------------ #
 

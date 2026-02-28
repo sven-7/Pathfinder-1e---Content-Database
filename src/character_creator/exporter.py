@@ -53,11 +53,32 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
     ref = ref_base + mods["dex"]
     will = will_base + mods["wis"]
 
-    # AC
+    # AC — include armor/shield bonus from equipped items
     dex_mod = mods["dex"]
-    ac_total = 10 + dex_mod
-    ac_touch = 10 + dex_mod
-    ac_ff = 10
+    armor_bonus = 0
+    shield_bonus = 0
+    max_dex_from_armor: int | None = None
+
+    equipped_armor = char.get("equipped_armor")  # dict or None
+    equipped_shield = char.get("equipped_shield")  # dict or None
+
+    if equipped_armor:
+        armor_bonus = equipped_armor.get("armor_bonus", 0) or 0
+        md = equipped_armor.get("max_dex")
+        if md is not None:
+            max_dex_from_armor = md
+
+    if equipped_shield:
+        shield_bonus = equipped_shield.get("armor_bonus", 0) or 0
+
+    # Apply max_dex cap from armor
+    effective_dex_mod = dex_mod
+    if max_dex_from_armor is not None:
+        effective_dex_mod = min(dex_mod, max_dex_from_armor)
+
+    ac_total = 10 + effective_dex_mod + armor_bonus + shield_bonus
+    ac_touch = 10 + dex_mod  # touch ignores armor/shield
+    ac_ff = 10 + armor_bonus + shield_bonus  # flat-footed ignores dex
 
     # CMB / CMD
     total_level = sum(cl.level for cl in cls_levels)
@@ -123,12 +144,62 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
                         if name:
                             class_features.append(f"{name} [Archetype]")
 
+    # Weapon attack/damage bonuses
+    weapons_derived = []
+    for w in char.get("weapons", []):
+        w_name = w.get("name", "Unknown")
+        w_handedness = (w.get("handedness") or "").lower()
+        # Melee: STR to attack and damage; finesse weapons may use DEX
+        is_finesse = "finesse" in (w.get("special") or "").lower()
+        if w.get("weapon_type") == "ranged":
+            atk_mod = mods["dex"]
+            dmg_mod = 0  # composite bows use STR; simplified here
+        elif is_finesse:
+            atk_mod = max(mods["str"], mods["dex"])
+            dmg_mod = mods["str"]
+        else:
+            atk_mod = mods["str"]
+            dmg_mod = mods["str"]
+
+        atk_bonus = bab + atk_mod
+        # Build iterative attack string (iteratives based on BAB, not total)
+        # BAB 1-5 → 1 attack; 6-10 → 2; 11-15 → 3; 16+ → 4
+        num_attacks = 1 + max(0, (bab - 1) // 5)
+        attacks = []
+        for i in range(num_attacks):
+            ab = atk_bonus - (i * 5)
+            sign = "+" if ab >= 0 else ""
+            attacks.append(f"{sign}{ab}")
+        atk_str = "/".join(attacks) if attacks else "+0"
+
+        dmg_str = w.get("damage_medium") or ""
+        if dmg_mod != 0:
+            sign = "+" if dmg_mod >= 0 else ""
+            dmg_str += f"{sign}{dmg_mod}"
+
+        weapons_derived.append({
+            "name": w_name,
+            "attack": atk_str,
+            "damage": dmg_str,
+            "critical": w.get("critical") or "×2",
+            "range": w.get("range_increment") or "—",
+            "type": w.get("damage_type") or "",
+            "special": w.get("special") or "",
+        })
+
     return {
         "bab": bab,
         "fort": fort,
         "ref": ref,
         "will": will,
-        "ac": {"total": ac_total, "touch": ac_touch, "flat_footed": ac_ff},
+        "ac": {
+            "total": ac_total,
+            "touch": ac_touch,
+            "flat_footed": ac_ff,
+            "armor_bonus": armor_bonus,
+            "shield_bonus": shield_bonus,
+            "dex_mod": effective_dex_mod,
+        },
         "cmb": cmb,
         "cmd": cmd,
         "initiative": initiative,
@@ -138,8 +209,8 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         "skill_totals": skill_totals,
         "ability_mods": mods,
         "class_features": class_features,
-        # Pass feat_details through so the sheet can render level/method tags
         "feat_details": char.get("feat_details", []),
+        "weapons_derived": weapons_derived,
     }
 
 

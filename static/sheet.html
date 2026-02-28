@@ -139,6 +139,15 @@
       <div class="section-title" style="margin-top:8px;">Traits</div>
       <ul class="feat-list" id="s-traits"><!-- JS --></ul>
 
+      <div class="section-title" style="margin-top:8px;">Armor</div>
+      <div id="s-armor" style="font-size:11px;margin-bottom:4px;color:var(--fade);">— unarmored —</div>
+
+      <div class="section-title" style="margin-top:8px;">Weapons</div>
+      <table class="skills-table" id="s-weapons-table" style="font-size:11px;">
+        <thead><tr><th>Weapon</th><th>Atk</th><th>Dmg</th><th>Crit</th><th>Type</th></tr></thead>
+        <tbody id="s-weapons"><!-- JS --></tbody>
+      </table>
+
       <div class="section-title" style="margin-top:8px;">Equipment</div>
       <ul class="equip-list" id="s-equipment"><li class="text-muted">None</li></ul>
 
@@ -221,7 +230,12 @@ function init() {
 
   const ac  = dr.ac || {};
   document.getElementById('s-ac').textContent      = fmtNum(ac.total ?? 10);
-  document.getElementById('s-ac-sub').textContent  = `touch ${ac.touch??10} / ff ${ac.flat_footed??10}`;
+  const acParts = [];
+  if (ac.armor_bonus)  acParts.push(`armor +${ac.armor_bonus}`);
+  if (ac.shield_bonus) acParts.push(`shield +${ac.shield_bonus}`);
+  if (ac.dex_mod !== undefined && ac.dex_mod !== 0) acParts.push(`dex ${fmtMod(ac.dex_mod)}`);
+  const acPartsStr = acParts.length ? ` (${acParts.join(', ')})` : '';
+  document.getElementById('s-ac-sub').textContent  = `touch ${ac.touch??10} / ff ${ac.flat_footed??10}${acPartsStr}`;
   document.getElementById('s-bab').textContent     = fmtMod(dr.bab ?? 0);
   document.getElementById('s-init').textContent    = fmtMod(dr.initiative ?? 0);
   document.getElementById('s-cmb').textContent     = fmtMod(dr.cmb ?? 0);
@@ -281,6 +295,25 @@ function init() {
   document.getElementById('s-traits').innerHTML = (d.traits||[]).length
     ? d.traits.map(t => `<li><strong>${t}</strong></li>`).join('')
     : '<li class="text-muted">None</li>';
+
+  // Armor / Shield
+  const armorParts = [];
+  if (d.equipped_armor)  armorParts.push(`${d.equipped_armor.name} (AC+${d.equipped_armor.armor_bonus}, ACP ${d.equipped_armor.armor_check_penalty})`);
+  if (d.equipped_shield) armorParts.push(`${d.equipped_shield.name} (AC+${d.equipped_shield.armor_bonus})`);
+  document.getElementById('s-armor').textContent = armorParts.join(' + ') || '— unarmored —';
+
+  // Weapons
+  const weaponsDerived = dr.weapons_derived || [];
+  document.getElementById('s-weapons').innerHTML = weaponsDerived.length
+    ? weaponsDerived.map(w => `
+        <tr>
+          <td><strong>${w.name}</strong>${w.special ? `<br><span style="font-size:9px;color:var(--fade);">${w.special}</span>` : ''}</td>
+          <td style="white-space:nowrap;">${w.attack}</td>
+          <td style="white-space:nowrap;">${w.damage}</td>
+          <td style="white-space:nowrap;">${w.critical}</td>
+          <td>${w.type}${w.range && w.range !== '—' ? `<br><span style="font-size:9px;">${w.range}</span>` : ''}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" class="text-muted" style="padding:4px;">No weapons selected.</td></tr>';
 
   // Equipment
   document.getElementById('s-equipment').innerHTML = (d.equipment||[]).length
