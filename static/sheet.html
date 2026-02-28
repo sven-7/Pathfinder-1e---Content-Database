@@ -562,12 +562,25 @@ function recalcStats(animate) {
 // ── renderFeatures ─────────────────────────────────────────────────────────
 function renderFeatures() {
   if (!D || !D.derived) return;
-  const features = D.derived.class_features || [];
+  const features  = D.derived.class_features || [];
+  const talents   = D.class_talents || [];
   const el = document.getElementById('s-features');
-  if (!features.length) { el.innerHTML = '<span class="text-muted">—</span>'; return; }
-  el.innerHTML = features.map(f =>
-    `<div class="feat-entry"><span class="feat-name">${f}</span></div>`
-  ).join('');
+  let html = '';
+
+  if (features.length) {
+    html += features.map(f =>
+      `<div class="feat-entry"><span class="feat-name">${f}</span></div>`
+    ).join('');
+  }
+
+  if (talents.length) {
+    if (html) html += '<div class="sub-title" style="margin-top:4px;">Selected Talents</div>';
+    html += talents.map(t =>
+      `<div class="feat-entry"><span class="feat-name">${t}</span></div>`
+    ).join('');
+  }
+
+  el.innerHTML = html || '<span class="text-muted">—</span>';
 }
 
 // ── renderFeats ────────────────────────────────────────────────────────────

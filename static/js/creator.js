@@ -875,21 +875,41 @@ window.filterTraits = function() {
 
 // ── Step 3: Extras (class talents, spells, equipment) ─────────────────────
 
-// Maps class names to their selectable talent feature_type in class_features table
+// Maps class names to their selectable talent feature_type prefix in class_features table.
+// Prefix matching: "Arcanist Exploit" also returns "Arcanist Exploit - Greater", etc.
 const CLASS_TALENT_MAP = {
-  'Barbarian':     'Rage Power',
-  'Rogue':         'Rogue Talent',
-  'Alchemist':     'Discovery',
-  'Witch':         'Hex',
-  'Magus':         'Magus Arcana',
-  'Ninja':         'Ninja Trick',
-  'Inquisitor':    'Inquisition',
-  'Slayer':        'Slayer Talent',
-  'Investigator':  'Investigator Talent',
-  'Arcanist':      'Exploit',
-  'Skald':         'Rage Power',
-  'Shaman':        'Hex',
-  'Kineticist':    'Wild Talent',
+  // Core classes
+  'Barbarian':           'Rage Power',
+  'Rogue':               'Rogue Talent',
+  'Alchemist':           'Alchemist Discovery',
+  'Witch':               'Witch Hex',
+  'Magus':               'Magus Arcana',
+  'Ninja':               'Ninja Trick',
+  'Inquisitor':          'Inquisitor Inquisition',
+  // APG classes
+  'Slayer':              'Slayer Talent',
+  'Investigator':        'Investigator Talents',
+  'Arcanist':            'Arcanist Exploit',
+  'Skald':               'Bloodrager - Bloodline Powers',
+  'Shaman':              'Shaman Hex',
+  'Bloodrager':          'Bloodrager - Bloodline Powers',
+  'Hunter':              'Hunter Animal Focus',
+  'Swashbuckler':        'Swashbuckler',
+  'Warpriest':           'Warpriest Blessing',
+  // Occult classes
+  'Kineticist':          'Kineticist Wild Talent',
+  'Psychic':             'Psychic Minor Phrenic Amplification',
+  'Medium':              'Medium',
+  'Mesmerist':           'Mesmerist Trick',
+  'Occultist':           'Occultist Implement',
+  'Spiritualist':        'Phantom Emotional Focus',
+  // Ultimate Intrigue / Horror
+  'Vigilante':           'Vigilante Talent',
+  'Shifter':             'Shifter Aspect',
+  // Unchained
+  'Unchained Barbarian': 'Unchained Rage Power',
+  'Unchained Monk':      'Ki Powers (Unchained)',
+  'Unchained Rogue':     'Unchained Rogue Talent',
 };
 
 async function renderExtrasStep(c) {

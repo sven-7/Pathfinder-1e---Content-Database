@@ -101,5 +101,10 @@ async def get_class_features(
         raise HTTPException(status_code=404, detail=f"Class '{name}' not found")
     features = db.get_class_features(cls_row["id"])
     if feature_type:
-        features = [f for f in features if (f.get("feature_type") or "").lower() == feature_type.lower()]
+        # Prefix match: "Arcanist Exploit" matches "Arcanist Exploit - Greater" etc.
+        ft_lower = feature_type.lower()
+        features = [
+            f for f in features
+            if (f.get("feature_type") or "").lower().startswith(ft_lower)
+        ]
     return features
