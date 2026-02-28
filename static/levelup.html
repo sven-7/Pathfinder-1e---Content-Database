@@ -543,18 +543,23 @@ async function renderFeatures(c) {
     try {
       const curSlots  = JSON.parse(progression.spells_per_day  || '{}');
       const prevSlots = JSON.parse(prevProg?.spells_per_day || '{}');
-      const hasCantrips = classRow.spellcasting_type !== 'alchemical';
 
-      // New spell levels are keys in curSlots that aren't in prevSlots
+      // Keys are actual spell levels: 0 = cantrips/orisons, 1 = 1st-level, etc.
+      // New spell levels = keys present in curSlots that weren't in prevSlots
       for (const [k, v] of Object.entries(curSlots)) {
         const lvl = parseInt(k);
-        if (!prevSlots[k]) {
-          if (hasCantrips && newSpellLevels.length === 0 && Object.keys(prevSlots).length === 0) {
-            newSpellLevels.push(0);  // first time getting spells → also gain cantrips
-          }
+        spellSlots[lvl] = v;
+        if (!prevSlots.hasOwnProperty(k)) {
           newSpellLevels.push(lvl);
         }
-        spellSlots[lvl] = v;
+      }
+      newSpellLevels.sort((a, b) => a - b);
+
+      // For Sorcerer/Bard (no key "0" but have at-will cantrips):
+      // first time gaining spells → show cantrips tab so player can record known cantrips
+      const firstTimeSpells = Object.keys(prevSlots).length === 0 && newSpellLevels.length > 0;
+      if (firstTimeSpells && !curSlots['0'] && classRow.spellcasting_type !== 'alchemical') {
+        newSpellLevels.unshift(0);
       }
     } catch(e) {}
   }
@@ -598,8 +603,9 @@ async function renderFeatures(c) {
     <div class="method-tabs" id="lu-spell-tabs">
       ${newSpellLevels.map((lvl, i) => {
         const label = lvl === 0 ? 'Cantrips' : `Level ${lvl}`;
-        const slots = spellSlots[lvl];
-        const note  = slots !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slots}/day)</span>` : '';
+        const slotCnt = spellSlots[lvl];
+        const note  = lvl === 0 ? ` <span style="font-size:9px;opacity:.7;">(at will)</span>`
+                    : slotCnt !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slotCnt}/day)</span>` : '';
         return `<div class="method-tab${i===0?' active':''}" data-splvl="${lvl}" onclick="luSetSpellTab(${lvl})">${label}${note}</div>`;
       }).join('')}
     </div>
@@ -623,7 +629,7 @@ async function renderFeatures(c) {
         <div class="review-row"><span class="review-key">Ref</span><span class="review-val">+${progression.ref_save ?? '?'}</span></div>
         <div class="review-row"><span class="review-key">Will</span><span class="review-val">+${progression.will_save ?? '?'}</span></div>
         ${progression.spells_per_day ? `<div class="review-row"><span class="review-key">Spell Slots</span><span class="review-val">${
-          Object.entries(JSON.parse(progression.spells_per_day)).map(([lvl, n]) => `L${lvl}×${n}`).join(' ')
+          Object.entries(JSON.parse(progression.spells_per_day)).map(([lvl, n]) => parseInt(lvl)===0 ? `Cantrips×${n}` : `L${lvl}×${n}`).join(' ')
         }</span></div>` : ''}
       </div>` : ''}
   </div>

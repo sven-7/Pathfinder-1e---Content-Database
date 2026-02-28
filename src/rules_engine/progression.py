@@ -239,8 +239,10 @@ def parse_class_progression_html(html: str) -> list[LevelRow]:
             for slvl, cidx in spell_cols.items():
                 val_str = _get(cidx)
                 val_str = val_str.replace("—", "").replace("–", "").replace("\u2014", "").strip()
-                if val_str and val_str.isdigit():
-                    spells[slvl] = int(val_str)
+                # Strip "+N" domain/specialty-school bonus (e.g., "1+1" → "1", "3+1" → "3")
+                base_str = val_str.split("+")[0].strip() if "+" in val_str else val_str
+                if base_str and base_str.isdigit():
+                    spells[slvl] = int(base_str)
 
         level_rows.append(LevelRow(
             level=lvl,

@@ -919,17 +919,17 @@ async function renderExtrasStep(c) {
     if (progRow?.spells_per_day) {
       try {
         const slots = JSON.parse(progRow.spells_per_day);
+        // Keys are actual spell levels: 0 = cantrips/orisons, 1 = 1st-level, etc.
         const numLevels = Object.keys(slots).map(Number).filter(n => !isNaN(n)).sort((a,b) => a-b);
-        const hasCantrips = classRow.spellcasting_type !== 'alchemical';
-        if (hasCantrips && numLevels.length > 0) spellLevels.push(0);
         for (const lvl of numLevels) { spellLevels.push(lvl); spellSlots[lvl] = slots[String(lvl)]; }
+        // Sorcerer/Bard/Witch: no key "0" but they still have at-will cantrips
+        // Add a cantrips tab so player can record known cantrips
+        if (!spellSlots[0] && classRow.spellcasting_type !== 'alchemical' && numLevels.length > 0) {
+          spellLevels.unshift(0);  // prepend cantrips tab
+        }
       } catch(e) {}
     }
-    // Fallback if no progression data or class hasn't gotten spells yet
-    if (spellLevels.length === 0) {
-      const maxSpellLevel = Math.min(9, Math.ceil(state.startLevel / 2));
-      for (let lvl = 0; lvl <= maxSpellLevel; lvl++) spellLevels.push(lvl);
-    }
+    // No fallback to Math.ceil — if a class has no spells at this level, spellLevels stays []
   }
 
   const talentSection = talentType ? `
@@ -969,8 +969,10 @@ async function renderExtrasStep(c) {
       <div class="method-tabs" id="spell-level-tabs">
         ${spellLevels.map(lvl => {
           const label = lvl === 0 ? 'Cantrips' : `Level ${lvl}`;
-          const slots = spellSlots[lvl];
-          const slotNote = slots !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slots}/day)</span>` : '';
+          const slotCnt = spellSlots[lvl];
+          // Cantrips are at-will in play; show "at will" rather than a count
+          const slotNote = lvl === 0 ? ` <span style="font-size:9px;opacity:.7;">(at will)</span>`
+                         : slotCnt !== undefined ? ` <span style="font-size:9px;opacity:.7;">(${slotCnt}/day)</span>` : '';
           return `<div class="method-tab${lvl===firstSpellTab?' active':''}" data-splvl="${lvl}" onclick="setSpellTab(${lvl})">${label}${slotNote}</div>`;
         }).join('')}
       </div>

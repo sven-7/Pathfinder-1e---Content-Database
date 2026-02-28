@@ -41,6 +41,9 @@ A comprehensive Pathfinder 1st Edition campaign management platform: structured 
 | 2 | **Rules Engine** — BAB/saves/HP/skills/prerequisites/combat math | ✅ Complete |
 | 3 | **Character Creator v1** — 6-step wizard, sheet, level-up wizard, character library | ✅ Complete |
 | 4 | **Data Layer Audit** — class_skills, spell slots, class features on sheet, size lookup | ✅ Complete |
+| 5 | **Feat Filtering** — exclude monster/mythic feats from creator; prerequisite text shown in picker | ✅ Complete |
+| 6 | **Equipment System** — 70 weapons + 28 armor entries; armor dropdown, shield dropdown, weapon picker in creator; AC computed from equipped armor; weapon stat blocks on sheet | ✅ Complete |
+| 7 | **Creator Polish — Class Abilities & Spells** — talent selection (rage powers, rogue talents, etc.); spell selection by level in creator; level-up wizard detects new spell levels and talent gains | ✅ Complete |
 
 ### Near-Term: Content Quality
 
@@ -138,46 +141,101 @@ Local web app at `http://localhost:8000`:
 | Spell slots | ✅ Fixed | All spellcasting classes covered |
 | Class features | ✅ Fixed | Sheet shows class_progression.special + archetype features |
 | Size lookup | ✅ Fixed | `combat.py` reads `races.size` from DB |
-| AC | ⚠️ Partial | DEX + size only — no armor until Phase 6 |
+| AC | ✅ Fixed (Phase 6) | Full armor/shield/dex/max_dex calculation |
+
+### Phase 5 — Feat Filtering
+- Monster and Mythic feat types excluded from creator picker by default
+- Prerequisite text (`feat_type`, `prerequisites` fields) shown in picker where data exists
+- ~100+ monster feats removed from selection pool
+
+### Phase 6 — Equipment System
+- 70 CRB weapons (simple/martial/exotic, melee/ranged) seeded via `scripts/seed_weapons_armor.py`
+- 28 armor/shield entries (light/medium/heavy/shield types, max_dex, ACP, ASF)
+- Creator Extras step: armor dropdown, shield dropdown, weapon picker (up to 4 weapons, filterable by proficiency/type)
+- Exporter computes: `ac_total = 10 + min(dex, max_dex) + armor + shield`; touch/flat-footed AC breakdowns
+- Iterative attacks: `num_attacks = 1 + max(0, (bab - 1) // 5)` — Fighter 6 shows `+9/+4` ✓
+- Sheet displays: equipped armor/shield with stats, weapon blocks with pre-computed attack/damage strings
+
+### Phase 7 — Creator Polish: Class Abilities & Spells
+- Class talent selection (rage powers, rogue talents, discoveries, hexes, etc.) in creator Extras step
+- `CLASS_TALENT_MAP` maps 12 classes to their pickable feature types; uses `/api/classes/{name}/features`
+- Spell selection by level using actual `class_progression.spells_per_day` DB data (not a formula guess)
+- Cantrip/orison keys: key `0` = cantrips; key `1`-`9` = 1st–9th level spells
+- Sorcerer/Bard show "at will" cantrip tab + numbered spell levels from their per-day table
+- Level-up wizard (Step 5 "Features") detects talent gains via `special` field substring match; detects new spell levels by comparing current vs previous level's `spells_per_day` keys
+- Spell slot display fixed (Feb 2026): DB re-imported with 0-indexed keys after parser bug found
 
 ---
 
 ## Self-Evaluation
 
+### Rules Engine — Verified Against Pathfinder Iconics (Feb 2026)
+
+All four standard Pathfinder Society core iconic characters verified correct at Level 1:
+
+| Character | Race | Class | BAB | Fort | Ref | Will | Result |
+|-----------|------|-------|-----|------|-----|------|--------|
+| Kyra | Human | Cleric 1 (STR 14 DEX 10 CON 12 INT 10 WIS 18 CHA 14) | +0 | +3 | +0 | +6 | ✅ All correct |
+| Valeros | Human | Fighter 1 (STR 18 DEX 14 CON 14 INT 10 WIS 12 CHA 8) | +1 | +4 | +2 | +1 | ✅ All correct |
+| Merisiel | Elf | Rogue 1 (STR 10 DEX 20 CON 12 INT 14 WIS 10 CHA 14) | +0 | +1 | +7 | +0 | ✅ All correct |
+| Ezren | Human | Wizard 1 (STR 10 DEX 14 CON 12 INT 18 WIS 12 CHA 11) | +0 | +1 | +2 | +3 | ✅ All correct |
+
+Multi-class verified: Fighter 1 / Wizard 2 → BAB +2, Fort +2, Ref +0, Will +3 ✓
+
+Skill total verified: Kyra Heal (1 rank + WIS +4 + class +3) = **+8** ✓
+
 ### What's Working
-- Rules math is correct end-to-end (tested: Human Fighter 1 → BAB +1, Fort +5, Will +2, HP 13, Perception +3 ✓)
-- Creator wizard is functional: create → save → sheet → level up
-- Data coverage is broad across all 68 classes, all core spells, 37 playable races
+- Rules math correct end-to-end for all tested builds (Kyra/Valeros/Merisiel/Ezren ✓)
+- Creator wizard is functional: create → save → sheet → level up → re-save
+- 37 playable races with correct ability mods, size, and speed
+- 68 classes with hit die, skill ranks, spell slots, class features
+- 70 weapons + 28 armor entries; AC computed from equipped items
+- Spell selection uses actual class progression data (not formula guesses)
+- Class talent selection (rage powers, rogue talents, etc.) in creator and level-up
 
-### Current Gaps (honest)
+### Current Gaps (post-Phase 7)
 
-**Feat picker is not useful yet (critical):** All 1,678 feats have `feat_type = 'general'`; prerequisites and benefit text are empty for core feats like Power Attack. A new player cannot tell what a feat does or whether they qualify. Phase 5 target.
+**Sheet quality below target (high):** Sheet is functional but plain. No spell dots, no roll buttons, no resource trackers (rage rounds/ki points), conditions don't modify displayed values. Phase 8 target.
 
-**No equipment system (critical):** AC is DEX + size only. No weapons/armor to pick. Equipment is a freeform textarea. Phase 6 target.
+**Spells known vs. prepared not distinguished (medium):** Creator lets you pick spells but doesn't distinguish between Wizard (spellbook/prepared) vs. Sorcerer (spells known, spontaneous). Both show the same picker. A future improvement.
 
-**Class abilities not selectable at level-up (high):** The level-up wizard's Features step exists but doesn't present rage powers, rogue talents, etc. Phase 7 target.
+**Cleric domain spells counted as base slots (low):** The `+1` domain bonus was stripped from the import (e.g., `"1+1"` → `1`). Domain spells are tracked as a class feature, not as extra slots. Current behavior is close enough for play.
 
-**Sheet quality below target (high):** Current sheet is functional but plain. Missing spell dots, weapon roll blocks, resource trackers, and conditions-affecting-stats. Phase 8 target.
+**3pp archetypes present (medium):** Archetype list includes third-party content with no Paizo-official flag. Phase 5 only filtered feats, not archetypes. Needs `is_paizo_official` column on archetypes table.
 
-**3pp content not filtered (medium):** Archetypes and feats include third-party content. Phase 5 target.
+**No spell descriptions in picker (medium):** Creator spell picker shows name only. No description, school, range, or casting time. Makes it hard to choose wisely during creation.
+
+**Favored class bonus not reflected on sheet (low):** Creator tracks `favClassChoice` (HP or skill rank per level) but the sheet display doesn't show the actual applied bonus HP/skill ranks clearly.
 
 ---
 
 ## Known Issues
 
 ### High Priority
-- Equipment is a freeform text area — no equipment DB, no AC from armor, no weapon stat blocks
-- Spells are selectable in creator but no slot tracking, no prepared/spontaneous workflow on sheet
-- Class abilities (rage powers, rogue talents, etc.) not selectable during level-up
+- **Sheet redesign needed** — Current sheet is functional but lacks roll buttons, spell dots, resource trackers, and conditions that modify displayed stats (Phase 8 target)
+- **No spell descriptions in picker** — Spell selection shows name only; no school, range, description, or casting time
+- **No prepared/spontaneous workflow** — Sheet doesn't distinguish Wizard (prepare daily) from Sorcerer (known pool); no slot-usage tracking
 
 ### Medium Priority
-- Feat data quality: no type, no prerequisites text, no benefit descriptions — picker shows names only
-- 3rd-party content present in archetypes and feats — no `is_paizo_official` filter yet
-- Feat-level association: tracked in JSON but not shown in creator for multi-level starting builds
+- **3pp archetypes present** — No `is_paizo_official` flag on archetypes table; third-party archetypes mixed in with Paizo content
+- **Feat descriptions sparse** — Many feats show prerequisite text but no benefit description; need data import from Foundry or CoreForge
+- **Favored class bonus display** — The HP or skill rank bonus is tracked in creator JSON but not clearly labeled on the sheet
+- **Spells known vs. spells prepared** — Creator conflates the two; Wizard and Cleric should use "prepare X spells from spellbook/prayer list" workflow
 
 ### Low Priority
-- Trait source encoding artifact: "Â" before © symbol
-- Cross-class skill max ranks not enforced (PF1e allows it; cosmetic only)
+- **Trait source encoding artifact** — "Â" character before © in some trait source fields
+- **Cross-class skill ranks not limited** — PF1e technically allows full rank investment in cross-class skills; no cap enforced (intentional simplification)
+- **Alchemist spell selection** — Alchemist uses "formulae" not "spells"; creator shows "Spells" label but should say "Formulae / Extracts"
+- **Saving throw names** — DB column is `fort_save`/`ref_save`/`will_save`; JS sometimes assumes `fort`/`ref`/`will` keys; both work in practice but inconsistent
+- **HP at level 1** — Creator correctly uses max die at level 1, but the exporter fallback (`hp_max = HIT_DIE_AVG + CON`) uses average die even at level 1 if `hp_max` wasn't saved in the character dict
+
+### Verified Working (do not regress)
+- BAB/saves/HP for all 4 CRB classes at level 1 ✓
+- Iterative attack strings: Fighter 6 → `+9/+4`, Fighter 11 → `+14/+9/+4` ✓
+- AC: 10 + min(DEX, max_dex_from_armor) + armor + shield ✓
+- Class skills: +3 trained bonus when 1+ rank in a class skill ✓
+- Spell slots: 0-indexed keys (0=cantrips, 1=1st level) after Feb 2026 re-import ✓
+- Race ability mods: Dwarf +CON +WIS -CHA, Elf +DEX +INT -CON, etc. ✓
 
 ---
 
@@ -201,6 +259,7 @@ Local web app at `http://localhost:8000`:
 │   │       ├── skills.py              # GET /api/skills, class skills
 │   │       ├── traits.py              # GET /api/traits
 │   │       ├── spells.py              # GET /api/spells (class_name + level filter)
+│   │       ├── equipment.py           # GET /api/equipment/weapons, /api/equipment/armor
 │   │       └── characters.py          # CRUD /api/characters, sheet HTML export
 │   │
 │   ├── character_creator/
@@ -234,6 +293,7 @@ Local web app at `http://localhost:8000`:
 │   ├── scrape_d20pfsrd.py             # Main scraper orchestrator
 │   ├── import_scraped.py              # JSON → SQLite importer
 │   ├── import_class_progressions.py   # PSRD class progression importer
+│   ├── seed_weapons_armor.py          # CRB weapon/armor stat seed (Phase 6)
 │   └── scrape_missing_archetypes.py   # Gap-fill archetype scraper
 │
 ├── characters/                        # Saved character JSON files (gitignored)
@@ -253,6 +313,27 @@ Local web app at `http://localhost:8000`:
 ```
 
 ---
+
+## Iconic Character Reference Builds
+
+These Pathfinder Society iconic characters are used to verify rules engine correctness. All verified against official Paizo stat blocks (20-point buy).
+
+| Character | Race | Class | STR | DEX | CON | INT | WIS | CHA | Key Verification |
+|-----------|------|-------|-----|-----|-----|-----|-----|-----|-----------------|
+| **Valeros** | Human | Fighter 1 | 18 | 14 | 14 | 10 | 12 | 8 | BAB +1, Fort +4, Ref +2, Will +1 ✓ |
+| **Kyra** | Human | Cleric 1 | 14 | 10 | 12 | 10 | 18 | 14 | BAB +0, Fort +3, Ref +0, Will +6 ✓ |
+| **Merisiel** | Elf | Rogue 1 | 10 | 20 | 12 | 14 | 10 | 14 | BAB +0, Fort +1, Ref +7, Will +0 ✓ |
+| **Ezren** | Human | Wizard 1 | 10 | 14 | 12 | 18 | 12 | 11 | BAB +0, Fort +1, Ref +2, Will +3 ✓ |
+| **Amiri** | Human | Barbarian 1 | 20 | 15 | 15 | 10 | 12 | 8 | BAB +1, Fort +4, Ref +2, Will +1 |
+| **Harsk** | Dwarf | Ranger 1 | 14 | 16 | 14 | 10 | 14 | 6 | BAB +1, Fort +4, Ref +5, Will +2 |
+| **Seoni** | Human | Sorcerer 1 | 10 | 14 | 12 | 10 | 12 | 20 | BAB +0, Fort +1, Ref +2, Will +3 |
+| **Seelah** | Human | Paladin 1 | 16 | 12 | 14 | 10 | 14 | 17 | BAB +1, Fort +5, Ref +1, Will +4 |
+
+**Recreation checklist for PFS standard builds:**
+- 20-point ability buy (PFS standard)
+- Paizo-official race and class (no archetypes for core iconics)
+- Starting level 1, no traits (PFS simplified)
+- Weapons from CRB mundane table
 
 ## Data Sources
 
