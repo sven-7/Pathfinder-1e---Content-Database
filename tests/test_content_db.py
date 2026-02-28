@@ -16,7 +16,7 @@ class TestContentCounts:
 
     def test_feat_count(self, db):
         rows = db.get_all_feats()
-        assert len(rows) >= 1800, f"Expected >=1800 feats, got {len(rows)}"
+        assert len(rows) >= 3900, f"Expected >=3900 feats, got {len(rows)}"
 
     def test_skill_count(self, db):
         rows = db.get_all_skills()
