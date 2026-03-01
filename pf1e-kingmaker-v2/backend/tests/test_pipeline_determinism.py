@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 
+import app.pipeline.extract as extract_module
 from app.pipeline.extract import run_extract
 from app.pipeline.load import run_load
 from app.pipeline.parse import run_parse
-from app.pipeline.utils import read_jsonl
+from app.pipeline.utils import read_json, read_jsonl
 from app.pipeline.validate import run_validate
 
 
@@ -240,3 +241,53 @@ def test_extract_kairon_slice_from_psrd_if_available(tmp_path: Path):
     assert "tiefling" in race_names
     assert {"weapon finesse", "weapon focus", "rapid shot"}.issubset(feat_names)
     assert not rejected
+
+
+def test_extract_aon_live_archives_raw_html_and_short_text(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def fake_fetch(url: str, timeout: int = 20) -> str:
+        if "FeatDisplay.aspx?ItemName=Weapon%20Finesse" in url:
+            return "<html><h1>Weapon Finesse</h1><p>Prerequisites: Base attack bonus +1.</p><p>Benefit: Use Dexterity for certain attacks.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Weapon%20Focus" in url:
+            return "<html><h1>Weapon Focus</h1><p>Prerequisite: Proficiency with selected weapon, base attack bonus +1.</p><p>Benefit: +1 bonus on attack rolls.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Rapid%20Shot" in url:
+            return "<html><h1>Rapid Shot</h1><p>Prerequisites: Dex 13, Point-Blank Shot.</p><p>Benefit: Make one additional ranged attack.</p></html>"
+        if "TraitDisplay.aspx?ItemName=Reactionary" in url:
+            return "<html><h1>Reactionary</h1><p>Benefit: You gain a +2 trait bonus on initiative checks.</p></html>"
+        if "SpellDisplay.aspx?ItemName=Haste" in url:
+            return "<html><h1>Haste</h1><p>The targets move and act more quickly than normal.</p></html>"
+        if "Spells.aspx?Class=All" in url:
+            return "<html><body>Haste - One creature/level moves faster, +1 on attack rolls, AC, and Reflex saves.</body></html>"
+        if "ClassDisplay.aspx?ItemName=Investigator" in url:
+            return "<html><h1>Investigator</h1><p>Investigators solve mysteries.</p></html>"
+        if "RacesDisplay.aspx?ItemName=Tiefling" in url:
+            return "<html><h1>Tiefling</h1><p>Tieflings are native outsiders.</p></html>"
+        return "<html><body>ok</body></html>"
+
+    monkeypatch.setattr(extract_module, "_fetch_url_text", fake_fetch)
+
+    run = run_extract(
+        source="aon",
+        run_dir=tmp_path / "runs",
+        run_key="aon_live",
+        mode="aon_live",
+        ai_short_fallback=True,
+    )
+    run_parse(run)
+    run_validate(run)
+
+    fetch_log = read_jsonl(run / "raw" / "aon_fetch_log.jsonl")
+    assert fetch_log
+    assert all(row["status"] in {"fetched", "offline"} for row in fetch_log)
+
+    html_files = list((run / "raw" / "html").glob("*.html"))
+    assert len(html_files) >= 5
+
+    accepted = read_jsonl(run / "validation" / "accepted_records.jsonl")
+    spell_rows = [r for r in accepted if r.get("content_type") == "spell" and r["data"].get("name") == "Haste"]
+    assert spell_rows
+    assert spell_rows[0]["data"].get("short_description")
+
+    manifest = read_json(run / "manifest.json")
+    assert manifest["source"] == "aon"
+    assert manifest["mode"] == "aon_live"
+    assert manifest["aon"]["failed_pages"] == 0

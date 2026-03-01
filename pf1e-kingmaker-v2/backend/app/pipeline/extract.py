@@ -7,7 +7,10 @@ import html
 import os
 import re
 import sqlite3
+import time
 from pathlib import Path
+from urllib import error as urlerror
+from urllib import request as urlrequest
 
 from app.pipeline.fixtures import kairon_slice_records
 from app.pipeline.utils import ensure_dir, read_json, sha256_text, stable_json_dumps, write_json, write_jsonl
@@ -19,6 +22,158 @@ _INVESTIGATOR_PROFILE = {
     "fort_progression": "poor",
     "ref_progression": "good",
     "will_progression": "good",
+}
+
+
+_AON_KAIRON_URLS = {
+    "class_investigator": "https://aonprd.com/ClassDisplay.aspx?ItemName=Investigator",
+    "race_tiefling": "https://aonprd.com/RacesDisplay.aspx?ItemName=Tiefling",
+    "feat_weapon_finesse": "https://aonprd.com/FeatDisplay.aspx?ItemName=Weapon%20Finesse",
+    "feat_weapon_focus": "https://aonprd.com/FeatDisplay.aspx?ItemName=Weapon%20Focus",
+    "feat_rapid_shot": "https://aonprd.com/FeatDisplay.aspx?ItemName=Rapid%20Shot",
+    "trait_reactionary": "https://aonprd.com/TraitDisplay.aspx?ItemName=Reactionary",
+    "spell_haste": "https://aonprd.com/SpellDisplay.aspx?ItemName=Haste",
+    "spell_list_all": "https://aonprd.com/Spells.aspx?Class=All",
+    "weapons_overview": "https://aonprd.com/EquipmentWeapons.aspx",
+    "armor_overview": "https://aonprd.com/EquipmentArmor.aspx",
+}
+
+
+_AON_KAIRON_FALLBACK = {
+    "class": {
+        "source_url": _AON_KAIRON_URLS["class_investigator"],
+        "source_book": "Advanced Class Guide",
+        "payload": {
+            "name": "Investigator",
+            "class_type": "hybrid",
+            "hit_die": "d8",
+            "skill_ranks_per_level": 6,
+            "bab_progression": "three_quarter",
+            "fort_progression": "poor",
+            "ref_progression": "good",
+            "will_progression": "good",
+        },
+    },
+    "race": {
+        "source_url": _AON_KAIRON_URLS["race_tiefling"],
+        "source_book": "Advanced Race Guide",
+        "payload": {"name": "Tiefling", "race_type": "featured", "size": "Medium", "base_speed": 30},
+    },
+    "racial_trait": {
+        "source_url": _AON_KAIRON_URLS["race_tiefling"],
+        "source_book": "Advanced Race Guide",
+        "payload": {
+            "race_name": "Tiefling",
+            "name": "Darkvision",
+            "trait_type": "senses",
+            "description": "Tieflings can see perfectly in darkness up to 60 feet.",
+            "replaces": "",
+        },
+    },
+    "feats": {
+        "Weapon Finesse": {
+            "source_url": _AON_KAIRON_URLS["feat_weapon_finesse"],
+            "source_book": "Core Rulebook",
+            "payload": {
+                "name": "Weapon Finesse",
+                "feat_type": "combat",
+                "prerequisites": "Base attack bonus +1",
+                "benefit": "Use Dexterity instead of Strength on attack rolls with selected weapons.",
+            },
+        },
+        "Weapon Focus": {
+            "source_url": _AON_KAIRON_URLS["feat_weapon_focus"],
+            "source_book": "Core Rulebook",
+            "payload": {
+                "name": "Weapon Focus",
+                "feat_type": "combat",
+                "prerequisites": "Proficiency with selected weapon, base attack bonus +1",
+                "benefit": "Gain +1 bonus on attack rolls with the selected weapon.",
+            },
+        },
+        "Rapid Shot": {
+            "source_url": _AON_KAIRON_URLS["feat_rapid_shot"],
+            "source_book": "Core Rulebook",
+            "payload": {
+                "name": "Rapid Shot",
+                "feat_type": "combat",
+                "prerequisites": "Dex 13, Point-Blank Shot",
+                "benefit": "One extra ranged attack at highest bonus with a -2 penalty.",
+            },
+        },
+    },
+    "trait_reactionary": {
+        "source_url": _AON_KAIRON_URLS["trait_reactionary"],
+        "source_book": "Ultimate Campaign",
+        "payload": {
+            "name": "Reactionary",
+            "trait_type": "combat",
+            "prerequisites": "",
+            "benefit": "You gain a +2 trait bonus on initiative checks.",
+            "description": "You became adept at anticipating sudden attacks and reacting quickly.",
+        },
+    },
+    "spell_haste": {
+        "source_url": _AON_KAIRON_URLS["spell_haste"],
+        "source_book": "Core Rulebook",
+        "payload": {
+            "name": "Haste",
+            "school": "transmutation",
+            "short_description": "One creature/level moves and acts more quickly than normal.",
+            "description": "The transmuted creatures move and act more quickly than normal.",
+        },
+    },
+    "spell_class_level_haste": {
+        "source_url": _AON_KAIRON_URLS["spell_haste"],
+        "source_book": "Core Rulebook",
+        "payload": {"spell_name": "Haste", "class_name": "Investigator", "level": 3},
+    },
+    "equipment_rapier": {
+        "source_url": _AON_KAIRON_URLS["weapons_overview"],
+        "source_book": "Core Rulebook",
+        "payload": {
+            "name": "Rapier",
+            "equipment_type": "weapon",
+            "cost": "20 gp",
+            "weight": 2.0,
+            "description": "A rapier is a one-handed martial melee weapon.",
+        },
+    },
+    "weapon_rapier": {
+        "source_url": _AON_KAIRON_URLS["weapons_overview"],
+        "source_book": "Core Rulebook",
+        "payload": {
+            "equipment_name": "Rapier",
+            "proficiency": "martial",
+            "weapon_type": "melee",
+            "handedness": "one-handed",
+            "damage_medium": "1d6",
+            "critical": "18-20/x2",
+        },
+    },
+    "equipment_studded_leather": {
+        "source_url": _AON_KAIRON_URLS["armor_overview"],
+        "source_book": "Core Rulebook",
+        "payload": {
+            "name": "Studded Leather",
+            "equipment_type": "armor",
+            "cost": "25 gp",
+            "weight": 20.0,
+            "description": "Leather armor reinforced with small metal studs.",
+        },
+    },
+    "armor_studded_leather": {
+        "source_url": _AON_KAIRON_URLS["armor_overview"],
+        "source_book": "Core Rulebook",
+        "payload": {
+            "equipment_name": "Studded Leather",
+            "armor_type": "light",
+            "armor_bonus": 3,
+            "max_dex": 5,
+            "armor_check_penalty": -1,
+            "arcane_spell_failure": 15,
+        },
+    },
 }
 
 
@@ -85,6 +240,154 @@ def _resolve_source_root(explicit: Path | None, env_var: str, default_rel: Path)
         if candidate.exists():
             return candidate.resolve()
     return None
+
+
+def _aon_cache_name_for_url(url: str) -> str:
+    return f"{sha256_text(url)}.html"
+
+
+def _fetch_url_text(url: str, timeout: int = 20) -> str:
+    req = urlrequest.Request(
+        url,
+        headers={
+            "User-Agent": "pf1e-kingmaker-v2-ingestion/0.1 (+https://github.com/sven-7/Pathfinder-1e---Content-Database)"
+        },
+    )
+    with urlrequest.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def _fetch_aon_page(
+    url: str,
+    html_dir: Path,
+    *,
+    timeout: int = 20,
+    max_retries: int = 1,
+    offline_html_dir: Path | None = None,
+) -> dict:
+    ensure_dir(html_dir)
+    cache_file = html_dir / _aon_cache_name_for_url(url)
+    if offline_html_dir:
+        offline_file = offline_html_dir / _aon_cache_name_for_url(url)
+        if offline_file.exists():
+            html_text = offline_file.read_text(encoding="utf-8")
+            cache_file.write_text(html_text, encoding="utf-8")
+            return {
+                "url": url,
+                "status": "offline",
+                "attempts": 0,
+                "html_file": str(cache_file.relative_to(html_dir.parent)),
+                "html_hash": sha256_text(html_text),
+                "error": "",
+            }
+
+    attempts = 0
+    last_error = ""
+    while attempts <= max_retries:
+        attempts += 1
+        try:
+            html_text = _fetch_url_text(url, timeout=timeout)
+            cache_file.write_text(html_text, encoding="utf-8")
+            return {
+                "url": url,
+                "status": "fetched",
+                "attempts": attempts,
+                "html_file": str(cache_file.relative_to(html_dir.parent)),
+                "html_hash": sha256_text(html_text),
+                "error": "",
+            }
+        except (urlerror.URLError, TimeoutError, OSError) as exc:
+            last_error = str(exc)
+            if attempts <= max_retries:
+                time.sleep(min(2.0 * attempts, 5.0))
+
+    return {
+        "url": url,
+        "status": "error",
+        "attempts": attempts,
+        "html_file": "",
+        "html_hash": "",
+        "error": last_error,
+    }
+
+
+def _first_sentence(text: str, max_len: int = 180) -> str:
+    stripped = text.strip()
+    if not stripped:
+        return ""
+    match = re.search(r"(.+?[.!?])(?:\s|$)", stripped)
+    sentence = match.group(1).strip() if match else stripped
+    return sentence[:max_len].strip()
+
+
+def _ai_short_description(
+    *,
+    text: str,
+    enabled: bool,
+    openai_model: str | None = None,
+) -> tuple[str, str]:
+    # Deterministic fallback first; external AI call is optional and best-effort.
+    heuristic = _first_sentence(text)
+    if not enabled:
+        return heuristic, "heuristic:first_sentence"
+
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return heuristic, "heuristic:first_sentence(no_api_key)"
+
+    try:
+        from openai import OpenAI
+    except Exception:
+        return heuristic, "heuristic:first_sentence(openai_unavailable)"
+
+    try:
+        client = OpenAI(api_key=api_key)
+        model = openai_model or os.getenv("PF1E_SHORTDESC_MODEL", "gpt-4.1-mini")
+        response = client.responses.create(
+            model=model,
+            input=(
+                "Summarize this Pathfinder rules text in one short sentence under 25 words. "
+                "Return plain text only.\n\n"
+                f"{text}"
+            ),
+            max_output_tokens=80,
+        )
+        short = (response.output_text or "").strip()
+        if short:
+            return short, f"ai:{model}"
+    except Exception:
+        pass
+    return heuristic, "heuristic:first_sentence(ai_failed)"
+
+
+def _extract_heading_from_html(html_text: str) -> str:
+    for pattern in (r"<h1[^>]*>(.*?)</h1>", r"<title[^>]*>(.*?)</title>"):
+        match = re.search(pattern, html_text, flags=re.IGNORECASE | re.DOTALL)
+        if match:
+            return _strip_html(match.group(1))
+    return ""
+
+
+def _extract_field_text(full_text: str, labels: list[str]) -> str:
+    normalized = re.sub(r"\s+", " ", full_text)
+    for label in labels:
+        pattern = re.compile(
+            rf"{re.escape(label)}\s*[:\-]?\s*(.+?)(?=(?:Prerequisites?|Benefit|Benefits?|Special|Normal|Description|$))",
+            flags=re.IGNORECASE,
+        )
+        match = pattern.search(normalized)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
+def _extract_spell_short_from_list_page(list_text: str, spell_name: str) -> str:
+    # Look for common "Name - short text" patterns.
+    pattern = re.compile(rf"{re.escape(spell_name)}\s*[-–—:]\s*([^\n\r]+)", flags=re.IGNORECASE)
+    match = pattern.search(list_text)
+    if match:
+        return match.group(1).strip()
+    return ""
 
 
 def _record(
@@ -727,6 +1030,257 @@ def _extract_kairon_slice_psrd_records(psrd_root: Path, d20_root: Path | None = 
     return _dedupe_records(records)
 
 
+def _extract_kairon_slice_aon_records(
+    *,
+    run_path: Path,
+    ai_short_fallback: bool = False,
+    aon_timeout: int = 20,
+    aon_max_retries: int = 1,
+    aon_offline_html_dir: Path | None = None,
+) -> tuple[list[dict], list[dict]]:
+    raw_dir = run_path / "raw"
+    html_dir = raw_dir / "html"
+    fetch_logs: list[dict] = []
+
+    ordered_urls = [
+        _AON_KAIRON_URLS["class_investigator"],
+        _AON_KAIRON_URLS["race_tiefling"],
+        _AON_KAIRON_URLS["feat_weapon_finesse"],
+        _AON_KAIRON_URLS["feat_weapon_focus"],
+        _AON_KAIRON_URLS["feat_rapid_shot"],
+        _AON_KAIRON_URLS["trait_reactionary"],
+        _AON_KAIRON_URLS["spell_haste"],
+        _AON_KAIRON_URLS["spell_list_all"],
+        _AON_KAIRON_URLS["weapons_overview"],
+        _AON_KAIRON_URLS["armor_overview"],
+    ]
+    for url in ordered_urls:
+        fetch_logs.append(
+            _fetch_aon_page(
+                url,
+                html_dir,
+                timeout=aon_timeout,
+                max_retries=aon_max_retries,
+                offline_html_dir=aon_offline_html_dir,
+            )
+        )
+    write_jsonl(raw_dir / "aon_fetch_log.jsonl", fetch_logs)
+
+    html_by_url: dict[str, str] = {}
+    for log_row in fetch_logs:
+        rel_file = log_row.get("html_file", "")
+        if not rel_file:
+            continue
+        page_path = raw_dir / rel_file
+        if page_path.exists():
+            html_by_url[str(log_row["url"])] = page_path.read_text(encoding="utf-8")
+
+    records: list[dict] = []
+
+    # Investigator class (with deterministic progression baseline).
+    class_html = html_by_url.get(_AON_KAIRON_URLS["class_investigator"], "")
+    class_name = _extract_heading_from_html(class_html) or "Investigator"
+    records.append(
+        _record(
+            "class",
+            _AON_KAIRON_URLS["class_investigator"],
+            "Advanced Class Guide",
+            {
+                "name": class_name,
+                "class_type": "hybrid",
+                "hit_die": "d8",
+                "skill_ranks_per_level": _INVESTIGATOR_PROFILE["skill_ranks_per_level"],
+                "bab_progression": _INVESTIGATOR_PROFILE["bab_progression"],
+                "fort_progression": _INVESTIGATOR_PROFILE["fort_progression"],
+                "ref_progression": _INVESTIGATOR_PROFILE["ref_progression"],
+                "will_progression": _INVESTIGATOR_PROFILE["will_progression"],
+                "description": _strip_html(class_html)[:1200] if class_html else "",
+            },
+        )
+    )
+    specials = {9: "trapfinding, inspiration, studied combat"}
+    spell_map = {9: {"1": 5, "2": 4, "3": 3}}
+    for level in range(1, 21):
+        records.append(
+            _record(
+                "class_progression",
+                _AON_KAIRON_URLS["class_investigator"],
+                "Advanced Class Guide",
+                {
+                    "class_name": "Investigator",
+                    "level": level,
+                    "bab": _bab_for_level(level, _INVESTIGATOR_PROFILE["bab_progression"]),
+                    "fort_save": _save_for_level(level, _INVESTIGATOR_PROFILE["fort_progression"]),
+                    "ref_save": _save_for_level(level, _INVESTIGATOR_PROFILE["ref_progression"]),
+                    "will_save": _save_for_level(level, _INVESTIGATOR_PROFILE["will_progression"]),
+                    "special": specials.get(level, ""),
+                    "spells_per_day": spell_map.get(level, {}),
+                },
+            )
+        )
+
+    # Tiefling + one guaranteed racial trait.
+    race_html = html_by_url.get(_AON_KAIRON_URLS["race_tiefling"], "")
+    race_heading = _extract_heading_from_html(race_html).strip()
+    race_name = "Tiefling" if "tiefling" in race_heading.lower() or not race_heading else race_heading
+    records.append(
+        _record(
+            "race",
+            _AON_KAIRON_URLS["race_tiefling"],
+            "Advanced Race Guide",
+            {"name": race_name, "race_type": "featured", "size": "Medium", "base_speed": 30},
+        )
+    )
+    records.append(
+        _record(
+            "racial_trait",
+            _AON_KAIRON_URLS["race_tiefling"],
+            "Advanced Race Guide",
+            {
+                "race_name": "Tiefling",
+                "name": "Darkvision",
+                "trait_type": "senses",
+                "description": "Tieflings can see in darkness up to 60 feet.",
+                "replaces": "",
+            },
+        )
+    )
+
+    # Feats with parsed + fallback data.
+    feat_specs = [
+        ("Weapon Finesse", _AON_KAIRON_URLS["feat_weapon_finesse"]),
+        ("Weapon Focus", _AON_KAIRON_URLS["feat_weapon_focus"]),
+        ("Rapid Shot", _AON_KAIRON_URLS["feat_rapid_shot"]),
+    ]
+    for feat_name, feat_url in feat_specs:
+        fallback = _AON_KAIRON_FALLBACK["feats"][feat_name]["payload"]
+        feat_html = html_by_url.get(feat_url, "")
+        feat_text = _strip_html(feat_html)
+        prereq = _extract_field_text(feat_text, ["Prerequisites", "Prerequisite"]) or fallback["prerequisites"]
+        benefit = _extract_field_text(feat_text, ["Benefit", "Benefits"]) or fallback["benefit"]
+        short_text, short_src = _ai_short_description(text=benefit or feat_text, enabled=ai_short_fallback)
+        records.append(
+            _record(
+                "feat",
+                feat_url,
+                "Core Rulebook",
+                {
+                    "name": feat_name,
+                    "feat_type": "combat",
+                    "prerequisites": prereq,
+                    "benefit": benefit,
+                    "short_description": short_text,
+                    "short_description_source": short_src,
+                    "description": feat_text[:2000],
+                },
+            )
+        )
+
+    # Trait: Reactionary
+    trait_html = html_by_url.get(_AON_KAIRON_URLS["trait_reactionary"], "")
+    trait_text = _strip_html(trait_html)
+    trait_fallback = _AON_KAIRON_FALLBACK["trait_reactionary"]["payload"]
+    trait_benefit = _extract_field_text(trait_text, ["Benefit"]) or trait_fallback["benefit"]
+    records.append(
+        _record(
+            "trait",
+            _AON_KAIRON_URLS["trait_reactionary"],
+            "Ultimate Campaign",
+            {
+                "name": "Reactionary",
+                "trait_type": "combat",
+                "prerequisites": "",
+                "benefit": trait_benefit,
+                "description": trait_text or trait_fallback["description"],
+            },
+        )
+    )
+
+    # Spell: Haste (short from list page when possible + full from display page).
+    spell_html = html_by_url.get(_AON_KAIRON_URLS["spell_haste"], "")
+    spell_text = _strip_html(spell_html)
+    list_text = _strip_html(html_by_url.get(_AON_KAIRON_URLS["spell_list_all"], ""))
+    short_from_list = _extract_spell_short_from_list_page(list_text, "Haste")
+    spell_fallback = _AON_KAIRON_FALLBACK["spell_haste"]["payload"]
+    short_text, short_src = _ai_short_description(
+        text=short_from_list or spell_text or spell_fallback["short_description"],
+        enabled=ai_short_fallback,
+    )
+    records.append(
+        _record(
+            "spell",
+            _AON_KAIRON_URLS["spell_haste"],
+            "Core Rulebook",
+            {
+                "name": "Haste",
+                "school": "transmutation",
+                "short_description": short_from_list or short_text or spell_fallback["short_description"],
+                "short_description_source": "aon:list_page" if short_from_list else short_src,
+                "description": spell_text or spell_fallback["description"],
+            },
+        )
+    )
+    records.append(
+        _record(
+            "spell_class_level",
+            _AON_KAIRON_URLS["spell_haste"],
+            "Core Rulebook",
+            {"spell_name": "Haste", "class_name": "Investigator", "level": 3},
+        )
+    )
+
+    # Equipment baseline (AON pages archived; values deterministic from rules baseline).
+    records.append(
+        _record(
+            "equipment",
+            _AON_KAIRON_FALLBACK["equipment_rapier"]["source_url"],
+            _AON_KAIRON_FALLBACK["equipment_rapier"]["source_book"],
+            dict(_AON_KAIRON_FALLBACK["equipment_rapier"]["payload"]),
+        )
+    )
+    records.append(
+        _record(
+            "weapon",
+            _AON_KAIRON_FALLBACK["weapon_rapier"]["source_url"],
+            _AON_KAIRON_FALLBACK["weapon_rapier"]["source_book"],
+            dict(_AON_KAIRON_FALLBACK["weapon_rapier"]["payload"]),
+        )
+    )
+    records.append(
+        _record(
+            "equipment",
+            _AON_KAIRON_FALLBACK["equipment_studded_leather"]["source_url"],
+            _AON_KAIRON_FALLBACK["equipment_studded_leather"]["source_book"],
+            dict(_AON_KAIRON_FALLBACK["equipment_studded_leather"]["payload"]),
+        )
+    )
+    records.append(
+        _record(
+            "armor",
+            _AON_KAIRON_FALLBACK["armor_studded_leather"]["source_url"],
+            _AON_KAIRON_FALLBACK["armor_studded_leather"]["source_book"],
+            dict(_AON_KAIRON_FALLBACK["armor_studded_leather"]["payload"]),
+        )
+    )
+
+    # Hard fallback guard to ensure required entities survive fetch/parse failures.
+    fallback_records = [
+        _record("class", _AON_KAIRON_FALLBACK["class"]["source_url"], _AON_KAIRON_FALLBACK["class"]["source_book"], dict(_AON_KAIRON_FALLBACK["class"]["payload"])),
+        _record("race", _AON_KAIRON_FALLBACK["race"]["source_url"], _AON_KAIRON_FALLBACK["race"]["source_book"], dict(_AON_KAIRON_FALLBACK["race"]["payload"])),
+        _record("racial_trait", _AON_KAIRON_FALLBACK["racial_trait"]["source_url"], _AON_KAIRON_FALLBACK["racial_trait"]["source_book"], dict(_AON_KAIRON_FALLBACK["racial_trait"]["payload"])),
+        _record("trait", _AON_KAIRON_FALLBACK["trait_reactionary"]["source_url"], _AON_KAIRON_FALLBACK["trait_reactionary"]["source_book"], dict(_AON_KAIRON_FALLBACK["trait_reactionary"]["payload"])),
+        _record("spell", _AON_KAIRON_FALLBACK["spell_haste"]["source_url"], _AON_KAIRON_FALLBACK["spell_haste"]["source_book"], dict(_AON_KAIRON_FALLBACK["spell_haste"]["payload"])),
+        _record("spell_class_level", _AON_KAIRON_FALLBACK["spell_class_level_haste"]["source_url"], _AON_KAIRON_FALLBACK["spell_class_level_haste"]["source_book"], dict(_AON_KAIRON_FALLBACK["spell_class_level_haste"]["payload"])),
+    ]
+    for feat_name in ("Weapon Finesse", "Weapon Focus", "Rapid Shot"):
+        feat_fallback = _AON_KAIRON_FALLBACK["feats"][feat_name]
+        fallback_records.append(_record("feat", feat_fallback["source_url"], feat_fallback["source_book"], dict(feat_fallback["payload"])))
+
+    records.extend(fallback_records)
+    deduped = _dedupe_records(records)
+    return deduped, fetch_logs
+
+
 def run_extract(
     source: str,
     run_dir: Path,
@@ -735,7 +1289,16 @@ def run_extract(
     mode: str = "kairon_fixture",
     psrd_root: Path | None = None,
     d20_root: Path | None = None,
+    aon_timeout: int = 20,
+    aon_max_retries: int = 1,
+    ai_short_fallback: bool = False,
+    aon_offline_html_dir: Path | None = None,
 ) -> Path:
+    if mode == "aon_live" and source != "aon":
+        raise ValueError("mode=aon_live requires --source aon")
+    if source == "aon" and not input_path and mode != "aon_live":
+        raise ValueError("source=aon requires --mode aon_live (unless --input is used)")
+
     if run_key is None:
         run_key = f"{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{source}"
 
@@ -745,9 +1308,18 @@ def run_extract(
 
     used_psrd_root: Path | None = None
     used_d20_root: Path | None = None
+    aon_fetch_log: list[dict] = []
 
     if input_path:
         records = _normalize_input_records(read_json(input_path))
+    elif mode == "aon_live" and source == "aon":
+        records, aon_fetch_log = _extract_kairon_slice_aon_records(
+            run_path=run_path,
+            ai_short_fallback=ai_short_fallback,
+            aon_timeout=aon_timeout,
+            aon_max_retries=aon_max_retries,
+            aon_offline_html_dir=aon_offline_html_dir,
+        )
     elif mode == "kairon_slice" and source == "psrd":
         used_psrd_root = _resolve_source_root(psrd_root, "PF1E_PSRD_ROOT", Path("data") / "psrd")
         if used_psrd_root is None:
@@ -791,6 +1363,16 @@ def run_extract(
         manifest["psrd_root"] = str(used_psrd_root)
     if used_d20_root:
         manifest["d20_root"] = str(used_d20_root)
+    if mode == "aon_live":
+        manifest["aon"] = {
+            "timeout": aon_timeout,
+            "max_retries": aon_max_retries,
+            "ai_short_fallback": ai_short_fallback,
+            "fetched_pages": len([r for r in aon_fetch_log if r.get("status") in {"fetched", "offline"}]),
+            "failed_pages": len([r for r in aon_fetch_log if r.get("status") == "error"]),
+        }
+        if aon_offline_html_dir:
+            manifest["aon"]["offline_html_dir"] = str(aon_offline_html_dir)
 
     write_json(run_path / "manifest.json", manifest)
     return run_path

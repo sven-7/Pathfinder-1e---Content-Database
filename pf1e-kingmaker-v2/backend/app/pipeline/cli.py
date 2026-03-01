@@ -20,6 +20,10 @@ def _cmd_extract(args: argparse.Namespace) -> None:
         mode=args.mode,
         psrd_root=Path(args.psrd_root) if args.psrd_root else None,
         d20_root=Path(args.d20_root) if args.d20_root else None,
+        aon_timeout=args.aon_timeout,
+        aon_max_retries=args.aon_max_retries,
+        ai_short_fallback=args.ai_short_fallback,
+        aon_offline_html_dir=Path(args.aon_offline_html_dir) if args.aon_offline_html_dir else None,
     )
     print(f"extract completed: {run_path}")
 
@@ -46,18 +50,30 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_extract = sub.add_parser("extract", help="Extract source records")
-    p_extract.add_argument("--source", choices=["psrd", "d20"], required=True)
+    p_extract.add_argument("--source", choices=["aon", "psrd", "d20"], required=True)
     p_extract.add_argument("--run-dir", default="./runs")
     p_extract.add_argument("--input", default=None, help="Path to JSON list input")
     p_extract.add_argument("--run-key", default=None)
     p_extract.add_argument(
         "--mode",
-        choices=["kairon_slice", "kairon_fixture"],
+        choices=["aon_live", "kairon_slice", "kairon_fixture"],
         default="kairon_slice",
-        help="kairon_slice reads source data roots; kairon_fixture uses built-in fixtures",
+        help="aon_live fetches and snapshots AON pages; kairon_slice reads source data roots; kairon_fixture uses built-in fixtures",
     )
     p_extract.add_argument("--psrd-root", default=None, help="Path to PSRD sqlite book-*.db directory")
     p_extract.add_argument("--d20-root", default=None, help="Path to d20pfsrd data directory")
+    p_extract.add_argument("--aon-timeout", type=int, default=20, help="AON page fetch timeout in seconds")
+    p_extract.add_argument("--aon-max-retries", type=int, default=1, help="Retries per AON page")
+    p_extract.add_argument(
+        "--ai-short-fallback",
+        action="store_true",
+        help="Generate short descriptions with AI when missing (heuristic fallback always available)",
+    )
+    p_extract.add_argument(
+        "--aon-offline-html-dir",
+        default=None,
+        help="Directory with pre-cached AON HTML files named by URL SHA256, for offline deterministic runs",
+    )
     p_extract.set_defaults(func=_cmd_extract)
 
     p_parse = sub.add_parser("parse", help="Normalize extracted records")

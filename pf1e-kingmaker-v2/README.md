@@ -47,19 +47,24 @@ uvicorn app.main:app --reload --port 8100
 
 ```bash
 cd backend
-python -m app.pipeline.cli extract --source psrd --mode kairon_slice --psrd-root ../../data/psrd --d20-root ../../data/d20pfsrd --run-dir ./runs
-python -m app.pipeline.cli parse --run ./runs/<run_id>
-python -m app.pipeline.cli validate --run ./runs/<run_id>
-python -m app.pipeline.cli load --run ./runs/<run_id> --dsn sqlite:///./runs/dev_v2.db
+python3 -m app.pipeline.cli extract --source aon --mode aon_live --ai-short-fallback --run-dir ./runs
+python3 -m app.pipeline.cli parse --run ./runs/<run_id>
+python3 -m app.pipeline.cli validate --run ./runs/<run_id>
+python3 -m app.pipeline.cli load --run ./runs/<run_id> --dsn sqlite:///./runs/dev_v2.db
 ```
 
 Fixture mode (CI/local quick checks without source databases):
 
 ```bash
-python -m app.pipeline.cli extract --source psrd --mode kairon_fixture --run-dir ./runs
+python3 -m app.pipeline.cli extract --source psrd --mode kairon_fixture --run-dir ./runs
 ```
 
 ## Notes
 - The load step supports `sqlite:///...` directly for deterministic test runs.
 - PostgreSQL loading is supported when `psycopg` is installed and a PostgreSQL DSN is provided.
 - The schema migration is in `backend/migrations/0001_init.sql`.
+- `/api/v2/rules/derive` now computes deterministic Kairon-slice stats including AC/CMB/CMD, spell slots, skill totals, attack lines, and feat prerequisite evaluation results.
+- `/api/v2/characters/validate` returns prereq validation with explicit invalid feat reasons.
+- Source strategy target is `AONPRD primary + d20 fallback` (see decision profile in `docs/decision_profile_2026_03_01.md`).
+- `aon_live` mode archives raw HTML snapshots under `runs/<run>/raw/html/*.html` and logs fetch metadata in `aon_fetch_log.jsonl`.
+- If `OPENAI_API_KEY` is not available, short-description generation falls back to deterministic first-sentence heuristics.

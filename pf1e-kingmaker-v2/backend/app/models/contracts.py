@@ -47,8 +47,17 @@ class AbilityScoresV2(BaseModel):
     cha: int = Field(ge=1)
 
 
+class RuleOverrideV2(BaseModel):
+    key: str
+    operation: Literal["add", "set"] = "add"
+    value: int | float = 0
+    source: str
+
+
 class CharacterV2(BaseModel):
     id: str | None = None
+    owner_id: str | None = None
+    campaign_id: str | None = None
     name: str
     race: str
     alignment: str | None = None
@@ -59,12 +68,27 @@ class CharacterV2(BaseModel):
     skills: dict[str, int] = Field(default_factory=dict)
     equipment: list[EquipmentSelectionV2] = Field(default_factory=list)
     conditions: list[str] = Field(default_factory=list)
+    overrides: list[RuleOverrideV2] = Field(default_factory=list)
 
 
 class BreakdownLineV2(BaseModel):
     key: str
     value: int | float
     source: str
+
+
+class AttackLineV2(BaseModel):
+    name: str
+    attack_bonus: int
+    damage: str
+    notes: str = ""
+
+
+class FeatPrereqResultV2(BaseModel):
+    feat_name: str
+    level_gained: int
+    valid: bool
+    missing: list[str] = Field(default_factory=list)
 
 
 class DerivedStatsV2(BaseModel):
@@ -80,6 +104,10 @@ class DerivedStatsV2(BaseModel):
     cmb: int
     cmd: int
     initiative: int
+    spell_slots: dict[str, int] = Field(default_factory=dict)
+    skill_totals: dict[str, int] = Field(default_factory=dict)
+    attack_lines: list[AttackLineV2] = Field(default_factory=list)
+    feat_prereq_results: list[FeatPrereqResultV2] = Field(default_factory=list)
     breakdown: list[BreakdownLineV2] = Field(default_factory=list)
 
 
