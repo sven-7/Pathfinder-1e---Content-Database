@@ -85,6 +85,11 @@ const state = {
   _weapons:     null,
   _armor:       null,
   _progression: null,  // class progression rows, cleared when class changes
+
+  // Campaign context (set from URL ?campaign=<uuid>)
+  _campaignId: null,
+  _campaignName: null,
+  _campaignSourceIds: null,  // array of ints, or null = no restriction
 };
 
 // ── Auth helpers ──────────────────────────────────────────────────────────
@@ -131,6 +136,17 @@ async function apiPut(path, body) {
   if (r.status === 401) { handleUnauth(); return; }
   if (!r.ok) throw new Error(`API error ${r.status}`);
   return r.json();
+}
+
+/**
+ * Append source_ids query param to a URL path when campaign source restriction is active.
+ * e.g. sourceFilter('/feats') → '/feats?source_ids=1,2,5'
+ *      sourceFilter('/spells?class_name=wizard&level=1') → '/spells?class_name=wizard&level=1&source_ids=1,2,5'
+ */
+function sourceFilter(path) {
+  if (!state._campaignSourceIds || state._campaignSourceIds.length === 0) return path;
+  const sep = path.includes('?') ? '&' : '?';
+  return path + sep + 'source_ids=' + state._campaignSourceIds.join(',');
 }
 
 // ── Derived helpers ──────────────────────────────────────────────────────
@@ -525,7 +541,7 @@ async function loadArchetypes(name) {
   if (!archSection) return;
   archSection.innerHTML = '<span class="text-muted" style="font-size:11px;">Loading…</span>';
   try {
-    const archetypes = await apiFetch(`/classes/${encodeURIComponent(name)}/archetypes`);
+    const archetypes = await apiFetch(sourceFilter(`/classes/${encodeURIComponent(name)}/archetypes`));
     if (!archetypes || archetypes.length === 0) {
       archSection.innerHTML = '<p class="text-muted" style="font-size:11px;">No archetypes available.</p>';
       return;
@@ -953,8 +969,8 @@ window.setAsi = function(level, ab) {
 
 // ── Step 2: Feats + Traits ────────────────────────────────────────────────
 async function renderFeatsTraitsStep(c) {
-  if (!state._feats)  state._feats  = await apiFetch('/feats');
-  if (!state._traits) state._traits = await apiFetch('/traits');
+  if (!state._feats)  state._feats  = await apiFetch(sourceFilter('/feats'));
+  if (!state._traits) state._traits = await apiFetch(sourceFilter('/traits'));
   // Load progression for data-driven bonus feat counting
   if (!state._progression && state.className) {
     try { state._progression = await apiFetch(`/classes/${encodeURIComponent(state.className)}/progression`); }
@@ -1698,7 +1714,7 @@ async function loadSpellList(level) {
     return;
   }
   try {
-    const spells = await apiFetch(`/spells?class_name=${encodeURIComponent(state.className || '')}&level=${level}&limit=200`);
+    const spells = await apiFetch(sourceFilter(`/spells?class_name=${encodeURIComponent(state.className || '')}&level=${level}&limit=200`));
     _spellListCache[level] = spells;
     renderSpellList(level, spells);
   } catch(e) {
@@ -2296,7 +2312,44 @@ function jsAttr(val) {
 if (!localStorage.getItem('pf1e_token')) {
   window.location.href = '/login';
 } else {
-  renderTracker();
-  renderStep();
-  renderHistory();
+  // Check for campaign context from URL query param
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _campaignId = _urlParams.get('campaign');
+  if (_campaignId) {
+    state._campaignId = _campaignId;
+    // Fetch campaign info and source restrictions, then render
+    Promise.all([
+      apiFetch(`/campaigns/${_campaignId}`).catch(() => null),
+      apiFetch(`/campaigns/${_campaignId}/sources`).catch(() => null),
+    ]).then(([campaign, sources]) => {
+      if (campaign) state._campaignName = campaign.name;
+      if (sources && sources.restricted) {
+        state._campaignSourceIds = sources.source_ids;
+      }
+      renderCampaignBanner();
+      renderTracker();
+      renderStep();
+      renderHistory();
+    });
+  } else {
+    renderTracker();
+    renderStep();
+    renderHistory();
+  }
+}
+
+function renderCampaignBanner() {
+  if (!state._campaignId) return;
+  const existing = document.getElementById('campaign-banner');
+  if (existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'campaign-banner';
+  banner.style.cssText = 'background:var(--surface,#2a2520);border:1px solid var(--edge,#4a3f35);border-radius:6px;padding:6px 14px;margin:8px 20px 0;font-size:11px;display:flex;align-items:center;gap:8px;';
+  const name = state._campaignName || 'Campaign';
+  const srcCount = state._campaignSourceIds
+    ? `${state._campaignSourceIds.length} sources allowed`
+    : 'All sources';
+  banner.innerHTML = `<span style="color:var(--accent,#c9a96e);">&#9873;</span> Building for: <strong>${name}</strong> &mdash; ${srcCount} <a href="/campaigns" style="margin-left:auto;font-size:10px;color:var(--fade,#888);">Manage</a>`;
+  const app = document.getElementById('app') || document.body;
+  app.insertBefore(banner, app.firstChild);
 }

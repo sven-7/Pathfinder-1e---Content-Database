@@ -12,6 +12,7 @@ async def list_traits(
     request: Request,
     type: str | None = Query(default=None, description="Trait type (Combat, Faith, Magic, Social, etc.)"),
     search: str | None = Query(default=None),
+    source_ids: str | None = Query(default=None, description="Comma-separated source IDs to filter by"),
 ):
     db = request.app.state.db
 
@@ -22,6 +23,11 @@ async def list_traits(
         )
     else:
         rows = db._many("SELECT * FROM traits ORDER BY trait_type, name")
+
+    # Filter by allowed sources
+    if source_ids:
+        allowed = {int(s) for s in source_ids.split(",") if s.strip()}
+        rows = [r for r in rows if r.get("source_id") in allowed]
 
     if search:
         s = search.lower()

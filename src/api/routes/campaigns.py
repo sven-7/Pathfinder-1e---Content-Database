@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.api.deps import get_current_user
-from src.api.models import Campaign, CampaignMember, Character, User
+from src.api.models import Campaign, CampaignMember, CampaignSource, Character, User
 from src.api.pg_database import get_db
 
 router = APIRouter(tags=["campaigns"])
@@ -326,6 +326,60 @@ async def gm_view_character_sheet(
     from src.character_creator.exporter import generate_sheet_html
     html = generate_sheet_html(char.data, rules_db)
     return HTMLResponse(content=html)
+
+
+# ── Campaign Sources ───────────────────────────────────────────────────── #
+
+@router.get("/campaigns/{campaign_id}/sources")
+async def get_campaign_sources(
+    campaign_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the allowed source IDs for a campaign."""
+    campaign = await _get_campaign(campaign_id, db)
+    _require_member(campaign, current_user)
+
+    result = await db.execute(
+        select(CampaignSource.source_id).where(CampaignSource.campaign_id == campaign.id)
+    )
+    source_ids = sorted(row[0] for row in result.all())
+    return {
+        "source_ids": source_ids,
+        "restricted": len(source_ids) > 0,
+    }
+
+
+@router.put("/campaigns/{campaign_id}/sources")
+async def set_campaign_sources(
+    campaign_id: str,
+    body: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set the allowed sources for a campaign (GM only). Empty list = no restriction."""
+    campaign = await _get_campaign(campaign_id, db)
+    _require_gm(campaign, current_user)
+
+    source_ids = body.get("source_ids", [])
+    if not isinstance(source_ids, list):
+        raise HTTPException(status_code=400, detail="source_ids must be a list of integers")
+
+    # Delete existing rows and insert new ones
+    from sqlalchemy import delete as sa_delete
+    await db.execute(
+        sa_delete(CampaignSource).where(CampaignSource.campaign_id == campaign.id)
+    )
+
+    for sid in source_ids:
+        db.add(CampaignSource(campaign_id=campaign.id, source_id=int(sid)))
+
+    await db.commit()
+
+    return {
+        "source_ids": sorted(int(s) for s in source_ids),
+        "restricted": len(source_ids) > 0,
+    }
 
 
 # ── Delete Campaign ─────────────────────────────────────────────────────── #

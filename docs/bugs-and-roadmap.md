@@ -15,7 +15,9 @@
 | PWA-0 | Planned | PWA Scaffolding — manifest.json, service worker, responsive meta, offline shell (locally hosted LAN model) |
 | 14 | Planned | Encounter & Combat Tracker |
 | 15 | Planned | Equipment Phase — full armor/weapon/gear UI overhaul |
-| 16+ | Future | Party Inventory, Kingmaker tools |
+| 16 | Planned | Content Sources & 3pp Filtering — `content_sources` table, per-campaign source rules, replace binary `is_paizo_official` flag |
+| 17 | Planned | Stat Deltas on Content — structured `stat_deltas` JSON on feats/traits for automated bonus application (Reactionary +2 init, etc.) |
+| 18+ | Future | Party Inventory, Kingmaker tools |
 
 ---
 

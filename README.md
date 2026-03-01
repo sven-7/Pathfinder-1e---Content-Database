@@ -73,17 +73,24 @@ A comprehensive Pathfinder 1st Edition campaign management platform: structured 
 | Phase | Description | Deliverable |
 |-------|-------------|-------------|
 | **11** | **Multi-User Backend** — PostgreSQL migration for character storage; user accounts (username/password); characters owned by users; character library persisted in DB instead of JSON files | Multiple players log in and manage their own characters |
-| **12** | **DM View & Campaign Layer** — Campaign model (name, GM, player roster); party overview (HP, conditions, initiative at a glance); GM reads any character sheet; simple NPC/creature manager; shared session notes | A GM can open the app and see the whole party |
+| **12** | **DM View & Campaign Layer** — Campaign model (name, GM, player roster); party overview (HP, conditions, initiative at a glance); GM reads any character sheet; campaign join codes; simple NPC/creature manager; shared session notes | A GM can open the app and see the whole party |
 | **13** | **Encounter & Combat Tracker** — Initiative order; HP tracking per combatant (PC + NPC); conditions applied per combatant; round/turn tracking; quick-access to combat panel during a character's turn | Run a combat from a single screen |
 | **14** | **Party & Inventory Management** — Shared party loot pool; individual character inventory with weight; item descriptions from equipment DB; gold tracking; treasure distribution | No more spreadsheets for tracking loot |
+
+### Content & Data Quality
+
+| Phase | Description | Deliverable |
+|-------|-------------|-------------|
+| **16** | **Content Sources & 3pp Filtering** — Proper `content_sources` table (book name, abbreviation, publisher) with FK on all content records; replace binary `is_paizo_official` flag; per-campaign allowed sources configurable by GM; player content filtered at creation time | GM says "CRB + APG only" and the creator enforces it. 3pp content cleanly separated. Inspired by Wanderer's Guide source filtering |
+| **17** | **Stat Deltas on Content** — Structured `stat_deltas` JSON column on feats and traits encoding mechanical bonuses (e.g. Reactionary: `{initiative: +2}`, Resilient: `{fort: +1}`); exporter applies deltas automatically during `_compute_derived()`; prerequisite-aware (some deltas conditional on class/level) | Trait and feat bonuses actually appear in derived stats. Kairon's Reactionary +2 initiative shows correctly. Closes the trait-bonus gap identified in Phase 12b |
 
 ### Future: Kingmaker & Campaign-Specific Tools
 
 | Phase | Description | Notes |
 |-------|-------------|-------|
-| **15** | **Kingmaker — Kingdom Tracker** — BP pool, kingdom stats (Stability/Economy/Loyalty/Fame), edicts (Improvement/Taxation/Promotion), kingdom events, month-by-month log | Kingmaker-specific; design when campaign reaches kingdom phase |
-| **16** | **Kingmaker — Settlement Builder** — Hex map of claimed territory; settlement district grid; buildings + lots; settlement modifiers | Pairs with Phase 15 |
-| **17** | **World & Encounter Maps** — Upload/pin maps; mark locations; GM notes per hex; link encounters to map locations | Low priority; scope TBD |
+| **18** | **Kingmaker — Kingdom Tracker** — BP pool, kingdom stats (Stability/Economy/Loyalty/Fame), edicts (Improvement/Taxation/Promotion), kingdom events, month-by-month log | Kingmaker-specific; design when campaign reaches kingdom phase |
+| **19** | **Kingmaker — Settlement Builder** — Hex map of claimed territory; settlement district grid; buildings + lots; settlement modifiers | Pairs with Phase 18 |
+| **20** | **World & Encounter Maps** — Upload/pin maps; mark locations; GM notes per hex; link encounters to map locations | Low priority; scope TBD |
 
 ---
 

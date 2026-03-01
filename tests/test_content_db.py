@@ -53,3 +53,11 @@ class TestContentLookups:
     def test_search_returns_results(self, db):
         results = db.search("fireball")
         assert len(results) >= 1, "Expected search('fireball') to return >=1 result"
+
+    def test_sources_table_populated(self, db):
+        """Verify sources table exists and has expected rows."""
+        rows = db._many("SELECT id, name, abbreviation FROM sources ORDER BY id")
+        assert len(rows) >= 30, f"Expected >=30 sources, got {len(rows)}"
+        # CRB should be source id 1
+        crb = next((r for r in rows if r["id"] == 1), None)
+        assert crb is not None, "Source id 1 (CRB) should exist"

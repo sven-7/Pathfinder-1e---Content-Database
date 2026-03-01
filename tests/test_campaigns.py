@@ -357,3 +357,115 @@ async def test_delete_campaign(client):
     # Verify gone
     get_resp = await client.get(f"/api/campaigns/{cid}", headers=auth(gm_token))
     assert get_resp.status_code == 404
+
+
+# ── Campaign Sources Tests ────────────────────────────────────────────── #
+
+@pytest.mark.asyncio
+async def test_campaign_sources_default_unrestricted(client):
+    """New campaigns have no source restrictions."""
+    token, _ = await _register_user(client, "_src1")
+    resp = await client.post("/api/campaigns", json={"name": "Source Test"}, headers=auth(token))
+    cid = resp.json()["id"]
+
+    resp = await client.get(f"/api/campaigns/{cid}/sources", headers=auth(token))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["restricted"] is False
+    assert data["source_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_set_campaign_sources(client):
+    """GM can set allowed sources."""
+    token, _ = await _register_user(client, "_src2")
+    resp = await client.post("/api/campaigns", json={"name": "Source Set Test"}, headers=auth(token))
+    cid = resp.json()["id"]
+
+    # Set sources
+    resp = await client.put(
+        f"/api/campaigns/{cid}/sources",
+        json={"source_ids": [1, 2, 5]},
+        headers={**auth(token), "Content-Type": "application/json"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["restricted"] is True
+    assert data["source_ids"] == [1, 2, 5]
+
+    # Verify via GET
+    resp = await client.get(f"/api/campaigns/{cid}/sources", headers=auth(token))
+    data = resp.json()
+    assert data["restricted"] is True
+    assert data["source_ids"] == [1, 2, 5]
+
+
+@pytest.mark.asyncio
+async def test_clear_campaign_sources(client):
+    """Setting empty source list removes restrictions."""
+    token, _ = await _register_user(client, "_src3")
+    resp = await client.post("/api/campaigns", json={"name": "Source Clear Test"}, headers=auth(token))
+    cid = resp.json()["id"]
+
+    # Set some sources
+    await client.put(
+        f"/api/campaigns/{cid}/sources",
+        json={"source_ids": [1, 2]},
+        headers={**auth(token), "Content-Type": "application/json"},
+    )
+
+    # Clear
+    resp = await client.put(
+        f"/api/campaigns/{cid}/sources",
+        json={"source_ids": []},
+        headers={**auth(token), "Content-Type": "application/json"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["restricted"] is False
+    assert data["source_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_set_sources_requires_gm(client):
+    """Only the GM can modify source restrictions."""
+    gm_token, _ = await _register_user(client, "_src4gm")
+    player_token, player_info = await _register_user(client, "_src4player")
+
+    resp = await client.post("/api/campaigns", json={"name": "Source Perm Test"}, headers=auth(gm_token))
+    cid = resp.json()["id"]
+
+    # Add player
+    await client.post(
+        f"/api/campaigns/{cid}/members",
+        json={"username": player_info["username"]},
+        headers=auth(gm_token),
+    )
+
+    # Player tries to set sources — should fail
+    resp = await client.put(
+        f"/api/campaigns/{cid}/sources",
+        json={"source_ids": [1]},
+        headers={**auth(player_token), "Content-Type": "application/json"},
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_sources_cascade_on_campaign_delete(client):
+    """Source restrictions are deleted when the campaign is deleted."""
+    token, _ = await _register_user(client, "_src5")
+    resp = await client.post("/api/campaigns", json={"name": "Cascade Test"}, headers=auth(token))
+    cid = resp.json()["id"]
+
+    await client.put(
+        f"/api/campaigns/{cid}/sources",
+        json={"source_ids": [1, 2, 3]},
+        headers={**auth(token), "Content-Type": "application/json"},
+    )
+
+    await client.delete(f"/api/campaigns/{cid}", headers=auth(token))
+
+    # Campaign is gone, so sources endpoint should 404
+    resp = await client.get(f"/api/campaigns/{cid}/sources", headers=auth(token))
+    assert resp.status_code == 404

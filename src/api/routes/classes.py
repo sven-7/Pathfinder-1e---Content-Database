@@ -57,16 +57,35 @@ async def list_classes(request: Request):
 
 
 @router.get("/classes/{name}/archetypes")
-async def get_class_archetypes(name: str, request: Request):
+async def get_class_archetypes(
+    name: str,
+    request: Request,
+    source_ids: str | None = Query(default=None, description="Comma-separated source IDs to filter by"),
+):
     db = request.app.state.db
     cls_row = db.get_class(name)
     if cls_row is None:
         raise HTTPException(status_code=404, detail=f"Class '{name}' not found")
 
-    archetypes = db._many(
-        "SELECT * FROM archetypes WHERE class_id = ? AND is_paizo_official = 1 ORDER BY name",
-        (cls_row["id"],),
-    )
+    if source_ids:
+        allowed = [int(s) for s in source_ids.split(",") if s.strip()]
+        if allowed:
+            placeholders = ",".join("?" for _ in allowed)
+            archetypes = db._many(
+                f"SELECT * FROM archetypes WHERE class_id = ? AND source_id IN ({placeholders}) ORDER BY name",
+                (cls_row["id"], *allowed),
+            )
+        else:
+            archetypes = db._many(
+                "SELECT * FROM archetypes WHERE class_id = ? AND is_paizo_official = 1 ORDER BY name",
+                (cls_row["id"],),
+            )
+    else:
+        archetypes = db._many(
+            "SELECT * FROM archetypes WHERE class_id = ? AND is_paizo_official = 1 ORDER BY name",
+            (cls_row["id"],),
+        )
+
     return [
         {
             "id": a["id"],

@@ -45,6 +45,20 @@ async function apiPost(path, body) {
   return r.json();
 }
 
+async function apiPut(path, body) {
+  const r = await fetch(API + path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify(body),
+  });
+  if (r.status === 401) { handleUnauth(); return null; }
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}));
+    throw new Error(data.detail || `API error ${r.status}`);
+  }
+  return r.json();
+}
+
 async function apiDelete(path) {
   const r = await fetch(API + path, {
     method: 'DELETE',
@@ -148,18 +162,30 @@ async function showCampaignDetail(campaignId) {
   el.innerHTML = '<div class="loading-msg"><div class="spinner"></div><br>Loading campaign...</div>';
 
   try {
-    const [campaign, party] = await Promise.all([
+    const [campaign, party, campaignSources, allSources] = await Promise.all([
       apiFetch(`/campaigns/${campaignId}`),
       apiFetch(`/campaigns/${campaignId}/party`),
+      apiFetch(`/campaigns/${campaignId}/sources`),
+      apiFetch('/sources'),
     ]);
     if (!campaign || !party) return;
-    renderCampaignDetail(campaign, party);
+    renderCampaignDetail(campaign, party, campaignSources, allSources);
   } catch (err) {
     el.innerHTML = `<div class="empty-state">Error: ${esc(err.message)}</div>`;
   }
 }
 
-function renderCampaignDetail(campaign, party) {
+// Source grouping for UI display
+const SOURCE_GROUPS = [
+  { label: 'Core Rules', ids: [1] },
+  { label: 'Core Supplements', ids: [2, 4, 5, 3, 6, 7, 18, 22] },
+  { label: 'Extended', ids: [19, 20, 21, 24, 23, 27] },
+  { label: 'Bestiaries', ids: [8, 9, 10, 11] },
+  { label: 'Companion / Setting', ids: [29, 28, 30, 31, 32] },
+  { label: 'Other', ids: [13, 15, 14, 25, 26, 12, 16] },
+];
+
+function renderCampaignDetail(campaign, party, campaignSources, allSources) {
   const el = document.getElementById('app-content');
   const isGm = campaign.is_gm;
 
@@ -257,6 +283,53 @@ function renderCampaignDetail(campaign, party) {
 
   html += `</div>`;
 
+  // ── Allowed Sources panel (GM only) ──
+  if (isGm && allSources) {
+    const selectedSet = new Set(campaignSources?.source_ids || []);
+    const isRestricted = campaignSources?.restricted || false;
+    const sourceMap = {};
+    for (const s of allSources) sourceMap[s.id] = s;
+
+    html += `
+    <div class="panel">
+      <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Allowed Sources</span>
+        <span style="font-size:10px;color:var(--fade);font-family:var(--font-label);">
+          ${isRestricted ? `${selectedSet.size} of ${allSources.length} sources` : 'All sources allowed (no restriction)'}
+        </span>
+      </div>
+      <div style="font-size:11px;color:var(--fade);margin-bottom:8px;">
+        Check sources to restrict content for this campaign. Leave all unchecked to allow everything.
+      </div>
+      <div id="source-config">`;
+
+    for (const group of SOURCE_GROUPS) {
+      const groupSources = group.ids.map(id => sourceMap[id]).filter(Boolean);
+      if (groupSources.length === 0) continue;
+      html += `<div style="margin-bottom:8px;">
+        <div style="font-family:var(--font-label);font-size:10px;letter-spacing:.04em;color:var(--fade);margin-bottom:4px;">${group.label}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px 12px;">`;
+      for (const s of groupSources) {
+        const checked = selectedSet.has(s.id) ? 'checked' : '';
+        html += `<label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input type="checkbox" class="source-cb" data-sid="${s.id}" ${checked}>
+          <span>${esc(s.abbreviation || s.name)}</span>
+          <span style="color:var(--fade);font-size:10px;">${esc(s.name)}</span>
+        </label>`;
+      }
+      html += `</div></div>`;
+    }
+
+    html += `</div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary btn-sm" onclick="doSaveSources('${campaign.id}')">Save Sources</button>
+        <button class="btn btn-sm" onclick="doClearSources('${campaign.id}')">Allow All</button>
+        <button class="btn btn-sm" onclick="doSelectCoreSources()">Core Only</button>
+        <span id="source-msg" style="font-size:11px;"></span>
+      </div>
+    </div>`;
+  }
+
   el.innerHTML = html;
 }
 
@@ -316,6 +389,41 @@ async function viewSheet(campaignId, charId) {
   } catch (err) {
     alert(`Could not load sheet: ${err.message}`);
   }
+}
+
+// ── Source config actions ─────────────────────────────────────────────── //
+
+async function doSaveSources(campaignId) {
+  const checkboxes = document.querySelectorAll('.source-cb');
+  const selected = [];
+  checkboxes.forEach(cb => { if (cb.checked) selected.push(parseInt(cb.dataset.sid)); });
+
+  const msgEl = document.getElementById('source-msg');
+  try {
+    await apiPut(`/campaigns/${campaignId}/sources`, { source_ids: selected });
+    if (selected.length === 0) {
+      msgEl.innerHTML = '<span class="success-msg">Restrictions removed — all sources allowed</span>';
+    } else {
+      msgEl.innerHTML = `<span class="success-msg">Saved — ${selected.length} sources allowed</span>`;
+    }
+    setTimeout(() => showCampaignDetail(campaignId), 1200);
+  } catch (err) {
+    msgEl.innerHTML = `<span class="error-msg">${esc(err.message)}</span>`;
+  }
+}
+
+async function doClearSources(campaignId) {
+  // Uncheck all and save empty list
+  document.querySelectorAll('.source-cb').forEach(cb => { cb.checked = false; });
+  await doSaveSources(campaignId);
+}
+
+function doSelectCoreSources() {
+  // Core Rules + Core Supplements: ids 1,2,3,4,5,6,7,18,22
+  const coreIds = new Set([1, 2, 3, 4, 5, 6, 7, 18, 22]);
+  document.querySelectorAll('.source-cb').forEach(cb => {
+    cb.checked = coreIds.has(parseInt(cb.dataset.sid));
+  });
 }
 
 // ── Util ──────────────────────────────────────────────────────────────── //

@@ -21,6 +21,7 @@ async def list_feats(
     search: str | None = Query(default=None),
     include_all: bool = Query(default=False, description="Include monster/mythic/invalid feats"),
     paizo_only: bool = Query(default=True, description="Exclude 3pp content"),
+    source_ids: str | None = Query(default=None, description="Comma-separated source IDs to filter by"),
 ):
     db = request.app.state.db
     rows = db.get_all_feats()
@@ -29,8 +30,11 @@ async def list_feats(
     if not include_all:
         rows = [r for r in rows if (r.get("feat_type") or "").lower() not in _NON_PLAYER_TYPES]
 
-    # Exclude 3pp content
-    if paizo_only:
+    # Filter by allowed sources (overrides paizo_only when present)
+    if source_ids:
+        allowed = {int(s) for s in source_ids.split(",") if s.strip()}
+        rows = [r for r in rows if r.get("source_id") in allowed]
+    elif paizo_only:
         rows = [r for r in rows if r.get("is_paizo_official", 1)]
 
     # Filter by type

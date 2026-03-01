@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -78,6 +79,9 @@ class Campaign(Base):
     members: Mapped[list[CampaignMember]] = relationship(
         "CampaignMember", back_populates="campaign", cascade="all, delete-orphan"
     )
+    allowed_sources: Mapped[list[CampaignSource]] = relationship(
+        "CampaignSource", back_populates="campaign", cascade="all, delete-orphan"
+    )
 
 
 class CampaignMember(Base):
@@ -102,3 +106,20 @@ class CampaignMember(Base):
 
     campaign: Mapped[Campaign] = relationship("Campaign", back_populates="members")
     user: Mapped[User] = relationship("User", back_populates="campaign_memberships")
+
+
+class CampaignSource(Base):
+    __tablename__ = "campaign_sources"
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "source_id", name="uq_campaign_source"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+
+    campaign: Mapped[Campaign] = relationship("Campaign", back_populates="allowed_sources")
