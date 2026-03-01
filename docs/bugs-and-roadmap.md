@@ -213,3 +213,19 @@ Each phase should end with: bugs fixed + Kairon test verified + this doc updated
 
 **Current checkpoint:** Post Phase 13 — level-aware creator complete (ASI, feat budget, talent budget, prereq indicators, skill max label).
 **Next conversation:** Phase 12 (DM campaign layer) or Phase 14 (Encounter & Combat Tracker).
+
+
+## Bugs to be organized
+
+- Feats: search function is broken: If searching for 'Weapon Finese', nothing returns.
+- Fears: Scrolling is broken: Cannot scroll beyond Blustering Bluff. Recommend Feature to select by starting Letter.
+- Feats: Search Types are too many
+- Feats: Allowed to Select Blinding Flash without having Feat Weapon Expertise
+- Spells/Formula - Logic Engine needs to be updated for Level 1 available spells. 
+- Save & View Sheet Button - launches new tab with {"detail":"Not authenticated"}
+
+## Improvements to Make
+
+- Feats or Talents - Instead of Saying 0/0 Selected, Indicate None Available and Say next level
+- Logic - turn off weapon cost limits
+
