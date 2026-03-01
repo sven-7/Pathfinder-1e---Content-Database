@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pf1e_v2}
+      POSTGRES_USER: ${POSTGRES_USER:-pf1e}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pf1e}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata_v2:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://pf1e:pf1e@db:5432/pf1e_v2}
+    ports:
+      - "${API_PORT:-8100}:8100"
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE: http://localhost:${API_PORT:-8100}
+    ports:
+      - "${WEB_PORT:-5174}:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata_v2:

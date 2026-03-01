@@ -1,0 +1,67 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f7fb;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --surface: #ffffff;
+  --line: #dbe1ea;
+  --brand: #0b5fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #e7edf8 0%, var(--bg) 45%, #eef2f8 100%);
+  color: var(--ink);
+}
+
+.app-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  letter-spacing: 0.02em;
+}
+
+.hero p {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.grid {
+  margin-top: 24px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
+}
+
+.card h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.card p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.status {
+  margin-top: 14px;
+  border-left: 4px solid var(--brand);
+}
