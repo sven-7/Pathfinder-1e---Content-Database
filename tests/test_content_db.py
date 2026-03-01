@@ -30,6 +30,10 @@ class TestContentCounts:
         rows = db.get_armor()
         assert len(rows) >= 25, f"Expected >=25 armor, got {len(rows)}"
 
+    def test_gear_populated(self, db):
+        rows = db.get_gear()
+        assert len(rows) >= 100, f"Expected >=100 gear items, got {len(rows)}"
+
 
 class TestContentLookups:
     """Verify specific content items are retrievable."""

@@ -215,7 +215,7 @@ class RulesDB:
     def get_weapons(self) -> list[dict]:
         """Return all weapons joined with equipment base data."""
         return self._many(
-            """SELECT e.id as equipment_id, e.name, e.cost, e.weight,
+            """SELECT e.id as equipment_id, e.name, e.cost, e.cost_copper, e.weight, e.source_id,
                       w.id as weapon_id, w.proficiency, w.weapon_type, w.handedness,
                       w.damage_small, w.damage_medium, w.critical,
                       w.range_increment, w.damage_type, w.special
@@ -228,13 +228,31 @@ class RulesDB:
     def get_armor(self) -> list[dict]:
         """Return all armor/shields joined with equipment base data."""
         return self._many(
-            """SELECT e.id as equipment_id, e.name, e.cost, e.weight,
+            """SELECT e.id as equipment_id, e.name, e.cost, e.cost_copper, e.weight, e.source_id,
                       a.id as armor_id, a.armor_type, a.armor_bonus, a.max_dex,
                       a.armor_check_penalty, a.arcane_spell_failure,
                       a.speed_30, a.speed_20
                FROM armor a
                JOIN equipment e ON e.id = a.equipment_id
                ORDER BY a.armor_type, a.armor_bonus, e.name"""
+        )
+
+    def get_gear(self, equipment_type: str | None = None) -> list[dict]:
+        """Return general gear items (non-weapon, non-armor classified rows)."""
+        valid_types = ("gear", "alchemical", "tool", "clothing", "mount", "vehicle", "service")
+        if equipment_type and equipment_type in valid_types:
+            return self._many(
+                """SELECT id as equipment_id, name, equipment_type, cost, cost_copper, weight, description, source_id
+                   FROM equipment
+                   WHERE equipment_type = ?
+                   ORDER BY name""",
+                (equipment_type,),
+            )
+        return self._many(
+            """SELECT id as equipment_id, name, equipment_type, cost, cost_copper, weight, description, source_id
+               FROM equipment
+               WHERE equipment_type IN ('gear','alchemical','tool','clothing','mount','vehicle','service')
+               ORDER BY name"""
         )
 
     # ------------------------------------------------------------------ #

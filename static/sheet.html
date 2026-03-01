@@ -320,6 +320,7 @@
         </div>
         <div class="section">
           <div class="section-title">Equipment &amp; Gear</div>
+          <div id="s-equip-summary" style="display:none;margin-bottom:4px;font-size:7px;display:flex;gap:8px;flex-wrap:wrap;"></div>
           <div id="s-equipment"><span class="text-muted">— none —</span></div>
         </div>
       </div>
@@ -651,9 +652,10 @@ function renderWeapons() {
         <span class="weapon-row-lbl">DMG</span>
         <span class="weapon-row-val">${w.damage || '—'}</span>
         <span class="weapon-row-lbl" style="margin-left:6px">CRIT</span>
-        <span class="weapon-row-val">${w.critical || '×2'}</span>
-        ${w.range && w.range !== '—' ? `<span class="weapon-row-lbl" style="margin-left:6px">RNG</span><span class="weapon-row-val">${w.range}</span>` : ''}
+        <span class="weapon-row-val">${w.critical || 'x2'}</span>
+        ${w.range && w.range !== '' ? `<span class="weapon-row-lbl" style="margin-left:6px">RNG</span><span class="weapon-row-val">${w.range}</span>` : ''}
       </div>
+      ${w.type ? `<div class="weapon-row"><span class="weapon-row-lbl">TYPE</span><span class="weapon-row-val">${w.type}</span></div>` : ''}
       ${w.special ? `<div class="weapon-row"><span class="weapon-row-lbl">SPEC</span><span class="weapon-row-val" style="font-size:6px">${w.special}</span></div>` : ''}
       <div class="weapon-roll-res" id="${rollId}"></div>
     </div>`;
@@ -700,8 +702,9 @@ function renderSkills() {
   el.innerHTML = sorted.map(([name, sk]) => {
     const cs = sk.is_class_skill ? ' cs' : '';
     const totalClass = sk.total > 0 ? '' : (sk.total < 0 ? ' debuffed' : '');
+    const acpNote = sk.acp && sk.acp !== 0 ? ` <span style="font-size:5px;opacity:.6;" title="Armor Check Penalty ${sk.acp}">(ACP)</span>` : '';
     return `<div class="skill-row" onclick="rollWithMod(${sk.total},'${name.replace(/'/g,"\\'")}')">
-      <span class="skill-name${cs}" title="${name}">${name}</span>
+      <span class="skill-name${cs}" title="${name}">${name}${acpNote}</span>
       <span class="skill-ranks">${sk.ranks > 0 ? sk.ranks : ''}</span>
       <span class="skill-total${totalClass}">${fmtMod(sk.total)}</span>
     </div>`;
@@ -832,20 +835,42 @@ function renderNotes() {
   const ta = document.getElementById('s-notes');
   ta.value = state.notes || D.notes || '';
 
+  // Equipment summary bar (gold, weight, ACP, ASF)
+  const sumEl = document.getElementById('s-equip-summary');
+  if (D.derived && sumEl) {
+    const dr = D.derived;
+    const parts = [];
+    if (dr.gold_remaining_cp !== undefined && dr.starting_gold_cp) {
+      const fmtGold = (cp) => { const g = Math.floor(cp/100); const s = Math.floor((cp%100)/10); return g ? `${g} gp${s?' '+s+' sp':''}` : (s ? s+' sp' : (cp%10)+' cp'); };
+      parts.push(`Gold: ${fmtGold(dr.gold_remaining_cp)}`);
+    }
+    if (dr.encumbrance) {
+      parts.push(`Wt: ${dr.encumbrance.total_weight} lbs. (${dr.encumbrance.load})`);
+    }
+    if (dr.armor_check_penalty && dr.armor_check_penalty !== 0) {
+      parts.push(`ACP: ${dr.armor_check_penalty}`);
+    }
+    if (dr.arcane_spell_failure && dr.arcane_spell_failure > 0) {
+      parts.push(`ASF: ${dr.arcane_spell_failure}%`);
+    }
+    if (parts.length) {
+      sumEl.style.display = 'flex';
+      sumEl.innerHTML = parts.map(p => `<span style="background:var(--parchment-dark,#e8dcc0);padding:1px 4px;border-radius:2px;">${p}</span>`).join('');
+    }
+  }
+
   // Equipment (gear list)
   const equip = D.equipment || [];
   const equEl = document.getElementById('s-equipment');
-  if (equip.length) {
-    equEl.innerHTML = equip.map(e => `<div class="feat-entry"><span class="feat-name">${e}</span></div>`).join('');
-  } else {
-    // Show equipped armor/shield if any
-    const parts = [];
-    if (D.equipped_armor)  parts.push(`${D.equipped_armor.name} (armor +${D.equipped_armor.armor_bonus})`);
-    if (D.equipped_shield) parts.push(`${D.equipped_shield.name} (shield +${D.equipped_shield.armor_bonus})`);
-    equEl.innerHTML = parts.length
-      ? parts.map(p => `<div class="feat-entry"><span class="feat-name">${p}</span></div>`).join('')
-      : '<span class="text-muted">— none —</span>';
-  }
+  // Show equipped armor/shield first
+  const equipParts = [];
+  if (D.equipped_armor)  equipParts.push(`${D.equipped_armor.name} (AC +${D.equipped_armor.armor_bonus}, ACP ${D.equipped_armor.armor_check_penalty || 0})`);
+  if (D.equipped_shield) equipParts.push(`${D.equipped_shield.name} (AC +${D.equipped_shield.armor_bonus}, ACP ${D.equipped_shield.armor_check_penalty || 0})`);
+  // Add other equipment items
+  for (const e of equip) equipParts.push(e);
+  equEl.innerHTML = equipParts.length
+    ? equipParts.map(p => `<div class="feat-entry"><span class="feat-name">${p}</span></div>`).join('')
+    : '<span class="text-muted">— none —</span>';
 }
 
 // ── HP popup ───────────────────────────────────────────────────────────────

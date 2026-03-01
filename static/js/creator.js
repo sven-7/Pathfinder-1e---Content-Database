@@ -30,6 +30,59 @@ const STANDARD_ARRAY = [15,14,13,12,10,8];
 const PB_COSTS = {7:-4,8:-2,9:-1,10:0,11:1,12:2,13:3,14:5,15:7,16:10,17:13,18:17};
 const PB_BUDGET = 25;
 
+// Average starting gold per class (in gp) — PF1e CRB Table 6-1
+const CLASS_STARTING_GOLD = {
+  Barbarian:70, Bard:105, Cleric:105, Druid:70, Fighter:175, Monk:35,
+  Paladin:175, Ranger:175, Rogue:140, Sorcerer:70, Wizard:70,
+  // APG
+  Alchemist:105, Cavalier:175, Inquisitor:140, Oracle:105, Summoner:70, Witch:105,
+  // ACG
+  Arcanist:70, Bloodrager:105, Brawler:35, Hunter:140, Investigator:105,
+  Shaman:105, Skald:105, Slayer:175, Swashbuckler:175, Warpriest:175,
+  // UC/UM
+  Gunslinger:175, Magus:105, Ninja:140, Samurai:175,
+  // OA
+  Kineticist:70, Medium:105, Mesmerist:105, Occultist:105, Psychic:70, Spiritualist:105,
+  // Other
+  Vigilante:175, Shifter:70,
+  // Unchained
+  'Unchained Barbarian':70, 'Unchained Monk':35, 'Unchained Rogue':140, 'Unchained Summoner':70,
+};
+
+// PF1e carry capacity (STR score 0-20 → [light, medium, heavy] thresholds)
+const CARRY_TABLE = [
+  [0,0,0],[3,6,10],[6,13,20],[10,20,30],[13,26,40],[16,33,50],
+  [20,40,60],[23,46,70],[26,53,80],[30,60,90],[33,66,100],
+  [38,76,115],[43,86,130],[50,100,150],[58,116,175],[66,133,200],
+  [76,153,230],[86,173,260],[100,200,300],[116,233,350],[133,266,400],
+];
+
+function getCarryThresholds(strScore) {
+  if (strScore <= 0) return [0, 0, 0];
+  if (strScore <= 20) return CARRY_TABLE[strScore];
+  const base = ((strScore - 1) % 10) + 1;
+  const mult = Math.pow(4, Math.floor((strScore - base) / 10));
+  const b = CARRY_TABLE[Math.min(base, 20)];
+  return [b[0]*mult, b[1]*mult, b[2]*mult];
+}
+
+function formatGold(copperPieces) {
+  if (!copperPieces && copperPieces !== 0) return '0 gp';
+  const gp = Math.floor(copperPieces / 100);
+  const sp = Math.floor((copperPieces % 100) / 10);
+  const cp = copperPieces % 10;
+  const parts = [];
+  if (gp) parts.push(`${gp} gp`);
+  if (sp) parts.push(`${sp} sp`);
+  if (cp) parts.push(`${cp} cp`);
+  return parts.length ? parts.join(', ') : '0 gp';
+}
+
+// Skills affected by armor check penalty
+const ACP_SKILLS = new Set([
+  'Acrobatics','Climb','Disable Device','Escape Artist','Fly','Ride','Sleight of Hand','Stealth','Swim'
+]);
+
 // ── Application state ────────────────────────────────────────────────────
 const state = {
   currentStep: 0,
@@ -63,7 +116,10 @@ const state = {
   // Step 3: Extras
   classTalents: [],    // selected class talent names
   spells: {},          // {0: ['...'], 1: ['...']}
-  equipment: [],       // misc string items (freeform)
+  equipment: [],       // misc string items (freeform, backward compat)
+  gearItems: [],       // [{equipment_id, name, cost_copper, weight, qty, equipment_type}]
+  customGear: [],      // [{name, cost_copper, weight, qty}] — freeform additions
+  startingGoldCp: 0,   // starting gold in copper pieces
   equippedArmor: null, // full armor object from API, or null
   equippedShield: null,// full shield object from API, or null
   weapons: [],         // list of full weapon objects from API
@@ -84,6 +140,7 @@ const state = {
   _classSkills: null,
   _weapons:     null,
   _armor:       null,
+  _gear:        null,  // cached gear catalog from API
   _progression: null,  // class progression rows, cleared when class changes
 
   // Campaign context (set from URL ?campaign=<uuid>)
@@ -1408,10 +1465,13 @@ async function renderExtrasStep(c) {
 
   // Load weapons and armor from API (cached)
   if (!state._weapons) {
-    try { state._weapons = await apiFetch('/equipment/weapons'); } catch(e) { state._weapons = []; }
+    try { state._weapons = await apiFetch(sourceFilter('/equipment/weapons')); } catch(e) { state._weapons = []; }
   }
   if (!state._armor) {
-    try { state._armor = await apiFetch('/equipment/armor'); } catch(e) { state._armor = []; }
+    try { state._armor = await apiFetch(sourceFilter('/equipment/armor')); } catch(e) { state._armor = []; }
+  }
+  if (!state._gear) {
+    try { state._gear = await apiFetch(sourceFilter('/equipment/gear?limit=1000')); } catch(e) { state._gear = []; }
   }
 
   const armorList  = (state._armor || []).filter(a => a.armor_type !== 'shield');
@@ -1450,8 +1510,7 @@ async function renderExtrasStep(c) {
           ${armorOptgroups(armorList, currentArmorName)}
         </select>
         ${state.equippedArmor ? `<div class="text-muted" style="font-size:10px;margin-top:4px;">
-          AC+${state.equippedArmor.armor_bonus} · MaxDex ${state.equippedArmor.max_dex ?? '—'} · ACP ${state.equippedArmor.armor_check_penalty} · ASF ${state.equippedArmor.arcane_spell_failure}%
-          · Speed ${state.equippedArmor.speed_30}
+          AC +${state.equippedArmor.armor_bonus} | Max Dex +${state.equippedArmor.max_dex ?? '—'} | ACP ${state.equippedArmor.armor_check_penalty} | ASF ${state.equippedArmor.arcane_spell_failure}% | Speed ${state.equippedArmor.speed_30}${state.equippedArmor.cost_copper ? ' | '+formatGold(state.equippedArmor.cost_copper) : ''}
         </div>` : ''}
       </div>
       <div>
@@ -1461,7 +1520,7 @@ async function renderExtrasStep(c) {
           ${shieldList.map(a => `<option value="${esc(a.name)}"${a.name===currentShieldName?' selected':''}>${esc(a.name)} (AC+${a.armor_bonus}, ACP ${a.armor_check_penalty})</option>`).join('')}
         </select>
         ${state.equippedShield ? `<div class="text-muted" style="font-size:10px;margin-top:4px;">
-          AC+${state.equippedShield.armor_bonus} · ACP ${state.equippedShield.armor_check_penalty} · ASF ${state.equippedShield.arcane_spell_failure}%
+          AC +${state.equippedShield.armor_bonus} | ACP ${state.equippedShield.armor_check_penalty} | ASF ${state.equippedShield.arcane_spell_failure}%${state.equippedShield.cost_copper ? ' | '+formatGold(state.equippedShield.cost_copper) : ''}
         </div>` : ''}
       </div>
     </div>
@@ -1501,13 +1560,72 @@ async function renderExtrasStep(c) {
     <p class="text-muted" style="font-size:10px;margin-top:6px;">Click a weapon to add/remove. Up to 4 weapons.</p>
   </div>`;
 
-  // ── Misc equipment textarea ────────────────────────────────────────────
-  const miscSection = `
+  // ── Gear picker + gold/encumbrance ─────────────────────────────────────
+  // Auto-set starting gold when class is chosen and no gold set yet
+  if (state.className && !state.startingGoldCp) {
+    const sgGp = CLASS_STARTING_GOLD[state.className] || 0;
+    state.startingGoldCp = sgGp * 100;
+  }
+  const goldInfo = computeGoldInfo();
+  const encInfo  = computeEncumbrance();
+
+  const gearSection = `
   <div class="panel">
-    <div class="panel-title">Other Equipment</div>
-    <p class="text-muted" style="font-size:11px;margin-bottom:8px;">Adventuring gear, magic items, etc. — one item per line.</p>
-    <textarea class="field-input" id="equipment-input" rows="4" style="width:100%;resize:vertical;"
-              placeholder="Backpack&#10;Rope, silk (50 ft.)&#10;Potion of Cure Light Wounds">${state.equipment.join('\n')}</textarea>
+    <div class="panel-title">Adventuring Gear</div>
+    <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+      <div style="flex:1;min-width:140px;">
+        <label class="field-label">Starting Gold</label>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input class="field-input" id="starting-gold-input" type="number" min="0" step="1"
+            value="${Math.floor(state.startingGoldCp / 100)}"
+            onchange="onStartingGoldChange()" style="width:80px;">
+          <span class="text-muted" style="font-size:11px;">gp</span>
+        </div>
+      </div>
+      <div style="text-align:center;min-width:100px;">
+        <div class="text-muted" style="font-size:10px;">Spent</div>
+        <div style="font-size:12px;font-weight:600;">${formatGold(goldInfo.spent)}</div>
+      </div>
+      <div style="text-align:center;min-width:100px;">
+        <div class="text-muted" style="font-size:10px;">Remaining</div>
+        <div style="font-size:12px;font-weight:600;color:${goldInfo.remaining < 0 ? '#c44' : 'inherit'};">${formatGold(goldInfo.remaining)}</div>
+      </div>
+      <div style="text-align:center;min-width:120px;">
+        <div class="text-muted" style="font-size:10px;">Weight / Load</div>
+        <div style="font-size:12px;font-weight:600;">${encInfo.totalWeight.toFixed(1)} lbs. (${encInfo.load})</div>
+        <div class="text-muted" style="font-size:9px;">${encInfo.light}/${encInfo.medium}/${encInfo.heavy}</div>
+      </div>
+    </div>
+
+    <div id="gear-selected" style="margin-bottom:8px;">
+      ${gearSelectedHtml()}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+      <div class="search-wrap" style="flex:1;min-width:160px;">
+        <span class="search-icon">&#128270;</span>
+        <input class="search-input" id="gear-search" placeholder="Search gear catalog..." oninput="filterGearList()">
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${['All','Gear','Alchemical','Tool','Clothing'].map(t =>
+          `<button class="method-tab${(window._gearTypeFilter||'') === (t==='All'?'':t.toLowerCase()) ? ' active' : ''}" onclick="setGearType('${t==='All'?'':t.toLowerCase()}')">${t}</button>`
+        ).join('')}
+      </div>
+    </div>
+    <div class="scroll-list" style="max-height:180px;" id="gear-list">
+      ${gearListHtml()}
+    </div>
+    <div style="margin-top:8px;">
+      <button class="btn btn-sm" onclick="showCustomGearForm()">+ Custom Item</button>
+    </div>
+    <div id="custom-gear-form" style="display:none;margin-top:8px;background:var(--parchment-dark);padding:8px;border-radius:4px;">
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+        <div><label class="field-label">Name</label><input class="field-input" id="cg-name" style="width:140px;"></div>
+        <div><label class="field-label">Cost (gp)</label><input class="field-input" id="cg-cost" type="number" min="0" step="0.01" style="width:70px;"></div>
+        <div><label class="field-label">Weight (lbs)</label><input class="field-input" id="cg-weight" type="number" min="0" step="0.1" style="width:70px;"></div>
+        <button class="btn btn-sm btn-primary" onclick="addCustomGear()">Add</button>
+      </div>
+    </div>
   </div>`;
 
   const noExtras = !talentSection && !spellSection;
@@ -1517,7 +1635,7 @@ async function renderExtrasStep(c) {
   ${noExtras ? `<div class="panel"><p class="text-muted" style="font-size:12px;">No class-specific options for <b>${esc(className || 'this class')}</b>.</p></div>` : ''}
   ${armorSection}
   ${weaponSection}
-  ${miscSection}
+  ${gearSection}
 
   <div class="nav-bar">
     <button class="btn" onclick="prevStep()">← Back</button>
@@ -1587,17 +1705,48 @@ window.toggleWeapon = function(name) {
   document.getElementById('weapon-selected')?.querySelectorAll('.tag-remove').forEach(() => {});
 };
 
+function weaponStatPreview(w) {
+  const final = getFinalScores();
+  const strMod = mod(final.str), dexMod = mod(final.dex);
+  const classRow = state.classRow;
+  const level = state.startLevel;
+  let bab = 0;
+  if (classRow) {
+    if (classRow.bab_progression === 'full') bab = level;
+    else if (classRow.bab_progression === 'three_quarter') bab = Math.floor(level * 3 / 4);
+    else bab = Math.floor(level / 2);
+  }
+  const isFinesse = (w.special || '').toLowerCase().includes('finesse');
+  const isTwoHanded = (w.handedness || '').toLowerCase().includes('two');
+  const isRanged = w.weapon_type === 'ranged';
+  let atkMod, dmgMod, atkLabel, dmgLabel;
+  if (isRanged) {
+    atkMod = dexMod; atkLabel = 'DEX';
+    dmgMod = (w.name || '').toLowerCase().includes('composite') ? strMod : 0;
+    dmgLabel = dmgMod ? 'STR' : '';
+  } else if (isFinesse) {
+    atkMod = Math.max(strMod, dexMod); atkLabel = atkMod === dexMod ? 'DEX' : 'STR';
+    dmgMod = isTwoHanded ? Math.floor(strMod * 1.5) : strMod; dmgLabel = 'STR';
+  } else {
+    atkMod = strMod; atkLabel = 'STR';
+    dmgMod = isTwoHanded ? Math.floor(strMod * 1.5) : strMod; dmgLabel = 'STR';
+  }
+  const atkTotal = bab + atkMod;
+  const fm = v => v >= 0 ? `+${v}` : `${v}`;
+  const dmgStr = (w.damage_medium || '') + (dmgMod ? fm(dmgMod) : '');
+  const costStr = w.cost_copper ? formatGold(w.cost_copper) : (w.cost || '');
+  return `ATK ${fm(atkTotal)} (BAB ${fm(bab)}, ${atkLabel} ${fm(atkMod)}) | DMG ${dmgStr} ${w.damage_type ? esc(w.damage_type.charAt(0)) : ''} | Crit ${w.critical || 'x2'}${w.range_increment ? ' | Rng '+esc(w.range_increment) : ''}${costStr ? ' | '+esc(costStr) : ''}`;
+}
+
 function weaponSelectedHtml() {
   return `<div style="margin-bottom:8px;" id="weapon-selected">
     ${state.weapons.map(w => `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;background:var(--parchment-dark);padding:4px 8px;border-radius:3px;">
-        <span style="flex:1;font-size:12px;"><strong>${esc(w.name)}</strong>
-          ${w.damage_medium ? ` ${esc(w.damage_medium)}` : ''}
-          ${w.critical ? ` ${esc(w.critical)}` : ''}
-          ${w.damage_type ? ` <em>${esc(w.damage_type)}</em>` : ''}
-          ${w.range_increment ? ` · ${esc(w.range_increment)}` : ''}
-        </span>
-        <button class="tag-remove" onclick="removeWeapon(${jsAttr(w.name)})">✕</button>
+      <div style="margin-bottom:4px;background:var(--parchment-dark);padding:6px 8px;border-radius:3px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="flex:1;font-size:12px;font-weight:600;">${esc(w.name)}</span>
+          <button class="tag-remove" onclick="removeWeapon(${jsAttr(w.name)})">x</button>
+        </div>
+        <div class="text-muted" style="font-size:10px;margin-top:2px;">${weaponStatPreview(w)}</div>
       </div>`).join('')}
     ${state.weapons.length === 0 ? '<span class="text-muted" style="font-size:12px;">No weapons selected.</span>' : ''}
   </div>`;
@@ -1638,6 +1787,172 @@ window.clearWeaponFilters = function() {
 window.filterWeapons = function() {
   const list = document.getElementById('weapon-list');
   if (list) list.innerHTML = weaponListHtml(state._weapons || []);
+};
+
+// ── Gold & encumbrance helpers ──────────────────────────────────────────
+function computeGoldInfo() {
+  let spent = 0;
+  if (state.equippedArmor)  spent += state.equippedArmor.cost_copper || 0;
+  if (state.equippedShield) spent += state.equippedShield.cost_copper || 0;
+  for (const w of state.weapons) spent += w.cost_copper || 0;
+  for (const g of state.gearItems) spent += (g.cost_copper || 0) * (g.qty || 1);
+  for (const g of state.customGear) spent += (g.cost_copper || 0) * (g.qty || 1);
+  return { spent, remaining: (state.startingGoldCp || 0) - spent };
+}
+
+function computeEncumbrance() {
+  const final = getFinalScores();
+  let totalWeight = 0;
+  // Armor/shield weight
+  const parseWt = v => { if (!v) return 0; const n = parseFloat(String(v).replace(/[^\d.]/g,'')); return isNaN(n) ? 0 : n; };
+  if (state.equippedArmor)  totalWeight += parseWt(state.equippedArmor.weight);
+  if (state.equippedShield) totalWeight += parseWt(state.equippedShield.weight);
+  for (const w of state.weapons) totalWeight += parseWt(w.weight);
+  for (const g of state.gearItems)  totalWeight += (parseFloat(g.weight) || 0) * (g.qty || 1);
+  for (const g of state.customGear) totalWeight += (parseFloat(g.weight) || 0) * (g.qty || 1);
+  const [light, medium, heavy] = getCarryThresholds(final.str);
+  let load = 'Light';
+  if (totalWeight > heavy)       load = 'Overloaded';
+  else if (totalWeight > medium)  load = 'Heavy';
+  else if (totalWeight > light)   load = 'Medium';
+  return { totalWeight, light, medium, heavy, load };
+}
+
+window.onStartingGoldChange = function() {
+  const inp = document.getElementById('starting-gold-input');
+  if (inp) state.startingGoldCp = Math.max(0, Math.floor(parseFloat(inp.value) || 0)) * 100;
+  refreshGoldDisplay();
+};
+
+function refreshGoldDisplay() {
+  // Light update of gold/encumbrance area without full re-render
+  const goldInfo = computeGoldInfo();
+  const encInfo  = computeEncumbrance();
+  // Try to update in-place; if elements don't exist, skip
+  const selEl = document.getElementById('gear-selected');
+  if (selEl) selEl.innerHTML = gearSelectedHtml();
+}
+
+// ── Gear list & picker ──────────────────────────────────────────────────
+window._gearTypeFilter = '';
+
+function gearSelectedHtml() {
+  const items = [...state.gearItems.map((g, i) => ({...g, _idx: i, _custom: false})),
+                 ...state.customGear.map((g, i) => ({...g, _idx: i, _custom: true}))];
+  if (!items.length) return '<span class="text-muted" style="font-size:12px;">No gear added yet.</span>';
+  return items.map(g => {
+    const costStr = g.cost_copper ? formatGold(g.cost_copper * (g.qty || 1)) : '';
+    const wtStr = g.weight ? `${(parseFloat(g.weight) * (g.qty || 1)).toFixed(1)} lbs.` : '';
+    const removeFunc = g._custom ? 'removeCustomGear' : 'removeGearItem';
+    return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;background:var(--parchment-dark);padding:3px 8px;border-radius:3px;">
+      <span style="flex:1;font-size:11px;">${esc(g.name)}</span>
+      <span class="text-muted" style="font-size:10px;white-space:nowrap;">${costStr}</span>
+      <span class="text-muted" style="font-size:10px;white-space:nowrap;">${wtStr}</span>
+      <button class="btn btn-sm" onclick="changeGearQty(${g._idx},${g._custom?1:0},-1)" style="padding:0 4px;font-size:10px;min-width:0;">-</button>
+      <span style="font-size:11px;min-width:16px;text-align:center;">${g.qty || 1}</span>
+      <button class="btn btn-sm" onclick="changeGearQty(${g._idx},${g._custom?1:0},1)" style="padding:0 4px;font-size:10px;min-width:0;">+</button>
+      <button class="tag-remove" onclick="${removeFunc}(${g._idx})">x</button>
+    </div>`;
+  }).join('');
+}
+
+function gearListHtml() {
+  const gearData = state._gear || [];
+  const q = (document.getElementById('gear-search')?.value || '').toLowerCase();
+  const typeFilter = window._gearTypeFilter || '';
+  return gearData
+    .filter(g => {
+      if (q && !g.name.toLowerCase().includes(q)) return false;
+      if (typeFilter && g.equipment_type !== typeFilter) return false;
+      return true;
+    })
+    .slice(0, 100)
+    .map(g => {
+      const already = state.gearItems.some(gi => gi.equipment_id === g.equipment_id);
+      const costStr = g.cost_copper ? formatGold(g.cost_copper) : (g.cost || '');
+      const wtStr = g.weight ? `${g.weight} lbs.` : '';
+      return `<div class="list-item${already ? ' selected' : ''}" onclick="addGearItem(${g.equipment_id})">
+        <div style="flex:1;min-width:0;">
+          <div class="list-item-name">${esc(g.name)}</div>
+          <div class="list-item-detail">${esc(costStr)}${costStr && wtStr ? ' · ' : ''}${esc(wtStr)}</div>
+        </div>
+        <div class="list-item-type" style="white-space:nowrap;font-size:9px;">${g.equipment_type || ''}</div>
+      </div>`;
+    }).join('') || '<div class="text-muted" style="padding:8px;font-size:12px;">No items match.</div>';
+}
+
+window.setGearType = function(type) {
+  window._gearTypeFilter = type;
+  const list = document.getElementById('gear-list');
+  if (list) list.innerHTML = gearListHtml();
+};
+
+window.filterGearList = function() {
+  const list = document.getElementById('gear-list');
+  if (list) list.innerHTML = gearListHtml();
+};
+
+window.addGearItem = function(equipmentId) {
+  const existing = state.gearItems.find(g => g.equipment_id === equipmentId);
+  if (existing) {
+    existing.qty = (existing.qty || 1) + 1;
+  } else {
+    const g = (state._gear || []).find(g => g.equipment_id === equipmentId);
+    if (!g) return;
+    state.gearItems.push({
+      equipment_id: g.equipment_id,
+      name: g.name,
+      cost_copper: g.cost_copper || 0,
+      weight: g.weight || 0,
+      qty: 1,
+      equipment_type: g.equipment_type || 'gear',
+    });
+  }
+  const selEl = document.getElementById('gear-selected');
+  if (selEl) selEl.innerHTML = gearSelectedHtml();
+  const list = document.getElementById('gear-list');
+  if (list) list.innerHTML = gearListHtml();
+};
+
+window.removeGearItem = function(idx) {
+  state.gearItems.splice(idx, 1);
+  const selEl = document.getElementById('gear-selected');
+  if (selEl) selEl.innerHTML = gearSelectedHtml();
+  const list = document.getElementById('gear-list');
+  if (list) list.innerHTML = gearListHtml();
+};
+
+window.removeCustomGear = function(idx) {
+  state.customGear.splice(idx, 1);
+  const selEl = document.getElementById('gear-selected');
+  if (selEl) selEl.innerHTML = gearSelectedHtml();
+};
+
+window.changeGearQty = function(idx, isCustom, delta) {
+  const arr = isCustom ? state.customGear : state.gearItems;
+  if (!arr[idx]) return;
+  arr[idx].qty = Math.max(1, (arr[idx].qty || 1) + delta);
+  const selEl = document.getElementById('gear-selected');
+  if (selEl) selEl.innerHTML = gearSelectedHtml();
+};
+
+window.showCustomGearForm = function() {
+  const form = document.getElementById('custom-gear-form');
+  if (form) form.style.display = form.style.display === 'none' ? '' : 'none';
+};
+
+window.addCustomGear = function() {
+  const name = (document.getElementById('cg-name')?.value || '').trim();
+  if (!name) return;
+  const costGp = parseFloat(document.getElementById('cg-cost')?.value || '0') || 0;
+  const weight = parseFloat(document.getElementById('cg-weight')?.value || '0') || 0;
+  state.customGear.push({ name, cost_copper: Math.round(costGp * 100), weight, qty: 1 });
+  // Clear form
+  const nameEl = document.getElementById('cg-name'); if (nameEl) nameEl.value = '';
+  const costEl = document.getElementById('cg-cost'); if (costEl) costEl.value = '';
+  const wtEl   = document.getElementById('cg-weight'); if (wtEl) wtEl.value = '';
+  const selEl = document.getElementById('gear-selected');
+  if (selEl) selEl.innerHTML = gearSelectedHtml();
 };
 
 window.toggleTalent = function(name) {
@@ -1974,9 +2289,22 @@ async function renderReviewStep(c) {
           <div class="review-row"><span class="review-key">Will</span><span class="review-val">${fm(will)}</span></div>
           <div class="review-row"><span class="review-key">CMB</span><span class="review-val">${fm(bab+strMod)}</span></div>
           <div class="review-row"><span class="review-key">CMD</span><span class="review-val">${10+bab+strMod+dexMod}</span></div>
-          ${state.equippedArmor ? `<div class="review-row"><span class="review-key">Armor</span><span class="review-val">${esc(state.equippedArmor.name)}</span></div>` : ''}
-          ${state.equippedShield ? `<div class="review-row"><span class="review-key">Shield</span><span class="review-val">${esc(state.equippedShield.name)}</span></div>` : ''}
-          ${state.weapons.length ? state.weapons.map(w => `<div class="review-row"><span class="review-key">Weapon</span><span class="review-val">${esc(w.name)} ${w.damage_medium||''} ${w.critical||''}</span></div>`).join('') : ''}
+          ${state.equippedArmor ? `<div class="review-row"><span class="review-key">Armor</span><span class="review-val">${esc(state.equippedArmor.name)} (AC +${state.equippedArmor.armor_bonus}, ACP ${state.equippedArmor.armor_check_penalty})</span></div>` : ''}
+          ${state.equippedShield ? `<div class="review-row"><span class="review-key">Shield</span><span class="review-val">${esc(state.equippedShield.name)} (AC +${state.equippedShield.armor_bonus}, ACP ${state.equippedShield.armor_check_penalty})</span></div>` : ''}
+          ${state.weapons.length ? state.weapons.map(w => `<div class="review-row"><span class="review-key">Weapon</span><span class="review-val" style="font-size:10px;">${weaponStatPreview(w)}</span></div>`).join('') : ''}
+        </div>
+
+        <div class="review-section">
+          <div class="review-section-title">Equipment</div>
+          ${(() => {
+            const goldInfo = computeGoldInfo();
+            const encInfo = computeEncumbrance();
+            const allGear = [...state.gearItems, ...state.customGear];
+            return `
+              <div class="review-row"><span class="review-key">Gold</span><span class="review-val">${formatGold(goldInfo.remaining)} remaining (of ${formatGold(state.startingGoldCp)})</span></div>
+              <div class="review-row"><span class="review-key">Weight</span><span class="review-val">${encInfo.totalWeight.toFixed(1)} lbs. — ${encInfo.load} Load</span></div>
+              ${allGear.length ? allGear.map(g => `<div class="review-row"><span class="review-val" style="font-size:10px;">${esc(g.name)}${g.qty > 1 ? ' x'+g.qty : ''}${g.cost_copper ? ' ('+formatGold(g.cost_copper * (g.qty||1))+')' : ''}</span></div>`).join('') : '<div class="text-muted" style="font-size:11px;">No gear</div>'}`;
+          })()}
         </div>
 
         <div class="review-section">
@@ -2058,11 +2386,10 @@ function syncCurrentStepState() {
     if (flex) state.flexBonus = flex.value || null;
   }
   if (state.currentStep === 3) {
-    // Save equipment from textarea
-    const equip = document.getElementById('equipment-input');
-    if (equip) {
-      state.equipment = equip.value.split('\n').map(s => s.trim()).filter(Boolean);
-    }
+    // Gear state is already saved in-place by event handlers (no textarea to sync)
+    // Sync starting gold input
+    const goldInp = document.getElementById('starting-gold-input');
+    if (goldInp) state.startingGoldCp = Math.max(0, Math.floor(parseFloat(goldInp.value) || 0)) * 100;
   }
 }
 
@@ -2126,7 +2453,20 @@ function buildCharDict() {
     feat_details: state.feats.map(f => ({ name: f.name, level: f.level, method: f.method })),
     traits: [...state.traits],
     skills: { ...state.skillRanks },
-    equipment: [...state.equipment],
+    equipment: [
+      ...state.gearItems.map(g => g.qty > 1 ? `${g.name} (x${g.qty})` : g.name),
+      ...state.customGear.map(g => g.qty > 1 ? `${g.name} (x${g.qty})` : g.name),
+      ...state.equipment,
+    ],
+    gear_items: state.gearItems.map(g => ({
+      equipment_id: g.equipment_id, name: g.name,
+      cost_copper: g.cost_copper, weight: g.weight,
+      qty: g.qty, equipment_type: g.equipment_type,
+    })),
+    custom_gear: state.customGear.map(g => ({
+      name: g.name, cost_copper: g.cost_copper, weight: g.weight, qty: g.qty,
+    })),
+    starting_gold_cp: state.startingGoldCp || 0,
     equipped_armor:  state.equippedArmor  || null,
     equipped_shield: state.equippedShield || null,
     weapons: [...state.weapons],
@@ -2239,6 +2579,9 @@ window.loadChar = async function(id) {
   state.spells         = char.spells           || {};
   state.asiChoices     = char.asi_choices      || {};
   state.equipment      = char.equipment        || [];
+  state.gearItems      = char.gear_items       || [];
+  state.customGear     = char.custom_gear      || [];
+  state.startingGoldCp = char.starting_gold_cp || 0;
   state.equippedArmor  = char.equipped_armor   || null;
   state.equippedShield = char.equipped_shield  || null;
   state.weapons        = char.weapons          || [];

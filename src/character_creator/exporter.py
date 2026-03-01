@@ -15,6 +15,55 @@ CHARS_DIR = ROOT / "characters"
 
 _PLACEHOLDER = "__CHAR_DATA__"
 
+# Skills that take Armor Check Penalty (ACP)
+ACP_SKILLS = frozenset({
+    "Acrobatics", "Climb", "Disable Device", "Escape Artist",
+    "Fly", "Ride", "Sleight of Hand", "Stealth", "Swim",
+})
+
+# PF1e carry capacity table (STR score → light/medium/heavy thresholds in lbs)
+# Index 0 unused; indices 1-20 correspond to STR 1-20
+_CARRY_CAPACITY = [
+    (0, 0, 0),       # STR 0 (unused)
+    (3, 6, 10),      # STR 1
+    (6, 13, 20),     # STR 2
+    (10, 20, 30),    # STR 3
+    (13, 26, 40),    # STR 4
+    (16, 33, 50),    # STR 5
+    (20, 40, 60),    # STR 6
+    (23, 46, 70),    # STR 7
+    (26, 53, 80),    # STR 8
+    (30, 60, 90),    # STR 9
+    (33, 66, 100),   # STR 10
+    (38, 76, 115),   # STR 11
+    (43, 86, 130),   # STR 12
+    (50, 100, 150),  # STR 13
+    (58, 116, 175),  # STR 14
+    (66, 133, 200),  # STR 15
+    (76, 153, 230),  # STR 16
+    (86, 173, 260),  # STR 17
+    (100, 200, 300), # STR 18
+    (116, 233, 350), # STR 19
+    (133, 266, 400), # STR 20
+]
+
+
+def _get_carry_thresholds(str_score: int) -> tuple[int, int, int]:
+    """Return (light, medium, heavy) carry thresholds for a STR score."""
+    if str_score <= 0:
+        return (0, 0, 0)
+    if str_score <= 20:
+        return _CARRY_CAPACITY[str_score]
+    # Above 20: each +10 STR quadruples capacity; interpolate
+    base = str_score % 10
+    if base == 0:
+        base = 10
+    multiplier = 4 ** ((str_score - base) // 10)
+    if base <= 0:
+        base = 10
+    base_cap = _CARRY_CAPACITY[min(base, 20)]
+    return (base_cap[0] * multiplier, base_cap[1] * multiplier, base_cap[2] * multiplier)
+
 
 def _compute_class_resources(cls_levels: list, mods: dict) -> list:
     """Return list of class resource pool dicts for display on the sheet."""
@@ -150,6 +199,22 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
     hp_max = get_hp(cls_levels, mods["con"], favored_class_hp, db)
     hp_current = char.get("hp_current", hp_max)
 
+    # ── Armor Check Penalty & Arcane Spell Failure ─────────────────────
+    armor_acp = 0
+    shield_acp = 0
+    armor_asf = 0
+    shield_asf = 0
+
+    if equipped_armor:
+        armor_acp = equipped_armor.get("armor_check_penalty", 0) or 0
+        armor_asf = equipped_armor.get("arcane_spell_failure", 0) or 0
+    if equipped_shield:
+        shield_acp = equipped_shield.get("armor_check_penalty", 0) or 0
+        shield_asf = equipped_shield.get("arcane_spell_failure", 0) or 0
+
+    combined_acp = armor_acp + shield_acp  # negative values (e.g., -4 + -2 = -6)
+    combined_asf = armor_asf + shield_asf
+
     # Skills
     skill_totals = {}
     class_skill_names: set[str] = set()
@@ -166,12 +231,20 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         ab = _ability_for_skill(sk_name)
         ab_mod = mods.get(ab, 0)
         trained_bonus = 3 if (ranks > 0 and sk_name.lower() in class_skill_names) else 0
+        base_total = ranks + ab_mod + trained_bonus
+
+        # Apply ACP to physical skills
+        acp_applied = 0
+        if sk_name in ACP_SKILLS and combined_acp != 0:
+            acp_applied = combined_acp  # ACP is already negative
+
         skill_totals[sk_name] = {
             "ranks": ranks,
             "ability": ab,
             "ability_mod": ab_mod,
             "trained_bonus": trained_bonus,
-            "total": ranks + ab_mod + trained_bonus,
+            "acp": acp_applied,
+            "total": base_total + acp_applied,
             "is_class_skill": sk_name.lower() in class_skill_names,
         }
 
@@ -217,15 +290,25 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         w_handedness = (w.get("handedness") or "").lower()
         # Melee: STR to attack and damage; finesse weapons may use DEX
         is_finesse = "finesse" in (w.get("special") or "").lower()
+        is_two_handed = w_handedness in ("two-handed", "two", "2h", "two-hand")
         if w.get("weapon_type") == "ranged":
             atk_mod = mods["dex"]
-            dmg_mod = 0  # composite bows use STR; simplified here
+            # Composite bows: add STR to damage if "composite" in name
+            if "composite" in (w.get("name") or "").lower():
+                dmg_mod = mods["str"]
+            else:
+                dmg_mod = 0
         elif is_finesse:
             atk_mod = max(mods["str"], mods["dex"])
             dmg_mod = mods["str"]
+            if is_two_handed:
+                dmg_mod = int(mods["str"] * 1.5)
         else:
             atk_mod = mods["str"]
-            dmg_mod = mods["str"]
+            if is_two_handed:
+                dmg_mod = int(mods["str"] * 1.5)
+            else:
+                dmg_mod = mods["str"]
 
         atk_bonus = bab + atk_mod
         # Build iterative attack string (iteratives based on BAB, not total)
@@ -247,11 +330,88 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
             "name": w_name,
             "attack": atk_str,
             "damage": dmg_str,
-            "critical": w.get("critical") or "×2",
-            "range": w.get("range_increment") or "—",
+            "critical": w.get("critical") or "x2",
+            "range": w.get("range_increment") or "",
             "type": w.get("damage_type") or "",
             "special": w.get("special") or "",
         })
+
+    # ── Encumbrance ────────────────────────────────────────────────────
+    total_weight = 0.0
+
+    # Armor weight
+    if equipped_armor:
+        aw = equipped_armor.get("weight")
+        if aw:
+            try:
+                total_weight += float(str(aw).replace(" lbs.", "").replace(" lb.", "").replace(",", "").strip())
+            except (ValueError, TypeError):
+                pass
+    # Shield weight
+    if equipped_shield:
+        sw = equipped_shield.get("weight")
+        if sw:
+            try:
+                total_weight += float(str(sw).replace(" lbs.", "").replace(" lb.", "").replace(",", "").strip())
+            except (ValueError, TypeError):
+                pass
+    # Weapon weights
+    for w in char.get("weapons", []):
+        ww = w.get("weight")
+        if ww:
+            try:
+                total_weight += float(str(ww).replace(" lbs.", "").replace(" lb.", "").replace(",", "").strip())
+            except (ValueError, TypeError):
+                pass
+    # Gear items (structured format with quantities)
+    for item in char.get("gear_items", []):
+        iw = item.get("weight")
+        qty = item.get("qty", 1) or 1
+        if iw:
+            try:
+                total_weight += float(iw) * qty
+            except (ValueError, TypeError):
+                pass
+    # Custom gear
+    for item in char.get("custom_gear", []):
+        iw = item.get("weight")
+        qty = item.get("qty", 1) or 1
+        if iw:
+            try:
+                total_weight += float(iw) * qty
+            except (ValueError, TypeError):
+                pass
+
+    str_score = scores.get("str", 10)
+    light, medium, heavy = _get_carry_thresholds(str_score)
+    if total_weight <= light:
+        load = "Light"
+    elif total_weight <= medium:
+        load = "Medium"
+    elif total_weight <= heavy:
+        load = "Heavy"
+    else:
+        load = "Overloaded"
+
+    # ── Gold tracking ──────────────────────────────────────────────────
+    starting_gold_cp = char.get("starting_gold_cp", 0) or 0
+    spent_cp = 0
+    # Armor cost
+    if equipped_armor:
+        spent_cp += equipped_armor.get("cost_copper", 0) or 0
+    if equipped_shield:
+        spent_cp += equipped_shield.get("cost_copper", 0) or 0
+    # Weapon costs
+    for w in char.get("weapons", []):
+        spent_cp += w.get("cost_copper", 0) or 0
+    # Gear items
+    for item in char.get("gear_items", []):
+        qty = item.get("qty", 1) or 1
+        spent_cp += (item.get("cost_copper", 0) or 0) * qty
+    for item in char.get("custom_gear", []):
+        qty = item.get("qty", 1) or 1
+        spent_cp += (item.get("cost_copper", 0) or 0) * qty
+    gold_remaining_cp = max(0, starting_gold_cp - spent_cp)
 
     # Spell slots
     from src.rules_engine.progression import get_spell_slots
@@ -287,6 +447,17 @@ def _compute_derived(char: dict, db: "RulesDB") -> dict:
         "weapons_derived": weapons_derived,
         "spell_slots": spell_slots_all,
         "class_resources": _compute_class_resources(cls_levels, mods),
+        "armor_check_penalty": combined_acp,
+        "arcane_spell_failure": combined_asf,
+        "encumbrance": {
+            "total_weight": round(total_weight, 1),
+            "light": light,
+            "medium": medium,
+            "heavy": heavy,
+            "load": load,
+        },
+        "gold_remaining_cp": gold_remaining_cp,
+        "starting_gold_cp": starting_gold_cp,
     }
 
 
