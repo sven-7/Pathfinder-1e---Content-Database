@@ -777,10 +777,16 @@ def _clean_source_book_text(value: str) -> str:
         return ""
     cleaned = re.sub(r"\s+", " ", cleaned)
     cleaned = re.sub(r"^\s*source\s*[:\-]?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*-\s*archives of nethys.*$", "", cleaned, flags=re.IGNORECASE).strip()
 
     # Keep only the first source segment when a page lists multiple semicolon/pipe-delimited references.
     cleaned = re.split(r"\s*[;|]\s*", cleaned, maxsplit=1)[0].strip()
-    cleaned = re.split(r"\s+\b(?:and|or)\b\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+    and_or_parts = re.split(r"\s+\b(?:and|or)\b\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
+    if len(and_or_parts) == 2:
+        left = and_or_parts[0].strip()
+        left_key = _normalize_book_key(left)
+        if left_key in _BOOK_ALIAS_MAP or left_key in _APPROVED_BOOK_SET:
+            cleaned = left
 
     # Remove trailing page references and parenthetical edition labels.
     cleaned = re.sub(r"\s*\((?:pfrpg|pathfinder[^)]*)\)\s*$", "", cleaned, flags=re.IGNORECASE).strip()
@@ -797,17 +803,55 @@ def _clean_source_book_text(value: str) -> str:
 def _looks_like_book_title(value: str) -> bool:
     if not value:
         return False
-    letters = re.findall(r"[A-Za-z]", value)
+    candidate = value.strip()
+    if not candidate:
+        return False
+    if candidate.lower() in {"unknown", "n/a", "na"}:
+        return False
+    if not re.match(r"^[A-Za-z0-9]", candidate):
+        return False
+    if len(candidate) > 120:
+        return False
+    if candidate.count(",") >= 2:
+        return False
+    if re.search(r"[!?]", candidate):
+        return False
+
+    letters = re.findall(r"[A-Za-z]", candidate)
     if len(letters) < 4:
         return False
-    if re.search(r"\d{3,}", value):
+    words = re.findall(r"[A-Za-z][A-Za-z'/-]*", candidate)
+    if len(words) < 1 or len(words) > 14:
         return False
-    # Reject obvious sentence-like noise while accepting titles with punctuation.
-    lowered = value.lower()
-    if any(token in lowered for token in (" as its ", " while ", " takes an additional ", " immediately extinguished")):
+    lowered = candidate.lower()
+    sentence_markers = (
+        " as its ",
+        " while ",
+        " takes an additional ",
+        " immediately extinguished",
+        " damage ",
+        " duration ",
+        " range ",
+        " target ",
+        " casting ",
+        " components ",
+        " creature ",
+        " creatures ",
+        " spell ",
+        " spells ",
+        " level ",
+        " levels ",
+        " effect ",
+    )
+    if any(marker in f" {lowered} " for marker in sentence_markers):
         return False
-    words = re.findall(r"[A-Za-z][A-Za-z'/-]*", value)
-    if len(words) < 1:
+
+    lowercase_ok = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"}
+    titleish = 0
+    for word in words:
+        if word[0].isupper() or word[0].isdigit() or word.lower() in lowercase_ok:
+            titleish += 1
+    if titleish / len(words) < 0.7:
         return False
     return True
 
@@ -942,11 +986,13 @@ def _apply_allowlist_filters(records: list[dict]) -> tuple[list[dict], list[dict
     unresolved_source_books: set[str] = set()
     seen_books: set[str] = set()
     seen_classes: set[str] = set()
+    class_scope_book_exemptions = 0
     policy_counts = {
         "ui_enabled": 0,
         "ui_deferred": 0,
         "class_not_in_allowlist": 0,
         "book_not_in_allowlist": 0,
+        "class_scope_book_exempted": 0,
         "source_unresolved": 0,
     }
     dropped_counts = {"class_not_approved": 0, "book_not_approved": 0}  # retained for backward-compatible reporting.
@@ -955,6 +1001,8 @@ def _apply_allowlist_filters(records: list[dict]) -> tuple[list[dict], list[dict
         ctype = str(row.get("content_type", ""))
         payload = dict(row.get("payload", {}))
         source_book_raw = str(row.get("source_book", "") or "")
+        source_book_clean = _clean_source_book_text(source_book_raw)
+        source_has_value = bool(source_book_clean and source_book_clean.lower() != "unknown")
         class_name = ""
 
         if ctype in _CLASS_SCOPED_TYPES:
@@ -968,8 +1016,8 @@ def _apply_allowlist_filters(records: list[dict]) -> tuple[list[dict], list[dict
         canonical_book = _canonical_book_name(source_book_raw)
         if canonical_book:
             seen_books.add(canonical_book)
-        elif source_book_raw and source_book_raw != "Unknown":
-            unresolved_source_books.add(source_book_raw)
+        elif source_has_value:
+            unresolved_source_books.add(source_book_clean)
 
         reasons: list[str] = []
         class_approved = True
@@ -980,15 +1028,23 @@ def _apply_allowlist_filters(records: list[dict]) -> tuple[list[dict], list[dict
                 policy_counts["class_not_in_allowlist"] += 1
 
         book_approved = bool(canonical_book and canonical_book.lower() in _APPROVED_BOOK_SET)
-        if not book_approved:
+        class_scope_book_exempted = ctype in _CLASS_SCOPED_TYPES and class_approved and not book_approved
+        if class_scope_book_exempted:
+            reasons.append("class_scope_book_exempted")
+            policy_counts["class_scope_book_exempted"] += 1
+            class_scope_book_exemptions += 1
+        elif not book_approved and not source_has_value:
             reasons.append("book_not_in_allowlist")
             policy_counts["book_not_in_allowlist"] += 1
 
-        if source_book_raw and source_book_raw != "Unknown" and canonical_book is None:
+        if source_has_value and canonical_book is None:
             reasons.append("source_unresolved")
             policy_counts["source_unresolved"] += 1
+        elif not book_approved and not class_scope_book_exempted and canonical_book:
+            reasons.append("book_not_in_allowlist")
+            policy_counts["book_not_in_allowlist"] += 1
 
-        final_source_book = canonical_book or source_book_raw or "Unknown"
+        final_source_book = canonical_book or "Unknown"
         ui_enabled = class_approved and (book_approved or ctype in _CLASS_SCOPED_TYPES)
         if ui_enabled:
             policy_counts["ui_enabled"] += 1
@@ -1027,15 +1083,17 @@ def _apply_allowlist_filters(records: list[dict]) -> tuple[list[dict], list[dict
         "ingested_classes_total": len(seen_classes),
         "ingested_classes": sorted(seen_classes),
         "missing_classes": sorted(set(_APPROVED_CLASS_NAMES) - seen_classes),
+        "missing_classes_count": len(set(_APPROVED_CLASS_NAMES) - seen_classes),
         "approved_books_total": len(_APPROVED_BOOKS),
         "seen_books_total": len(seen_books),
         "seen_books": sorted(seen_books),
         "missing_books": sorted(set(_APPROVED_BOOKS) - seen_books),
+        "missing_books_count": len(set(_APPROVED_BOOKS) - seen_books),
         "unresolved_source_books_total": len(unresolved_source_books),
         "unresolved_source_books": sorted(unresolved_source_books)[:50],
         "policy_counts": policy_counts,
         "dropped_counts": dropped_counts,
-        "class_scope_book_exemptions": 0,
+        "class_scope_book_exemptions": class_scope_book_exemptions,
     }
     return filtered, policy_logs, coverage
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from app.models.contracts import (
     AttackLineV2,
@@ -27,6 +28,13 @@ class ClassRule:
 class ArmorRule:
     armor_bonus: int
     max_dex: int | None
+    armor_check_penalty: int = 0
+
+
+@dataclass(frozen=True)
+class ShieldRule:
+    shield_bonus: int
+    armor_check_penalty: int = 0
 
 
 @dataclass(frozen=True)
@@ -69,11 +77,108 @@ _CLASS_RULES = {
             "Use Magic Device",
         },
     ),
+    "fighter": ClassRule(
+        hit_die=10,
+        bab_progression="full",
+        fort_progression="good",
+        ref_progression="poor",
+        will_progression="poor",
+        class_skills={
+            "Climb",
+            "Craft",
+            "Handle Animal",
+            "Intimidate",
+            "Knowledge (dungeoneering)",
+            "Knowledge (engineering)",
+            "Profession",
+            "Ride",
+            "Survival",
+            "Swim",
+        },
+    ),
+    "rogue": ClassRule(
+        hit_die=8,
+        bab_progression="three_quarter",
+        fort_progression="poor",
+        ref_progression="good",
+        will_progression="poor",
+        class_skills={
+            "Acrobatics",
+            "Appraise",
+            "Bluff",
+            "Climb",
+            "Craft",
+            "Diplomacy",
+            "Disable Device",
+            "Disguise",
+            "Escape Artist",
+            "Intimidate",
+            "Knowledge (dungeoneering)",
+            "Linguistics",
+            "Perception",
+            "Perform",
+            "Profession",
+            "Sense Motive",
+            "Sleight of Hand",
+            "Stealth",
+            "Swim",
+            "Use Magic Device",
+        },
+    ),
+    "wizard": ClassRule(
+        hit_die=6,
+        bab_progression="half",
+        fort_progression="poor",
+        ref_progression="poor",
+        will_progression="good",
+        class_skills={
+            "Appraise",
+            "Craft",
+            "Fly",
+            "Knowledge (all)",
+            "Linguistics",
+            "Profession",
+            "Spellcraft",
+        },
+    ),
+    "ranger": ClassRule(
+        hit_die=10,
+        bab_progression="full",
+        fort_progression="good",
+        ref_progression="good",
+        will_progression="poor",
+        class_skills={
+            "Climb",
+            "Craft",
+            "Handle Animal",
+            "Heal",
+            "Intimidate",
+            "Knowledge (dungeoneering)",
+            "Knowledge (geography)",
+            "Knowledge (nature)",
+            "Perception",
+            "Profession",
+            "Ride",
+            "Spellcraft",
+            "Stealth",
+            "Survival",
+            "Swim",
+        },
+    ),
 }
 
 
 _ARMOR_RULES = {
-    "studded leather": ArmorRule(armor_bonus=3, max_dex=5),
+    "studded leather": ArmorRule(armor_bonus=3, max_dex=5, armor_check_penalty=-1),
+    "chain shirt": ArmorRule(armor_bonus=4, max_dex=4, armor_check_penalty=-2),
+    "scale mail": ArmorRule(armor_bonus=5, max_dex=3, armor_check_penalty=-4),
+}
+
+
+_SHIELD_RULES = {
+    "buckler": ShieldRule(shield_bonus=1, armor_check_penalty=-1),
+    "light wooden shield": ShieldRule(shield_bonus=1, armor_check_penalty=-1),
+    "heavy wooden shield": ShieldRule(shield_bonus=2, armor_check_penalty=-2),
 }
 
 
@@ -84,6 +189,41 @@ _WEAPON_RULES = {
         damage_medium="1d6",
         critical="18-20/x2",
         finesse_eligible=True,
+    ),
+    "dagger": WeaponRule(
+        weapon_type="melee",
+        handedness="light",
+        damage_medium="1d4",
+        critical="19-20/x2",
+        finesse_eligible=True,
+    ),
+    "longsword": WeaponRule(
+        weapon_type="melee",
+        handedness="one-handed",
+        damage_medium="1d8",
+        critical="19-20/x2",
+        finesse_eligible=False,
+    ),
+    "greatsword": WeaponRule(
+        weapon_type="melee",
+        handedness="two-handed",
+        damage_medium="2d6",
+        critical="19-20/x2",
+        finesse_eligible=False,
+    ),
+    "shortbow": WeaponRule(
+        weapon_type="ranged",
+        handedness="two-handed",
+        damage_medium="1d6",
+        critical="x3",
+        finesse_eligible=False,
+    ),
+    "longbow": WeaponRule(
+        weapon_type="ranged",
+        handedness="two-handed",
+        damage_medium="1d8",
+        critical="x3",
+        finesse_eligible=False,
     ),
 }
 
@@ -113,6 +253,38 @@ _SKILL_ABILITIES = {
     "Survival": "wis",
     "Swim": "str",
     "Use Magic Device": "cha",
+}
+
+_ARMOR_CHECK_SKILLS = {
+    "Acrobatics",
+    "Climb",
+    "Escape Artist",
+    "Ride",
+    "Sleight of Hand",
+    "Stealth",
+    "Swim",
+}
+
+_ABILITY_LABELS = {
+    "str": "Str",
+    "dex": "Dex",
+    "con": "Con",
+    "int": "Int",
+    "wis": "Wis",
+    "cha": "Cha",
+}
+
+_FEAT_PREREQ_RULES: dict[str, dict[str, Any]] = {
+    "weapon finesse": {"bab": 1},
+    "weapon focus": {"bab": 1, "weapon": True},
+    "point-blank shot": {},
+    "rapid shot": {"abilities": {"dex": 13}, "feats": ("point-blank shot",)},
+    "dodge": {"abilities": {"dex": 13}},
+    "mobility": {"abilities": {"dex": 13}, "feats": ("dodge",)},
+    "spring attack": {"abilities": {"dex": 13}, "bab": 4, "feats": ("dodge", "mobility")},
+    "power attack": {"abilities": {"str": 13}},
+    "cleave": {"abilities": {"str": 13}, "feats": ("power attack",)},
+    "great cleave": {"abilities": {"str": 13}, "bab": 4, "feats": ("power attack", "cleave")},
 }
 
 
@@ -174,41 +346,75 @@ def _investigator_spell_slots(level: int, int_mod: int) -> dict[str, int]:
     return out
 
 
-def evaluate_feat_prerequisites(character: CharacterV2, total_bab: int | None = None) -> list[FeatPrereqResultV2]:
-    if total_bab is None:
-        total_bab = 0
-        for cl in character.class_levels:
-            class_rule = _CLASS_RULES.get(_norm(cl.class_name))
-            progression = class_rule.bab_progression if class_rule else "half"
-            total_bab += _bab_for_level(progression, cl.level)
+def _bab_by_character_level(character: CharacterV2) -> dict[int, int]:
+    bab_by_level: dict[int, int] = {}
+    total_bab = 0
+    character_level = 0
+    for cl in character.class_levels:
+        rule = _class_rule_or_default(cl.class_name)
+        prior = 0
+        for class_level in range(1, cl.level + 1):
+            current = _bab_for_level(rule.bab_progression, class_level)
+            total_bab += current - prior
+            prior = current
+            character_level += 1
+            bab_by_level[character_level] = total_bab
+    return bab_by_level
 
-    feat_names = {_norm(f.name) for f in character.feats}
+
+def _display_feat_name(feat_name: str) -> str:
+    return feat_name.title()
+
+
+def evaluate_feat_prerequisites(character: CharacterV2, total_bab: int | None = None) -> list[FeatPrereqResultV2]:
+    bab_by_level = _bab_by_character_level(character)
+    if total_bab is None:
+        total_bab = bab_by_level.get(max(bab_by_level.keys(), default=0), 0)
+
     has_equipped_weapon = any(eq.kind == "weapon" for eq in character.equipment)
     results: list[FeatPrereqResultV2] = []
+    unlocked_feats: set[str] = set()
 
-    for feat in sorted(character.feats, key=lambda f: (f.level_gained, _norm(f.name))):
+    ordered_feats = sorted(enumerate(character.feats), key=lambda item: (item[1].level_gained, item[0]))
+    max_character_level = max(bab_by_level.keys(), default=0)
+
+    for _, feat in ordered_feats:
         name_norm = _norm(feat.name)
         missing: list[str] = []
+        rule = _FEAT_PREREQ_RULES.get(name_norm, {})
 
-        if name_norm == "weapon finesse":
-            if total_bab < 1:
-                missing.append("Base attack bonus +1")
-        elif name_norm == "weapon focus":
-            if total_bab < 1:
-                missing.append("Base attack bonus +1")
-            if not has_equipped_weapon:
-                missing.append("Proficiency with selected weapon")
-        elif name_norm == "rapid shot":
-            if character.ability_scores.dex < 13:
-                missing.append("Dex 13")
-            if "point-blank shot" not in feat_names:
-                missing.append("Point-Blank Shot")
+        feat_bab = total_bab
+        if max_character_level > 0:
+            target_level = min(max(1, feat.level_gained), max_character_level)
+            feat_bab = bab_by_level.get(target_level, total_bab)
+
+        min_bab = int(rule.get("bab", 0))
+        if feat_bab < min_bab:
+            missing.append(f"Base attack bonus +{min_bab}")
+
+        ability_rules: dict[str, int] = rule.get("abilities", {})
+        for ability, min_value in ability_rules.items():
+            score = int(getattr(character.ability_scores, ability))
+            if score < int(min_value):
+                missing.append(f"{_ABILITY_LABELS.get(ability, ability.title())} {int(min_value)}")
+
+        if bool(rule.get("weapon")) and not has_equipped_weapon:
+            missing.append("Proficiency with selected weapon")
+
+        required_feats: tuple[str, ...] = tuple(rule.get("feats", ()))
+        for required in required_feats:
+            if required not in unlocked_feats:
+                missing.append(_display_feat_name(required))
+
+        is_valid = len(missing) == 0
+        if is_valid:
+            unlocked_feats.add(name_norm)
 
         results.append(
             FeatPrereqResultV2(
                 feat_name=feat.name,
                 level_gained=feat.level_gained,
-                valid=len(missing) == 0,
+                valid=is_valid,
                 missing=missing,
             )
         )
@@ -321,20 +527,40 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
 
     armor_bonus = 0
     armor_max_dex: int | None = None
+    armor_check_penalty = 0
+    shield_bonus = 0
+    shield_check_penalty = 0
+
+    best_armor_score = -1
+    best_shield_score = -1
     for gear in character.equipment:
-        if gear.kind != "armor":
-            continue
-        armor = _ARMOR_RULES.get(_norm(gear.name))
-        if not armor:
-            continue
-        armor_bonus += armor.armor_bonus
-        if armor.max_dex is not None:
-            armor_max_dex = armor.max_dex if armor_max_dex is None else min(armor_max_dex, armor.max_dex)
+        gear_name = _norm(gear.name)
+        if gear.kind == "armor":
+            armor = _ARMOR_RULES.get(gear_name)
+            if not armor:
+                continue
+            score = armor.armor_bonus * 10 + (armor.max_dex if armor.max_dex is not None else 99)
+            if score > best_armor_score:
+                best_armor_score = score
+                armor_bonus = armor.armor_bonus
+                armor_max_dex = armor.max_dex
+                armor_check_penalty = armor.armor_check_penalty
+        elif gear.kind == "shield":
+            shield = _SHIELD_RULES.get(gear_name)
+            if not shield:
+                continue
+            score = shield.shield_bonus
+            if score > best_shield_score:
+                best_shield_score = score
+                shield_bonus = shield.shield_bonus
+                shield_check_penalty = shield.armor_check_penalty
+
+    total_armor_check_penalty = armor_check_penalty + shield_check_penalty
 
     dex_to_ac = mods["dex"] if armor_max_dex is None else min(mods["dex"], armor_max_dex)
-    ac_total = 10 + armor_bonus + dex_to_ac + ac_misc
+    ac_total = 10 + armor_bonus + shield_bonus + dex_to_ac + ac_misc
     ac_touch = 10 + dex_to_ac + ac_misc
-    ac_flat_footed = 10 + armor_bonus + ac_misc
+    ac_flat_footed = 10 + armor_bonus + shield_bonus + ac_misc
 
     cmb = bab + mods["str"] + cmb_misc
     cmd = 10 + bab + mods["str"] + mods["dex"] + cmd_misc
@@ -344,7 +570,15 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     breakdown.append(BreakdownLineV2(key="Ref(total)", value=ref, source="base + DEX + misc"))
     breakdown.append(BreakdownLineV2(key="Will(total)", value=will, source="base + WIS + misc"))
     breakdown.append(BreakdownLineV2(key="HP(total)", value=hp_max, source="class hit dice + CON + misc"))
-    breakdown.append(BreakdownLineV2(key="AC(total)", value=ac_total, source="10 + armor + DEX + misc"))
+    breakdown.append(BreakdownLineV2(key="AC(total)", value=ac_total, source="10 + armor + shield + DEX + misc"))
+    if total_armor_check_penalty:
+        breakdown.append(
+            BreakdownLineV2(
+                key="ArmorCheckPenalty",
+                value=total_armor_check_penalty,
+                source="equipped armor/shield",
+            )
+        )
     breakdown.append(BreakdownLineV2(key="Initiative", value=initiative, source="DEX + misc"))
 
     skill_totals: dict[str, int] = {}
@@ -359,9 +593,13 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
 
         class_bonus = 3 if ranks > 0 and (skill_name in class_skills or skill_name.startswith("Knowledge")) else 0
         misc = _skill_effect_total(character, skill_name)
-        total = int(ranks) + mods[ability_key] + class_bonus + misc
+        armor_skill_penalty = total_armor_check_penalty if skill_name in _ARMOR_CHECK_SKILLS else 0
+        total = int(ranks) + mods[ability_key] + class_bonus + misc + armor_skill_penalty
         skill_totals[skill_name] = total
-        breakdown.append(BreakdownLineV2(key=f"Skill:{skill_name}", value=total, source="ranks + ability + class + misc"))
+        source = "ranks + ability + class + misc"
+        if armor_skill_penalty:
+            source = f"{source} + armor check penalty"
+        breakdown.append(BreakdownLineV2(key=f"Skill:{skill_name}", value=total, source=source))
 
     spell_slots: dict[str, int] = {}
     if investigator_level > 0:
@@ -389,23 +627,48 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
         attack_ability_mod = mods["dex"] if use_dex else mods["str"]
 
         feat_attack_bonus = 1 if "weapon focus" in valid_feats else 0
-        attack_bonus = bab + attack_ability_mod + feat_attack_bonus + condition_attack_penalty
+        attack_penalty = condition_attack_penalty
+        notes = [weapon.critical]
+        damage_bonus = 0
 
-        damage_bonus = mods["str"] if weapon.weapon_type == "melee" else 0
+        if weapon.weapon_type == "melee":
+            if weapon.handedness == "two-handed":
+                str_damage_bonus = mods["str"] if mods["str"] < 1 else (mods["str"] * 3) // 2
+            elif weapon.handedness == "off-hand":
+                str_damage_bonus = mods["str"] if mods["str"] < 1 else max(1, mods["str"] // 2)
+            else:
+                str_damage_bonus = mods["str"]
+            damage_bonus += str_damage_bonus
+
+            if "power attack" in valid_feats and bab > 0:
+                power_attack_step = 1 + (bab - 1) // 4
+                attack_penalty -= power_attack_step
+                if weapon.handedness == "two-handed":
+                    power_attack_damage = power_attack_step * 3
+                else:
+                    power_attack_damage = power_attack_step * 2
+                damage_bonus += power_attack_damage
+                notes.append(f"Power Attack (-{power_attack_step}/+{power_attack_damage})")
+        elif "rapid shot" in valid_feats:
+            attack_penalty -= 2
+            notes.append("Rapid Shot (-2; extra ranged attack)")
+
+        attack_bonus = bab + attack_ability_mod + feat_attack_bonus + attack_penalty
+
         if damage_bonus >= 0:
             damage = f"{weapon.damage_medium}+{damage_bonus}"
         else:
             damage = f"{weapon.damage_medium}{damage_bonus}"
 
-        notes = f"{weapon.critical}"
         if use_dex and weapon.finesse_eligible:
-            notes = f"{notes}; Weapon Finesse"
+            notes.append("Weapon Finesse")
+
         attack_lines.append(
             AttackLineV2(
                 name=gear.name,
                 attack_bonus=attack_bonus,
                 damage=damage,
-                notes=notes,
+                notes="; ".join(notes),
             )
         )
 

@@ -515,20 +515,61 @@ def test_allowlist_keeps_approved_class_scope_rows_with_non_allowlist_book():
     assert set(by_type.keys()) == {"class", "class_progression", "feat"}
     assert by_type["class"]["ui_enabled"] is True
     assert by_type["class"]["ui_tier"] == "active"
+    assert by_type["class"]["policy_reason"] == "class_scope_book_exempted"
     assert by_type["class_progression"]["ui_enabled"] is True
+    assert by_type["class_progression"]["policy_reason"] == "class_scope_book_exempted"
     assert by_type["feat"]["ui_enabled"] is False
     assert by_type["feat"]["ui_tier"] == "deferred"
     assert "book_not_in_allowlist" in by_type["feat"]["policy_reason"]
     assert coverage["policy_counts"]["ui_enabled"] >= 2
     assert coverage["policy_counts"]["ui_deferred"] >= 1
+    assert coverage["policy_counts"]["class_scope_book_exempted"] >= 2
     assert coverage["dropped_counts"]["book_not_approved"] == 0
+    assert coverage["class_scope_book_exemptions"] >= 2
     assert any(row.get("ui_tier") == "deferred" for row in policy_logs)
 
 
 def test_source_book_normalization_strips_page_suffix_and_noise():
     assert extract_module._canonical_book_name("Advanced Player's Guide pg. 28") == "Advanced Player's Guide"
     assert extract_module._canonical_book_name("Source: Core Rulebook, pg 131") == "Core Rulebook"
+    assert (
+        extract_module._canonical_book_name("Pathfinder #102: Breaking the Bones of Hell pg")
+        == "Pathfinder #102: Breaking the Bones of Hell"
+    )
     assert extract_module._canonical_book_name(" , it takes an additional 1d6 points of fire damage as its flesh burns") is None
+
+
+def test_unresolved_source_rows_are_cleaned_and_tagged_with_source_unresolved():
+    rows = [
+        {
+            "content_type": "feat",
+            "source_url": "https://aonprd.com/FeatDisplay.aspx?ItemName=Messy",
+            "source_book": ", it takes an additional 1d6 points of fire damage as its flesh burns and blisters",
+            "payload": {"name": "Messy Feat"},
+        },
+        {
+            "content_type": "feat",
+            "source_url": "https://aonprd.com/FeatDisplay.aspx?ItemName=Unknown",
+            "source_book": "Unknown",
+            "payload": {"name": "Unknown Source Feat"},
+        },
+    ]
+
+    filtered, _, coverage = extract_module._apply_allowlist_filters(rows)
+    by_name = {row["payload"]["name"]: row for row in filtered}
+
+    messy = by_name["Messy Feat"]
+    assert messy["source_book"] == "Unknown"
+    assert messy["policy_reason"] == "source_unresolved"
+    assert messy["ui_enabled"] is False
+
+    unknown = by_name["Unknown Source Feat"]
+    assert unknown["source_book"] == "Unknown"
+    assert unknown["policy_reason"] == "book_not_in_allowlist"
+    assert unknown["ui_enabled"] is False
+
+    assert coverage["seen_books_total"] == 0
+    assert coverage["unresolved_source_books_total"] == 1
 
 
 def test_load_persists_ui_policy_flags(tmp_path: Path):
