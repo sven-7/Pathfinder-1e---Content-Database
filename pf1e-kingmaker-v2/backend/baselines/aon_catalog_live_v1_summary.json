@@ -13,12 +13,12 @@
     "policy_counts": {
       "book_not_in_allowlist": 1567,
       "class_not_in_allowlist": 0,
-      "source_unresolved": 45,
+      "source_unresolved": 46,
       "ui_deferred": 1315,
       "ui_enabled": 2185
     },
-    "seen_books_total": 151,
-    "unresolved_source_books_total": 13
+    "seen_books_total": 150,
+    "unresolved_source_books_total": 14
   },
   "manifest_aon": {
     "ai_short_fallback": true,
@@ -30,7 +30,7 @@
     "timeout": 15
   },
   "mode": "aon_catalog",
-  "run_key": "20260302T162657Z_aon_catalog_live_post_gate",
+  "run_key": "20260302T182113Z_aon_catalog_ingestion_eval",
   "source": "aon",
   "validation": {
     "accepted_count": 3500,
