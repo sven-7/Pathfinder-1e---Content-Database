@@ -38,6 +38,34 @@ type PolicySummary = {
   tier_counts: Record<string, number>;
 };
 
+type AbilityScores = {
+  str: number;
+  dex: number;
+  con: number;
+  int: number;
+  wis: number;
+  cha: number;
+};
+
+type DerivedStats = {
+  total_level: number;
+  bab: number;
+  fort: number;
+  ref: number;
+  will: number;
+  hp_max: number;
+  ac_total: number;
+  ac_touch: number;
+  ac_flat_footed: number;
+  cmb: number;
+  cmd: number;
+  initiative: number;
+};
+
+type DeriveResponse = {
+  derived: DerivedStats;
+};
+
 export function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [includeDeferred, setIncludeDeferred] = useState<boolean>(false);
@@ -46,6 +74,22 @@ export function App() {
   const [policy, setPolicy] = useState<PolicySummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [characterName, setCharacterName] = useState<string>("Kairon");
+  const [selectedRace, setSelectedRace] = useState<string>("Tiefling");
+  const [className, setClassName] = useState<string>("Investigator");
+  const [classLevel, setClassLevel] = useState<number>(9);
+  const [abilityScores, setAbilityScores] = useState<AbilityScores>({
+    str: 12,
+    dex: 18,
+    con: 12,
+    int: 17,
+    wis: 18,
+    cha: 14,
+  });
+  const [featInput, setFeatInput] = useState<string>("Weapon Finesse, Weapon Focus, Rapid Shot");
+  const [deriveLoading, setDeriveLoading] = useState<boolean>(false);
+  const [deriveError, setDeriveError] = useState<string>("");
+  const [derivedStats, setDerivedStats] = useState<DerivedStats | null>(null);
 
   const base = import.meta.env.VITE_API_BASE ?? "http://localhost:8100";
 
@@ -79,6 +123,71 @@ export function App() {
       })
       .finally(() => setLoading(false));
   }, [base, includeDeferred]);
+
+  useEffect(() => {
+    if (!selectedRace && races.length > 0) {
+      setSelectedRace(races[0].name);
+    }
+  }, [races, selectedRace]);
+
+  const topDeferredReason = policy
+    ? Object.entries(policy.reason_counts)
+        .filter(([reason]) => reason !== "allowlisted")
+        .sort((a, b) => b[1] - a[1])[0]?.[0] ?? "none"
+    : "none";
+
+  function updateAbility(key: keyof AbilityScores, value: string) {
+    const parsed = Number.parseInt(value, 10);
+    setAbilityScores((prev) => ({
+      ...prev,
+      [key]: Number.isFinite(parsed) ? parsed : prev[key],
+    }));
+  }
+
+  async function deriveCharacter() {
+    setDeriveError("");
+    setDeriveLoading(true);
+    setDerivedStats(null);
+    try {
+      const featNames = featInput
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0);
+
+      const payload = {
+        name: characterName.trim() || "Unnamed",
+        race: selectedRace || "Tiefling",
+        ability_scores: abilityScores,
+        class_levels: [{ class_name: className.trim() || "Investigator", level: classLevel }],
+        feats: featNames.map((name, index) => ({
+          name,
+          level_gained: Math.max(1, Math.min(classLevel, 1 + index * 2)),
+          method: "general",
+        })),
+        traits: [],
+        skills: {},
+        equipment: [],
+        conditions: [],
+      };
+
+      const response = await fetch(`${base}/api/v2/rules/derive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`derive_failed_${response.status}`);
+      }
+
+      const body: DeriveResponse = await response.json();
+      setDerivedStats(body.derived);
+    } catch {
+      setDeriveError("Could not derive character stats from API.");
+    } finally {
+      setDeriveLoading(false);
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -136,10 +245,7 @@ export function App() {
               <p>Total accepted rows: {policy.accepted_total}</p>
               <p>Active rows: {policy.active_total}</p>
               <p>Deferred rows: {policy.deferred_total}</p>
-              <p className="muted">
-                Top deferred reason:{" "}
-                {Object.entries(policy.reason_counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "none"}
-              </p>
+              <p className="muted">Top deferred reason: {topDeferredReason}</p>
             </>
           ) : (
             <p>{loading ? "Loading policy summary..." : "No policy summary available."}</p>
@@ -177,6 +283,108 @@ export function App() {
             ))}
           </ul>
         </article>
+      </section>
+
+      <section className="card creator">
+        <h2>Character Creator (Slice)</h2>
+        <p className="muted">Minimal creator wired to `/api/v2/rules/derive` for deterministic stat output.</p>
+
+        <div className="form-grid">
+          <label>
+            Name
+            <input value={characterName} onChange={(e) => setCharacterName(e.target.value)} />
+          </label>
+          <label>
+            Race
+            <select value={selectedRace} onChange={(e) => setSelectedRace(e.target.value)}>
+              {races.map((race) => (
+                <option key={race.name} value={race.name}>
+                  {race.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Class
+            <input value={className} onChange={(e) => setClassName(e.target.value)} />
+          </label>
+          <label>
+            Level
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={classLevel}
+              onChange={(e) => setClassLevel(Math.max(1, Math.min(20, Number.parseInt(e.target.value || "1", 10))))}
+            />
+          </label>
+        </div>
+
+        <div className="abilities">
+          {(["str", "dex", "con", "int", "wis", "cha"] as const).map((key) => (
+            <label key={key}>
+              {key.toUpperCase()}
+              <input
+                type="number"
+                min={1}
+                value={abilityScores[key]}
+                onChange={(e) => updateAbility(key, e.target.value)}
+              />
+            </label>
+          ))}
+        </div>
+
+        <label className="full-width">
+          Feats (comma separated)
+          <input value={featInput} onChange={(e) => setFeatInput(e.target.value)} />
+        </label>
+
+        <button className="derive-btn" onClick={deriveCharacter} disabled={deriveLoading}>
+          {deriveLoading ? "Deriving..." : "Derive Stats"}
+        </button>
+
+        {deriveError ? <p className="error">{deriveError}</p> : null}
+
+        {derivedStats ? (
+          <div className="derived-grid">
+            <div>
+              <strong>Level</strong>: {derivedStats.total_level}
+            </div>
+            <div>
+              <strong>BAB</strong>: {derivedStats.bab}
+            </div>
+            <div>
+              <strong>Fort</strong>: {derivedStats.fort}
+            </div>
+            <div>
+              <strong>Ref</strong>: {derivedStats.ref}
+            </div>
+            <div>
+              <strong>Will</strong>: {derivedStats.will}
+            </div>
+            <div>
+              <strong>HP</strong>: {derivedStats.hp_max}
+            </div>
+            <div>
+              <strong>AC</strong>: {derivedStats.ac_total}
+            </div>
+            <div>
+              <strong>Touch</strong>: {derivedStats.ac_touch}
+            </div>
+            <div>
+              <strong>Flat</strong>: {derivedStats.ac_flat_footed}
+            </div>
+            <div>
+              <strong>CMB</strong>: {derivedStats.cmb}
+            </div>
+            <div>
+              <strong>CMD</strong>: {derivedStats.cmd}
+            </div>
+            <div>
+              <strong>Init</strong>: {derivedStats.initiative}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

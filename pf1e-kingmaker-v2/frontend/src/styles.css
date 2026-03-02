@@ -147,3 +147,73 @@ body {
   color: #b91c1c;
   margin-top: 8px;
 }
+
+.creator {
+  margin-top: 14px;
+}
+
+.form-grid {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: #fff;
+}
+
+.abilities {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(70px, 1fr));
+}
+
+.full-width {
+  margin-top: 10px;
+}
+
+.derive-btn {
+  margin-top: 12px;
+  border: 1px solid #1e40af;
+  color: #fff;
+  background: #1d4ed8;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.derive-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.derived-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+@media (max-width: 700px) {
+  .abilities {
+    grid-template-columns: repeat(3, minmax(70px, 1fr));
+  }
+}
