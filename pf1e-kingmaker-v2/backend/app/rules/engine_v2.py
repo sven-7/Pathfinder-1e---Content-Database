@@ -152,6 +152,19 @@ def _trait_effect_total(character: CharacterV2, key: str) -> int:
     return total
 
 
+def _trait_effect_lines(character: CharacterV2, keys: list[str]) -> list[tuple[str, int, str]]:
+    targets = {_norm(k): k for k in keys}
+    lines: list[tuple[str, int, str]] = []
+    for trait in character.traits:
+        for effect in trait.effects:
+            effect_key = _norm(effect.key)
+            if effect_key in targets:
+                source_name = effect.source or trait.name
+                lines.append((source_name, int(effect.delta), targets[effect_key]))
+    lines.sort(key=lambda item: (_norm(item[0]), _norm(item[2]), item[1]))
+    return lines
+
+
 def _skill_effect_total(character: CharacterV2, skill_name: str) -> int:
     target = _norm(f"skill:{skill_name}")
     total = 0
@@ -160,6 +173,22 @@ def _skill_effect_total(character: CharacterV2, skill_name: str) -> int:
             if _norm(effect.key) == target:
                 total += int(effect.delta)
     return total
+
+
+def _skill_effect_lines(character: CharacterV2, skill_name: str) -> list[tuple[str, int]]:
+    target = _norm(f"skill:{skill_name}")
+    lines: list[tuple[str, int]] = []
+    for trait in character.traits:
+        for effect in trait.effects:
+            if _norm(effect.key) == target:
+                source_name = effect.source or trait.name
+                lines.append((source_name, int(effect.delta)))
+    lines.sort(key=lambda item: (_norm(item[0]), item[1]))
+    return lines
+
+
+def _add_breakdown_line(breakdown: list[BreakdownLineV2], key: str, value: int | float, source: str) -> None:
+    breakdown.append(BreakdownLineV2(key=key, value=value, source=source))
 
 
 def _investigator_spell_slots(level: int, int_mod: int) -> dict[str, int]:
@@ -182,9 +211,9 @@ def evaluate_feat_prerequisites(character: CharacterV2, total_bab: int | None = 
             progression = class_rule.bab_progression if class_rule else "half"
             total_bab += _bab_for_level(progression, cl.level)
 
-    feat_names = {_norm(f.name) for f in character.feats}
     has_equipped_weapon = any(eq.kind == "weapon" for eq in character.equipment)
     results: list[FeatPrereqResultV2] = []
+    granted_feats: set[str] = set()
 
     for feat in sorted(character.feats, key=lambda f: (f.level_gained, _norm(f.name))):
         name_norm = _norm(feat.name)
@@ -201,7 +230,7 @@ def evaluate_feat_prerequisites(character: CharacterV2, total_bab: int | None = 
         elif name_norm == "rapid shot":
             if character.ability_scores.dex < 13:
                 missing.append("Dex 13")
-            if "point-blank shot" not in feat_names:
+            if "point-blank shot" not in granted_feats:
                 missing.append("Point-Blank Shot")
 
         results.append(
@@ -212,6 +241,8 @@ def evaluate_feat_prerequisites(character: CharacterV2, total_bab: int | None = 
                 missing=missing,
             )
         )
+        if len(missing) == 0:
+            granted_feats.add(name_norm)
 
     return results
 
@@ -248,7 +279,8 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     ref_base = 0
     will_base = 0
 
-    hp_total = 0
+    hp_hit_die_total = 0
+    hp_con_total = 0
     first_character_level = True
     investigator_level = 0
     class_skills: set[str] = set()
@@ -268,45 +300,70 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
         if _norm(cl.class_name) == "investigator":
             investigator_level += cl.level
 
+        class_hit_die_hp = 0
+        class_con_hp = cl.level * mods["con"]
         if cl.level > 0:
             if first_character_level:
-                hp_total += rule.hit_die + mods["con"]
-                hp_total += max(0, cl.level - 1) * ((rule.hit_die // 2 + 1) + mods["con"])
+                class_hit_die_hp += rule.hit_die
+                class_hit_die_hp += max(0, cl.level - 1) * (rule.hit_die // 2 + 1)
                 first_character_level = False
             else:
-                hp_total += cl.level * ((rule.hit_die // 2 + 1) + mods["con"])
+                class_hit_die_hp += cl.level * (rule.hit_die // 2 + 1)
 
-        breakdown.append(BreakdownLineV2(key="BAB", value=bab_gain, source=f"{cl.class_name} {cl.level} levels"))
-        breakdown.append(
-            BreakdownLineV2(key="Fort(base)", value=fort_gain, source=f"{cl.class_name} {cl.level} levels")
+        hp_hit_die_total += class_hit_die_hp
+        hp_con_total += class_con_hp
+
+        source_label = f"{cl.class_name} {cl.level} levels"
+        _add_breakdown_line(breakdown, key=f"BAB:class:{cl.class_name}", value=bab_gain, source=source_label)
+        _add_breakdown_line(breakdown, key=f"Fort:class:{cl.class_name}", value=fort_gain, source=source_label)
+        _add_breakdown_line(breakdown, key=f"Ref:class:{cl.class_name}", value=ref_gain, source=source_label)
+        _add_breakdown_line(breakdown, key=f"Will:class:{cl.class_name}", value=will_gain, source=source_label)
+        _add_breakdown_line(
+            breakdown,
+            key=f"HP:hit_die:{cl.class_name}",
+            value=class_hit_die_hp,
+            source=f"{source_label} (max at character level 1, average thereafter)",
         )
-        breakdown.append(BreakdownLineV2(key="Ref(base)", value=ref_gain, source=f"{cl.class_name} {cl.level} levels"))
-        breakdown.append(BreakdownLineV2(key="Will(base)", value=will_gain, source=f"{cl.class_name} {cl.level} levels"))
+        _add_breakdown_line(
+            breakdown,
+            key=f"HP:con:{cl.class_name}",
+            value=class_con_hp,
+            source=f"{source_label} (CON modifier per level)",
+        )
 
     feat_prereq_results = evaluate_feat_prerequisites(character, total_bab=bab)
     valid_feats = {_norm(f.feat_name) for f in feat_prereq_results if f.valid}
     for result in feat_prereq_results:
         if not result.valid:
-            breakdown.append(
-                BreakdownLineV2(
-                    key="FeatPrereq",
-                    value=0,
-                    source=f"{result.feat_name} blocked ({', '.join(result.missing)})",
-                )
+            _add_breakdown_line(
+                breakdown,
+                key=f"FeatPrereq:{result.feat_name}",
+                value=0,
+                source=f"blocked ({', '.join(result.missing)})",
             )
 
-    fort_misc = _trait_effect_total(character, "fort") + _trait_effect_total(character, "fortitude")
-    ref_misc = _trait_effect_total(character, "ref") + _trait_effect_total(character, "reflex")
-    will_misc = _trait_effect_total(character, "will")
-    initiative_misc = _trait_effect_total(character, "initiative")
-    ac_misc = _trait_effect_total(character, "ac")
-    hp_misc = _trait_effect_total(character, "hp")
-    cmb_misc = _trait_effect_total(character, "cmb")
-    cmd_misc = _trait_effect_total(character, "cmd")
+    fort_effect_lines = _trait_effect_lines(character, ["fort", "fortitude"])
+    ref_effect_lines = _trait_effect_lines(character, ["ref", "reflex"])
+    will_effect_lines = _trait_effect_lines(character, ["will"])
+    initiative_effect_lines = _trait_effect_lines(character, ["initiative"])
+    ac_effect_lines = _trait_effect_lines(character, ["ac"])
+    hp_effect_lines = _trait_effect_lines(character, ["hp"])
+    cmb_effect_lines = _trait_effect_lines(character, ["cmb"])
+    cmd_effect_lines = _trait_effect_lines(character, ["cmd"])
+
+    fort_misc = sum(line[1] for line in fort_effect_lines)
+    ref_misc = sum(line[1] for line in ref_effect_lines)
+    will_misc = sum(line[1] for line in will_effect_lines)
+    initiative_misc = sum(line[1] for line in initiative_effect_lines)
+    ac_misc = sum(line[1] for line in ac_effect_lines)
+    hp_misc = sum(line[1] for line in hp_effect_lines)
+    cmb_misc = sum(line[1] for line in cmb_effect_lines)
+    cmd_misc = sum(line[1] for line in cmd_effect_lines)
 
     condition_attack_penalty = 0
     condition_save_penalty = 0
-    for condition in {_norm(c) for c in character.conditions}:
+    condition_names = sorted({_norm(c) for c in character.conditions})
+    for condition in condition_names:
         if condition == "shaken":
             condition_attack_penalty -= 2
             condition_save_penalty -= 2
@@ -317,7 +374,8 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     fort = fort_base + mods["con"] + fort_misc + condition_save_penalty
     ref = ref_base + mods["dex"] + ref_misc + condition_save_penalty
     will = will_base + mods["wis"] + will_misc + condition_save_penalty
-    hp_max = max(total_level, hp_total + hp_misc)
+    hp_pre_floor = hp_hit_die_total + hp_con_total + hp_misc
+    hp_max = max(total_level, hp_pre_floor)
 
     armor_bonus = 0
     armor_max_dex: int | None = None
@@ -340,15 +398,68 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     cmd = 10 + bab + mods["str"] + mods["dex"] + cmd_misc
     initiative = mods["dex"] + initiative_misc
 
-    breakdown.append(BreakdownLineV2(key="Fort(total)", value=fort, source="base + CON + misc"))
-    breakdown.append(BreakdownLineV2(key="Ref(total)", value=ref, source="base + DEX + misc"))
-    breakdown.append(BreakdownLineV2(key="Will(total)", value=will, source="base + WIS + misc"))
-    breakdown.append(BreakdownLineV2(key="HP(total)", value=hp_max, source="class hit dice + CON + misc"))
-    breakdown.append(BreakdownLineV2(key="AC(total)", value=ac_total, source="10 + armor + DEX + misc"))
-    breakdown.append(BreakdownLineV2(key="Initiative", value=initiative, source="DEX + misc"))
+    _add_breakdown_line(breakdown, key="BAB:total", value=bab, source="class progression")
+
+    _add_breakdown_line(breakdown, key="Fort:base", value=fort_base, source="class progression")
+    _add_breakdown_line(breakdown, key="Fort:ability", value=mods["con"], source="CON modifier")
+    for source_name, delta, source_key in fort_effect_lines:
+        _add_breakdown_line(breakdown, key="Fort:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="Fort:condition", value=condition_save_penalty, source="conditions")
+    _add_breakdown_line(breakdown, key="Fort:total", value=fort, source="base + ability + misc + conditions")
+
+    _add_breakdown_line(breakdown, key="Ref:base", value=ref_base, source="class progression")
+    _add_breakdown_line(breakdown, key="Ref:ability", value=mods["dex"], source="DEX modifier")
+    for source_name, delta, source_key in ref_effect_lines:
+        _add_breakdown_line(breakdown, key="Ref:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="Ref:condition", value=condition_save_penalty, source="conditions")
+    _add_breakdown_line(breakdown, key="Ref:total", value=ref, source="base + ability + misc + conditions")
+
+    _add_breakdown_line(breakdown, key="Will:base", value=will_base, source="class progression")
+    _add_breakdown_line(breakdown, key="Will:ability", value=mods["wis"], source="WIS modifier")
+    for source_name, delta, source_key in will_effect_lines:
+        _add_breakdown_line(breakdown, key="Will:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="Will:condition", value=condition_save_penalty, source="conditions")
+    _add_breakdown_line(breakdown, key="Will:total", value=will, source="base + ability + misc + conditions")
+
+    _add_breakdown_line(breakdown, key="HP:hit_die", value=hp_hit_die_total, source="class hit dice")
+    _add_breakdown_line(breakdown, key="HP:con", value=hp_con_total, source="CON modifier per level")
+    for source_name, delta, source_key in hp_effect_lines:
+        _add_breakdown_line(breakdown, key="HP:misc", value=delta, source=f"{source_name} ({source_key})")
+    if hp_max != hp_pre_floor:
+        _add_breakdown_line(breakdown, key="HP:floor", value=total_level, source="minimum 1 HP per level")
+    _add_breakdown_line(breakdown, key="HP:total", value=hp_max, source="hit die + CON + misc")
+
+    _add_breakdown_line(breakdown, key="AC:base", value=10, source="core rule")
+    _add_breakdown_line(breakdown, key="AC:armor", value=armor_bonus, source="equipped armor")
+    _add_breakdown_line(breakdown, key="AC:dex", value=dex_to_ac, source="DEX modifier (capped by armor)")
+    for source_name, delta, source_key in ac_effect_lines:
+        _add_breakdown_line(breakdown, key="AC:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="AC:total", value=ac_total, source="10 + armor + DEX + misc")
+    _add_breakdown_line(breakdown, key="AC:touch", value=ac_touch, source="10 + DEX + misc")
+    _add_breakdown_line(breakdown, key="AC:flat_footed", value=ac_flat_footed, source="10 + armor + misc")
+
+    _add_breakdown_line(breakdown, key="CMB:bab", value=bab, source="base attack bonus")
+    _add_breakdown_line(breakdown, key="CMB:ability", value=mods["str"], source="STR modifier")
+    for source_name, delta, source_key in cmb_effect_lines:
+        _add_breakdown_line(breakdown, key="CMB:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="CMB:total", value=cmb, source="BAB + STR + misc")
+
+    _add_breakdown_line(breakdown, key="CMD:base", value=10, source="core rule")
+    _add_breakdown_line(breakdown, key="CMD:bab", value=bab, source="base attack bonus")
+    _add_breakdown_line(breakdown, key="CMD:str", value=mods["str"], source="STR modifier")
+    _add_breakdown_line(breakdown, key="CMD:dex", value=mods["dex"], source="DEX modifier")
+    for source_name, delta, source_key in cmd_effect_lines:
+        _add_breakdown_line(breakdown, key="CMD:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="CMD:total", value=cmd, source="10 + BAB + STR + DEX + misc")
+
+    _add_breakdown_line(breakdown, key="Initiative:dex", value=mods["dex"], source="DEX modifier")
+    for source_name, delta, source_key in initiative_effect_lines:
+        _add_breakdown_line(breakdown, key="Initiative:misc", value=delta, source=f"{source_name} ({source_key})")
+    _add_breakdown_line(breakdown, key="Initiative:total", value=initiative, source="DEX + misc")
 
     skill_totals: dict[str, int] = {}
-    for skill_name, ranks in character.skills.items():
+    for skill_name in sorted(character.skills):
+        ranks = character.skills[skill_name]
         ability_key = None
         if skill_name.startswith("Knowledge"):
             ability_key = "int"
@@ -358,25 +469,53 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
             continue
 
         class_bonus = 3 if ranks > 0 and (skill_name in class_skills or skill_name.startswith("Knowledge")) else 0
+        skill_effect_lines = _skill_effect_lines(character, skill_name)
         misc = _skill_effect_total(character, skill_name)
         total = int(ranks) + mods[ability_key] + class_bonus + misc
         skill_totals[skill_name] = total
-        breakdown.append(BreakdownLineV2(key=f"Skill:{skill_name}", value=total, source="ranks + ability + class + misc"))
+
+        _add_breakdown_line(breakdown, key=f"Skill:{skill_name}:ranks", value=int(ranks), source="allocated ranks")
+        _add_breakdown_line(
+            breakdown,
+            key=f"Skill:{skill_name}:ability",
+            value=mods[ability_key],
+            source=f"{ability_key.upper()} modifier",
+        )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Skill:{skill_name}:class",
+            value=class_bonus,
+            source="class skill bonus (+3 when trained)",
+        )
+        for source_name, delta in skill_effect_lines:
+            _add_breakdown_line(
+                breakdown,
+                key=f"Skill:{skill_name}:misc",
+                value=delta,
+                source=source_name,
+            )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Skill:{skill_name}:total",
+            value=total,
+            source="ranks + ability + class + misc",
+        )
 
     spell_slots: dict[str, int] = {}
     if investigator_level > 0:
         spell_slots = _investigator_spell_slots(investigator_level, mods["int"])
         if spell_slots:
-            breakdown.append(
-                BreakdownLineV2(
-                    key="SpellSlots",
-                    value=sum(spell_slots.values()),
-                    source=f"Investigator {investigator_level} + INT bonus slots",
-                )
+            _add_breakdown_line(
+                breakdown,
+                key="SpellSlots:total",
+                value=sum(spell_slots.values()),
+                source=f"Investigator {investigator_level} + INT bonus slots",
             )
 
     attack_lines: list[AttackLineV2] = []
-    for gear in character.equipment:
+    weapon_entries = [(index, gear) for index, gear in enumerate(character.equipment) if gear.kind == "weapon"]
+    weapon_entries.sort(key=lambda item: (_norm(item[1].name), item[0]))
+    for _, gear in weapon_entries:
         if gear.kind != "weapon":
             continue
         weapon = _WEAPON_RULES.get(_norm(gear.name))
@@ -398,8 +537,42 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
             damage = f"{weapon.damage_medium}{damage_bonus}"
 
         notes = f"{weapon.critical}"
+        if bab >= 6:
+            notes = f"{notes}; iterative +{attack_bonus}/+{attack_bonus - 5}"
         if use_dex and weapon.finesse_eligible:
             notes = f"{notes}; Weapon Finesse"
+
+        _add_breakdown_line(breakdown, key=f"Attack:{gear.name}:bab", value=bab, source="base attack bonus")
+        _add_breakdown_line(
+            breakdown,
+            key=f"Attack:{gear.name}:ability",
+            value=attack_ability_mod,
+            source="DEX modifier" if use_dex else "STR modifier",
+        )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Attack:{gear.name}:feat",
+            value=feat_attack_bonus,
+            source="Weapon Focus",
+        )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Attack:{gear.name}:condition",
+            value=condition_attack_penalty,
+            source="conditions",
+        )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Attack:{gear.name}:total",
+            value=attack_bonus,
+            source="BAB + ability + feat + condition",
+        )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Attack:{gear.name}:damage_bonus",
+            value=damage_bonus,
+            source="STR modifier (melee only)",
+        )
         attack_lines.append(
             AttackLineV2(
                 name=gear.name,
@@ -431,12 +604,11 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
             override_targets[key] = override.value
         else:
             override_targets[key] = override_targets[key] + override.value
-        breakdown.append(
-            BreakdownLineV2(
-                key=f"Override:{override.key}",
-                value=float(override.value),
-                source=f"{override.operation} ({override.source})",
-            )
+        _add_breakdown_line(
+            breakdown,
+            key=f"Override:{override.key}",
+            value=override.value,
+            source=f"{override.operation} ({override.source})",
         )
 
     bab = int(override_targets["bab"])
@@ -450,6 +622,18 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     cmb = int(override_targets["cmb"])
     cmd = int(override_targets["cmd"])
     initiative = int(override_targets["initiative"])
+
+    _add_breakdown_line(breakdown, key="Result:bab", value=bab, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:fort", value=fort, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:ref", value=ref, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:will", value=will, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:hp_max", value=hp_max, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:ac_total", value=ac_total, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:ac_touch", value=ac_touch, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:ac_flat_footed", value=ac_flat_footed, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:cmb", value=cmb, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:cmd", value=cmd, source="after overrides")
+    _add_breakdown_line(breakdown, key="Result:initiative", value=initiative, source="after overrides")
 
     return DerivedStatsV2(
         total_level=total_level,
