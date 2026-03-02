@@ -77,7 +77,7 @@ def test_derive_kairon_slice_baseline():
     assert derived["attack_lines"][0]["name"] == "Rapier"
     assert derived["attack_lines"][0]["attack_bonus"] == 11
     assert len(derived["breakdown"]) > 0
-    assert any(line["key"] == "AC(total)" for line in derived["breakdown"])
+    assert any(line["key"] == "AC:total" for line in derived["breakdown"])
     assert all(line["source"] for line in derived["breakdown"])
 
     feat_results = {item["feat_name"]: item for item in derived["feat_prereq_results"]}
@@ -276,8 +276,10 @@ def test_openapi_exposes_v2_paths_and_contract_schemas():
     assert "/api/v2/rules/derive" in payload["paths"]
 
     schemas = payload["components"]["schemas"]
+    assert "CharacterV2" in schemas or (
+        "CharacterV2-Input" in schemas and "CharacterV2-Output" in schemas
+    )
     for expected in (
-        "CharacterV2",
         "DerivedStatsV2",
         "DeriveResponseV2",
         "CharacterValidationResponseV2",

@@ -228,7 +228,7 @@ def evaluate_feat_prerequisites(character: CharacterV2, total_bab: int | None = 
             if not has_equipped_weapon:
                 missing.append("Proficiency with selected weapon")
         elif name_norm == "rapid shot":
-            if character.ability_scores.dex < 13:
+            if character.ability_scores.dexterity < 13:
                 missing.append("Dex 13")
             if "point-blank shot" not in granted_feats:
                 missing.append("Point-Blank Shot")
@@ -264,12 +264,12 @@ def _class_rule_or_default(class_name: str) -> ClassRule:
 def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     scores = character.ability_scores
     mods = {
-        "str": _mod(scores.str),
-        "dex": _mod(scores.dex),
-        "con": _mod(scores.con),
-        "int": _mod(scores.int),
-        "wis": _mod(scores.wis),
-        "cha": _mod(scores.cha),
+        "str": _mod(scores.strength),
+        "dex": _mod(scores.dexterity),
+        "con": _mod(scores.constitution),
+        "int": _mod(scores.intelligence),
+        "wis": _mod(scores.wisdom),
+        "cha": _mod(scores.charisma),
     }
     breakdown: list[BreakdownLineV2] = []
 

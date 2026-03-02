@@ -10,6 +10,7 @@ from app.models.contracts import (
     ClassLevelV2,
     EquipmentSelectionV2,
     FeatSelectionV2,
+    RuleOverrideV2,
     TraitSelectionV2,
 )
 from app.rules.engine_v2 import derive_stats, evaluate_feat_prerequisites
@@ -133,8 +134,8 @@ def test_prerequisite_chain_requires_prereq_before_dependent_feat():
 def test_house_rule_overrides_apply_deterministically():
     character = _base_kairon()
     character.overrides = [
-        {"key": "ac_total", "operation": "add", "value": 1, "source": "Campaign house rule"},
-        {"key": "initiative", "operation": "set", "value": 8, "source": "Table ruling"},
+        RuleOverrideV2(key="ac_total", operation="add", value=1, source="Campaign house rule"),
+        RuleOverrideV2(key="initiative", operation="set", value=8, source="Table ruling"),
     ]
 
     derived = derive_stats(character)

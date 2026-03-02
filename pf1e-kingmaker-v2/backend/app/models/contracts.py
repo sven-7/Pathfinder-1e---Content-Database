@@ -39,12 +39,14 @@ class EquipmentSelectionV2(BaseModel):
 
 
 class AbilityScoresV2(BaseModel):
-    str: int = Field(ge=1)
-    dex: int = Field(ge=1)
-    con: int = Field(ge=1)
-    int: int = Field(ge=1)
-    wis: int = Field(ge=1)
-    cha: int = Field(ge=1)
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    strength: int = Field(alias="str", ge=1)
+    dexterity: int = Field(alias="dex", ge=1)
+    constitution: int = Field(alias="con", ge=1)
+    intelligence: int = Field(alias="int", ge=1)
+    wisdom: int = Field(alias="wis", ge=1)
+    charisma: int = Field(alias="cha", ge=1)
 
 
 class RuleOverrideV2(BaseModel):
