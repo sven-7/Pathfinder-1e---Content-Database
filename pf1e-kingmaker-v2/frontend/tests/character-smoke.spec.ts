@@ -32,7 +32,9 @@ function respondJson(body: unknown) {
   };
 }
 
-test("create -> save -> open sheet smoke flow", async ({ page }) => {
+test.use({ viewport: { width: 1024, height: 1366 } });
+
+test("create -> save -> open sheet with condition/resource persistence", async ({ page }) => {
   const store = new Map<string, CharacterPayload>();
 
   await page.route("**/health", async (route) => {
@@ -249,6 +251,34 @@ test("create -> save -> open sheet smoke flow", async ({ page }) => {
   await page.getByRole("button", { name: "Open Sheet" }).first().click();
   await expect(page.getByTestId("sheet-view")).toBeVisible();
   await expect(page.getByTestId("sheet-name")).toContainText("Smoke Hero");
-  await expect(page.getByText("Core Stats")).toBeVisible();
-  await expect(page.getByText("Rapier").first()).toBeVisible();
+  await expect(page.getByTestId("quick-combat-panel")).toBeVisible();
+  await expect(page.getByTestId("combat-selected-attack")).toContainText("Rapier");
+
+  await expect(page.getByTestId("stat-ref")).toContainText("Ref +10");
+  await page.getByTestId("condition-toggle-heroism").check();
+  await expect(page.getByTestId("stat-ref")).toContainText("Ref +12");
+
+  await expect(page.getByTestId("resource-inspiration-current")).toHaveValue("7");
+  await page.getByTestId("resource-inspiration-dec").click();
+  await expect(page.getByTestId("resource-inspiration-current")).toHaveValue("6");
+
+  await expect(page.getByTestId("resource-consumable-healing_potion")).toContainText("3");
+  await page.getByTestId("resource-consumable-dec-healing_potion").click();
+  await expect(page.getByTestId("resource-consumable-healing_potion")).toContainText("2");
+
+  await expect(page.getByTestId("spell-used-1")).toContainText("0");
+  await page.getByTestId("spell-used-inc-1").click();
+  await expect(page.getByTestId("spell-used-1")).toContainText("1");
+
+  await page.reload();
+  await page.getByTestId("tab-library").click();
+  await expect(page.getByTestId("library-view")).toBeVisible();
+  await page.getByRole("button", { name: "Open Sheet" }).first().click();
+
+  await expect(page.getByTestId("sheet-view")).toBeVisible();
+  await expect(page.getByTestId("condition-toggle-heroism")).toBeChecked();
+  await expect(page.getByTestId("stat-ref")).toContainText("Ref +12");
+  await expect(page.getByTestId("resource-inspiration-current")).toHaveValue("6");
+  await expect(page.getByTestId("resource-consumable-healing_potion")).toContainText("2");
+  await expect(page.getByTestId("spell-used-1")).toContainText("1");
 });

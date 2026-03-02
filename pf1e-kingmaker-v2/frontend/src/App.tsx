@@ -180,8 +180,198 @@ type EditorDraft = {
   conditions_text: string;
 };
 
+type ConditionDelta = {
+  ac_total?: number;
+  ac_touch?: number;
+  ac_flat_footed?: number;
+  fort?: number;
+  ref?: number;
+  will?: number;
+  initiative?: number;
+  cmb?: number;
+  cmd?: number;
+  attack?: number;
+  skill_all?: number;
+  skill_specific?: Record<string, number>;
+};
+
+type ConditionRule = {
+  key: string;
+  label: string;
+  detail: string;
+  extract_linked?: boolean;
+  requires_derive?: boolean;
+  delta: ConditionDelta;
+};
+
+type SpellTracker = {
+  known: number;
+  prepared: number;
+  used: number;
+};
+
+type CharacterSheetResources = {
+  hp_max: number;
+  hp_current: number;
+  hp_temp: number;
+  hp_nonlethal: number;
+  inspiration_max: number;
+  inspiration_current: number;
+  consumables: Record<string, number>;
+};
+
+type QuickCombatState = {
+  initiative_roll: string;
+  selected_attack_index: number;
+  damage_notes: string;
+};
+
+type CharacterSheetState = {
+  version: number;
+  conditions: Record<string, boolean>;
+  resources: CharacterSheetResources;
+  spells: Record<string, SpellTracker>;
+  quick_combat: QuickCombatState;
+};
+
+type AggregateConditionDelta = {
+  ac_total: number;
+  ac_touch: number;
+  ac_flat_footed: number;
+  fort: number;
+  ref: number;
+  will: number;
+  initiative: number;
+  cmb: number;
+  cmd: number;
+  attack: number;
+  skill_all: number;
+  skill_specific: Record<string, number>;
+  requires_derive: boolean;
+  active_labels: string[];
+};
+
 const LOCAL_STORAGE_KEY = "pf1e.v2.frontend.characters";
+const SHEET_STATE_STORAGE_KEY = "pf1e.v2.frontend.sheet-state";
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"] as const;
+const KEY_SKILL_SHORTCUTS = ["Perception", "Stealth", "Disable Device", "Knowledge (arcana)"] as const;
+
+const CONSUMABLE_DEFINITIONS = [
+  { key: "healing_potion", label: "Healing Potions", default_count: 3 },
+  { key: "alchemist_fire", label: "Alchemist's Fire", default_count: 2 },
+  { key: "antitoxin", label: "Antitoxin", default_count: 1 },
+] as const;
+
+const SHEET_CONDITIONS: ConditionRule[] = [
+  {
+    key: "studied-combat",
+    label: "Studied Combat",
+    detail: "Situational attack profile managed by derive rules.",
+    requires_derive: true,
+    delta: {},
+  },
+  {
+    key: "shield",
+    label: "Shield",
+    detail: "+4 shield AC.",
+    extract_linked: true,
+    delta: { ac_total: 4, ac_flat_footed: 4 },
+  },
+  {
+    key: "cats-grace",
+    label: "Cat's Grace",
+    detail: "+2 AC/Ref/Init/ATK (enhancement).",
+    extract_linked: true,
+    delta: { ac_total: 2, ac_touch: 2, ref: 2, initiative: 2, attack: 2 },
+  },
+  {
+    key: "heroism",
+    label: "Heroism",
+    detail: "+2 attack, saves, and skills.",
+    extract_linked: true,
+    delta: { fort: 2, ref: 2, will: 2, attack: 2, skill_all: 2 },
+  },
+  {
+    key: "haste",
+    label: "Haste",
+    detail: "+1 attack, AC, Ref, CMB, CMD.",
+    extract_linked: true,
+    delta: { ac_total: 1, ac_touch: 1, ref: 1, cmb: 1, cmd: 1, attack: 1 },
+  },
+  {
+    key: "displacement",
+    label: "Displacement",
+    detail: "Miss chance reminder.",
+    extract_linked: true,
+    requires_derive: true,
+    delta: {},
+  },
+  {
+    key: "invisible",
+    label: "Invisible",
+    detail: "+2 attack, +20 Stealth.",
+    extract_linked: true,
+    delta: { attack: 2, skill_specific: { Stealth: 20 } },
+  },
+  {
+    key: "channel-vigor",
+    label: "Channel Vigor",
+    detail: "Mode-specific benefits managed by derive rules.",
+    extract_linked: true,
+    requires_derive: true,
+    delta: {},
+  },
+  {
+    key: "enlarged",
+    label: "Enlarged",
+    detail: "-2 AC/ATK, +2 CMB, -1 CMD.",
+    extract_linked: true,
+    delta: { ac_total: -2, ac_touch: -2, ac_flat_footed: -1, ref: -1, initiative: -1, cmb: 2, cmd: -1, attack: -2 },
+  },
+  {
+    key: "fly",
+    label: "Fly",
+    detail: "Movement condition, +4 Fly.",
+    extract_linked: true,
+    delta: { skill_specific: { Fly: 4 } },
+  },
+  {
+    key: "exp-retreat",
+    label: "Expeditious Retreat",
+    detail: "Movement condition.",
+    extract_linked: true,
+    requires_derive: true,
+    delta: {},
+  },
+  {
+    key: "thorn-body",
+    label: "Thorn Body",
+    detail: "Reactive damage condition.",
+    extract_linked: true,
+    requires_derive: true,
+    delta: {},
+  },
+  {
+    key: "fire-breath",
+    label: "Fire Breath",
+    detail: "Track cone uses in resources.",
+    extract_linked: true,
+    requires_derive: true,
+    delta: {},
+  },
+  {
+    key: "darkness",
+    label: "Darkness",
+    detail: "Visibility condition.",
+    requires_derive: true,
+    delta: {},
+  },
+];
+
+const CONDITION_RULE_BY_KEY = SHEET_CONDITIONS.reduce<Record<string, ConditionRule>>((acc, rule) => {
+  acc[rule.key] = rule;
+  return acc;
+}, {});
 
 const DEFAULT_DRAFT: EditorDraft = {
   id: null,
@@ -451,9 +641,282 @@ function formatTimestamp(value: string): string {
   }).format(date);
 }
 
+function abilityModifierValue(score: number): number {
+  return Math.floor((score - 10) / 2);
+}
+
 function abilityMod(score: number): string {
-  const mod = Math.floor((score - 10) / 2);
+  const mod = abilityModifierValue(score);
   return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+function formatSigned(value: number): string {
+  return value >= 0 ? `+${value}` : `${value}`;
+}
+
+function clampInteger(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+function calculateInspirationMax(payload: CharacterV2): number {
+  return Math.max(0, Math.floor(totalLevel(payload.class_levels) / 2) + abilityModifierValue(payload.ability_scores.int));
+}
+
+function createDefaultConditionState(payload: CharacterV2): Record<string, boolean> {
+  const conditions: Record<string, boolean> = {};
+  for (const rule of SHEET_CONDITIONS) {
+    conditions[rule.key] = false;
+  }
+  for (const condition of payload.conditions) {
+    conditions[condition] = true;
+  }
+  return conditions;
+}
+
+function createDefaultSpellTrackers(derived: DerivedStatsV2 | null): Record<string, SpellTracker> {
+  const trackers: Record<string, SpellTracker> = {};
+  if (!derived) {
+    return trackers;
+  }
+
+  for (const [level, slots] of Object.entries(derived.spell_slots)) {
+    const known = Math.max(0, Math.trunc(slots));
+    trackers[level] = {
+      known,
+      prepared: known,
+      used: 0,
+    };
+  }
+
+  return trackers;
+}
+
+function createDefaultCharacterSheetState(payload: CharacterV2, derived: DerivedStatsV2 | null): CharacterSheetState {
+  const hpMax = Math.max(1, derived?.hp_max ?? totalLevel(payload.class_levels) * 8);
+  const inspirationMax = calculateInspirationMax(payload);
+  const consumables: Record<string, number> = {};
+  for (const definition of CONSUMABLE_DEFINITIONS) {
+    consumables[definition.key] = definition.default_count;
+  }
+
+  return {
+    version: 1,
+    conditions: createDefaultConditionState(payload),
+    resources: {
+      hp_max: hpMax,
+      hp_current: hpMax,
+      hp_temp: 0,
+      hp_nonlethal: 0,
+      inspiration_max: inspirationMax,
+      inspiration_current: inspirationMax,
+      consumables,
+    },
+    spells: createDefaultSpellTrackers(derived),
+    quick_combat: {
+      initiative_roll: "",
+      selected_attack_index: 0,
+      damage_notes: "",
+    },
+  };
+}
+
+function normalizeCharacterSheetState(
+  state: CharacterSheetState | undefined,
+  payload: CharacterV2,
+  derived: DerivedStatsV2 | null
+): CharacterSheetState {
+  const defaults = createDefaultCharacterSheetState(payload, derived);
+  const hpMax = defaults.resources.hp_max;
+  const inspirationMax = defaults.resources.inspiration_max;
+
+  const conditions: Record<string, boolean> = {
+    ...defaults.conditions,
+  };
+  if (state?.conditions) {
+    for (const [key, value] of Object.entries(state.conditions)) {
+      conditions[key] = Boolean(value);
+    }
+  }
+
+  const consumables: Record<string, number> = {};
+  for (const definition of CONSUMABLE_DEFINITIONS) {
+    const raw = state?.resources?.consumables?.[definition.key];
+    consumables[definition.key] =
+      typeof raw === "number" && Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : definition.default_count;
+  }
+
+  const resources: CharacterSheetResources = {
+    hp_max: hpMax,
+    hp_current:
+      typeof state?.resources?.hp_current === "number" ? clampInteger(state.resources.hp_current, 0, hpMax) : defaults.resources.hp_current,
+    hp_temp: typeof state?.resources?.hp_temp === "number" ? Math.max(0, Math.trunc(state.resources.hp_temp)) : 0,
+    hp_nonlethal:
+      typeof state?.resources?.hp_nonlethal === "number" ? Math.max(0, Math.trunc(state.resources.hp_nonlethal)) : 0,
+    inspiration_max: inspirationMax,
+    inspiration_current:
+      typeof state?.resources?.inspiration_current === "number"
+        ? clampInteger(state.resources.inspiration_current, 0, inspirationMax)
+        : inspirationMax,
+    consumables,
+  };
+
+  const defaultSpells = defaults.spells;
+  const spellLevels = new Set<string>([...Object.keys(defaultSpells), ...Object.keys(state?.spells ?? {})]);
+  const spells: Record<string, SpellTracker> = {};
+
+  for (const level of spellLevels) {
+    const fallback = defaultSpells[level] ?? { known: 0, prepared: 0, used: 0 };
+    const source = state?.spells?.[level];
+    const knownFromState = typeof source?.known === "number" ? Math.max(0, Math.trunc(source.known)) : fallback.known;
+    const known = Math.max(fallback.known, knownFromState);
+    const preparedFromState = typeof source?.prepared === "number" ? Math.max(0, Math.trunc(source.prepared)) : fallback.prepared;
+    const prepared = Math.min(known, preparedFromState);
+    const usedFromState = typeof source?.used === "number" ? Math.max(0, Math.trunc(source.used)) : fallback.used;
+    const used = Math.min(prepared, usedFromState);
+
+    spells[level] = {
+      known,
+      prepared,
+      used,
+    };
+  }
+
+  const quick_combat: QuickCombatState = {
+    initiative_roll: typeof state?.quick_combat?.initiative_roll === "string" ? state.quick_combat.initiative_roll : "",
+    selected_attack_index:
+      typeof state?.quick_combat?.selected_attack_index === "number"
+        ? Math.max(0, Math.trunc(state.quick_combat.selected_attack_index))
+        : 0,
+    damage_notes: typeof state?.quick_combat?.damage_notes === "string" ? state.quick_combat.damage_notes : "",
+  };
+
+  return {
+    version: 1,
+    conditions,
+    resources,
+    spells,
+    quick_combat,
+  };
+}
+
+function aggregateConditionDelta(conditions: Record<string, boolean>): AggregateConditionDelta {
+  const aggregate: AggregateConditionDelta = {
+    ac_total: 0,
+    ac_touch: 0,
+    ac_flat_footed: 0,
+    fort: 0,
+    ref: 0,
+    will: 0,
+    initiative: 0,
+    cmb: 0,
+    cmd: 0,
+    attack: 0,
+    skill_all: 0,
+    skill_specific: {},
+    requires_derive: false,
+    active_labels: [],
+  };
+
+  for (const rule of SHEET_CONDITIONS) {
+    if (!conditions[rule.key]) {
+      continue;
+    }
+
+    aggregate.ac_total += rule.delta.ac_total ?? 0;
+    aggregate.ac_touch += rule.delta.ac_touch ?? 0;
+    aggregate.ac_flat_footed += rule.delta.ac_flat_footed ?? 0;
+    aggregate.fort += rule.delta.fort ?? 0;
+    aggregate.ref += rule.delta.ref ?? 0;
+    aggregate.will += rule.delta.will ?? 0;
+    aggregate.initiative += rule.delta.initiative ?? 0;
+    aggregate.cmb += rule.delta.cmb ?? 0;
+    aggregate.cmd += rule.delta.cmd ?? 0;
+    aggregate.attack += rule.delta.attack ?? 0;
+    aggregate.skill_all += rule.delta.skill_all ?? 0;
+    aggregate.requires_derive = aggregate.requires_derive || Boolean(rule.requires_derive);
+    aggregate.active_labels.push(rule.label);
+
+    if (rule.delta.skill_specific) {
+      for (const [skillName, bonus] of Object.entries(rule.delta.skill_specific)) {
+        aggregate.skill_specific[skillName] = (aggregate.skill_specific[skillName] ?? 0) + bonus;
+      }
+    }
+  }
+
+  return aggregate;
+}
+
+function applySkillAdjustments(baseSkills: Record<string, number>, delta: AggregateConditionDelta): Record<string, number> {
+  const adjusted: Record<string, number> = {};
+  for (const [skillName, value] of Object.entries(baseSkills)) {
+    adjusted[skillName] = value + delta.skill_all + (delta.skill_specific[skillName] ?? 0);
+  }
+  for (const [skillName, bonus] of Object.entries(delta.skill_specific)) {
+    if (!(skillName in adjusted)) {
+      adjusted[skillName] = delta.skill_all + bonus;
+    }
+  }
+  return adjusted;
+}
+
+function buildDerivePayloadWithSheetConditions(payload: CharacterV2, sheetState: CharacterSheetState | null): CharacterV2 {
+  if (!sheetState) {
+    return payload;
+  }
+
+  const deriveConditionKeys = Object.entries(sheetState.conditions)
+    .filter(([key, enabled]) => enabled && Boolean(CONDITION_RULE_BY_KEY[key]?.requires_derive))
+    .map(([key]) => key);
+  const payloadConditions = payload.conditions.filter((condition) => {
+    const rule = CONDITION_RULE_BY_KEY[condition];
+    return !rule || Boolean(rule.requires_derive);
+  });
+
+  return {
+    ...payload,
+    conditions: Array.from(new Set([...payloadConditions, ...deriveConditionKeys])),
+  };
+}
+
+function parseSheetStateStorage(raw: string | null): Record<string, CharacterSheetState> {
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const out: Record<string, CharacterSheetState> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof key !== "string" || key.length === 0 || typeof value !== "object" || value === null) {
+        continue;
+      }
+      out[key] = value as CharacterSheetState;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function loadSheetStateStorage(): Record<string, CharacterSheetState> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  return parseSheetStateStorage(window.localStorage.getItem(SHEET_STATE_STORAGE_KEY));
+}
+
+function persistSheetStateStorage(entries: Record<string, CharacterSheetState>): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(SHEET_STATE_STORAGE_KEY, JSON.stringify(entries));
 }
 
 function fetchLabel(status: StorageMode): string {
@@ -525,6 +988,9 @@ export function App() {
   const [deriveResult, setDeriveResult] = useState<DeriveResponseV2 | null>(null);
   const [validationResult, setValidationResult] = useState<CharacterValidationResponseV2 | null>(null);
   const [derivedByCharacterId, setDerivedByCharacterId] = useState<Record<string, DerivedStatsV2>>({});
+  const [sheetStateByCharacterId, setSheetStateByCharacterId] = useState<Record<string, CharacterSheetState>>(() =>
+    loadSheetStateStorage()
+  );
 
   const [searchText, setSearchText] = useState<string>("");
   const [raceFilter, setRaceFilter] = useState<string>("all");
@@ -668,6 +1134,10 @@ export function App() {
   }, [characters, storageMode]);
 
   useEffect(() => {
+    persistSheetStateStorage(sheetStateByCharacterId);
+  }, [sheetStateByCharacterId]);
+
+  useEffect(() => {
     if (races.length === 0) {
       return;
     }
@@ -729,6 +1199,13 @@ export function App() {
       return matchesText && matchesRace && matchesClass;
     });
   }, [characters, classFilter, raceFilter, searchText]);
+
+  function upsertCharacterSheetState(characterId: string, payload: CharacterV2, derived: DerivedStatsV2 | null): void {
+    setSheetStateByCharacterId((prev) => ({
+      ...prev,
+      [characterId]: normalizeCharacterSheetState(prev[characterId], payload, derived),
+    }));
+  }
 
   function setDraftField<K extends keyof EditorDraft>(key: K, value: EditorDraft[K]): void {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -824,6 +1301,7 @@ export function App() {
       return;
     }
 
+    upsertCharacterSheetState(record.id, payload, derivedByCharacterId[record.id] ?? null);
     setActiveCharacterId(record.id);
     setDraft(draftFromCharacter(payload));
     setView("sheet");
@@ -872,6 +1350,7 @@ export function App() {
             );
             setDraft(draftFromCharacter(localPayload));
             setActiveCharacterId(localId);
+            upsertCharacterSheetState(localId, localPayload, derivedByCharacterId[localId] ?? null);
             setNotice("Server character CRUD unavailable in this backend state. Saved locally.");
             return;
           }
@@ -889,6 +1368,7 @@ export function App() {
         );
         setDraft(draftFromCharacter(mergedPayload));
         setActiveCharacterId(savedId);
+        upsertCharacterSheetState(savedId, mergedPayload, derivedByCharacterId[savedId] ?? deriveResult?.derived ?? null);
         setNotice("Character saved to API V2.");
         return;
       }
@@ -902,6 +1382,7 @@ export function App() {
       );
       setDraft(draftFromCharacter(localPayload));
       setActiveCharacterId(localId);
+      upsertCharacterSheetState(localId, localPayload, derivedByCharacterId[localId] ?? deriveResult?.derived ?? null);
       setNotice("Character saved locally.");
     } catch {
       setSaveError("Could not save character.");
@@ -955,6 +1436,7 @@ export function App() {
           ...prev,
           [cacheId]: deriveBody.derived,
         }));
+        upsertCharacterSheetState(cacheId, deriveBody.character, deriveBody.derived);
       }
 
       if (showNotice) {
@@ -974,14 +1456,301 @@ export function App() {
     : visibleRaces;
 
   const activePayloadForSheet = activeRecord?.payload ?? deriveResult?.character ?? null;
+  const activeSheetCharacterId = activeRecord?.id ?? activePayloadForSheet?.id ?? null;
+  const activeSheetStorageId = activeSheetCharacterId ?? "__draft__";
+
+  const activeSheetState = useMemo(() => {
+    if (!activePayloadForSheet) {
+      return null;
+    }
+    const stored = sheetStateByCharacterId[activeSheetStorageId];
+    return normalizeCharacterSheetState(stored, activePayloadForSheet, activeDerived);
+  }, [activeDerived, activePayloadForSheet, activeSheetStorageId, sheetStateByCharacterId]);
+
+  const conditionDelta = useMemo(() => {
+    return aggregateConditionDelta(activeSheetState?.conditions ?? {});
+  }, [activeSheetState]);
+
+  const adjustedDerived = useMemo(() => {
+    if (!activeDerived) {
+      return null;
+    }
+
+    return {
+      ...activeDerived,
+      ac_total: activeDerived.ac_total + conditionDelta.ac_total,
+      ac_touch: activeDerived.ac_touch + conditionDelta.ac_touch,
+      ac_flat_footed: activeDerived.ac_flat_footed + conditionDelta.ac_flat_footed,
+      fort: activeDerived.fort + conditionDelta.fort,
+      ref: activeDerived.ref + conditionDelta.ref,
+      will: activeDerived.will + conditionDelta.will,
+      initiative: activeDerived.initiative + conditionDelta.initiative,
+      cmb: activeDerived.cmb + conditionDelta.cmb,
+      cmd: activeDerived.cmd + conditionDelta.cmd,
+      attack_lines: activeDerived.attack_lines.map((line) => ({
+        ...line,
+        attack_bonus: line.attack_bonus + conditionDelta.attack,
+      })),
+      skill_totals: applySkillAdjustments(activeDerived.skill_totals, conditionDelta),
+    };
+  }, [activeDerived, conditionDelta]);
+
+  const displaySkillTotals = useMemo(() => {
+    if (!activePayloadForSheet) {
+      return {};
+    }
+    const baseSkills =
+      activeDerived?.skill_totals && Object.keys(activeDerived.skill_totals).length > 0
+        ? activeDerived.skill_totals
+        : activePayloadForSheet.skills;
+    return applySkillAdjustments(baseSkills, conditionDelta);
+  }, [activeDerived, activePayloadForSheet, conditionDelta]);
+
+  const keySkillShortcuts = useMemo(() => {
+    const shortcuts: Array<{ name: string; value: number | null }> = [];
+    for (const skillName of KEY_SKILL_SHORTCUTS) {
+      if (typeof displaySkillTotals[skillName] === "number") {
+        shortcuts.push({ name: skillName, value: displaySkillTotals[skillName] });
+      } else {
+        shortcuts.push({ name: skillName, value: null });
+      }
+    }
+    return shortcuts;
+  }, [displaySkillTotals]);
+
+  const spellLevels = useMemo(() => {
+    if (!activeSheetState) {
+      return [] as Array<[string, SpellTracker]>;
+    }
+    return Object.entries(activeSheetState.spells).sort(
+      ([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10)
+    );
+  }, [activeSheetState]);
+
+  const combatAttackLines = adjustedDerived?.attack_lines ?? [];
+  const selectedAttackLine =
+    activeSheetState && combatAttackLines.length > 0
+      ? combatAttackLines[Math.min(activeSheetState.quick_combat.selected_attack_index, combatAttackLines.length - 1)]
+      : null;
+  const quickInitiativeTotal = useMemo(() => {
+    if (!activeSheetState || typeof adjustedDerived?.initiative !== "number") {
+      return null;
+    }
+    const parsed = Number.parseInt(activeSheetState.quick_combat.initiative_roll, 10);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return parsed + adjustedDerived.initiative;
+  }, [activeSheetState, adjustedDerived]);
+
+  function updateActiveSheetState(mutator: (state: CharacterSheetState) => CharacterSheetState): CharacterSheetState | null {
+    if (!activePayloadForSheet) {
+      return null;
+    }
+
+    let nextSnapshot: CharacterSheetState | null = null;
+    setSheetStateByCharacterId((prev) => {
+      const current = normalizeCharacterSheetState(prev[activeSheetStorageId], activePayloadForSheet, activeDerived);
+      const next = mutator(current);
+      nextSnapshot = next;
+      return {
+        ...prev,
+        [activeSheetStorageId]: next,
+      };
+    });
+    return nextSnapshot;
+  }
+
+  function toggleSheetCondition(conditionKey: string, enabled: boolean): void {
+    const nextState = updateActiveSheetState((current) => ({
+      ...current,
+      conditions: {
+        ...current.conditions,
+        [conditionKey]: enabled,
+      },
+    }));
+    const rule = CONDITION_RULE_BY_KEY[conditionKey];
+    if (!nextState || !activePayloadForSheet || !rule?.requires_derive) {
+      return;
+    }
+
+    void deriveCharacter(
+      buildDerivePayloadWithSheetConditions(activePayloadForSheet, nextState),
+      activeSheetCharacterId ?? undefined,
+      false
+    );
+  }
+
+  function setSheetResourceValue(
+    key: "hp_current" | "hp_temp" | "hp_nonlethal" | "inspiration_current",
+    rawValue: string
+  ): void {
+    const parsed = Number.parseInt(rawValue, 10);
+    const nextRaw = Number.isFinite(parsed) ? parsed : 0;
+
+    updateActiveSheetState((current) => {
+      if (key === "hp_current") {
+        return {
+          ...current,
+          resources: {
+            ...current.resources,
+            hp_current: clampInteger(nextRaw, 0, current.resources.hp_max),
+          },
+        };
+      }
+
+      if (key === "inspiration_current") {
+        return {
+          ...current,
+          resources: {
+            ...current.resources,
+            inspiration_current: clampInteger(nextRaw, 0, current.resources.inspiration_max),
+          },
+        };
+      }
+
+      return {
+        ...current,
+        resources: {
+          ...current.resources,
+          [key]: Math.max(0, Math.trunc(nextRaw)),
+        },
+      };
+    });
+  }
+
+  function adjustResource(
+    key: "hp_current" | "inspiration_current",
+    delta: number
+  ): void {
+    updateActiveSheetState((current) => {
+      if (key === "hp_current") {
+        return {
+          ...current,
+          resources: {
+            ...current.resources,
+            hp_current: clampInteger(current.resources.hp_current + delta, 0, current.resources.hp_max),
+          },
+        };
+      }
+      return {
+        ...current,
+        resources: {
+          ...current.resources,
+          inspiration_current: clampInteger(
+            current.resources.inspiration_current + delta,
+            0,
+            current.resources.inspiration_max
+          ),
+        },
+      };
+    });
+  }
+
+  function adjustConsumable(consumableKey: string, delta: number): void {
+    updateActiveSheetState((current) => ({
+      ...current,
+      resources: {
+        ...current.resources,
+        consumables: {
+          ...current.resources.consumables,
+          [consumableKey]: Math.max(0, (current.resources.consumables[consumableKey] ?? 0) + delta),
+        },
+      },
+    }));
+  }
+
+  function adjustSpellTracker(level: string, field: "known" | "prepared" | "used", delta: number): void {
+    updateActiveSheetState((current) => {
+      const existing = current.spells[level] ?? { known: 0, prepared: 0, used: 0 };
+      let known = existing.known;
+      let prepared = existing.prepared;
+      let used = existing.used;
+
+      if (field === "known") {
+        known = Math.max(0, known + delta);
+      }
+      if (field === "prepared") {
+        prepared = Math.max(0, prepared + delta);
+      }
+      if (field === "used") {
+        used = Math.max(0, used + delta);
+      }
+
+      prepared = Math.min(prepared, known);
+      used = Math.min(used, prepared);
+
+      return {
+        ...current,
+        spells: {
+          ...current.spells,
+          [level]: {
+            known,
+            prepared,
+            used,
+          },
+        },
+      };
+    });
+  }
+
+  function applyRest(restType: "short" | "full"): void {
+    updateActiveSheetState((current) => {
+      const spells: Record<string, SpellTracker> = {};
+      for (const [level, tracker] of Object.entries(current.spells)) {
+        if (restType === "short") {
+          const used = Math.max(0, tracker.used - 1);
+          spells[level] = {
+            known: tracker.known,
+            prepared: tracker.prepared,
+            used,
+          };
+        } else {
+          spells[level] = {
+            known: tracker.known,
+            prepared: tracker.known,
+            used: 0,
+          };
+        }
+      }
+
+      return {
+        ...current,
+        resources: {
+          ...current.resources,
+          hp_current: restType === "full" ? current.resources.hp_max : current.resources.hp_current,
+          hp_temp: 0,
+          hp_nonlethal: restType === "full" ? 0 : current.resources.hp_nonlethal,
+          inspiration_current:
+            restType === "full" ? current.resources.inspiration_max : current.resources.inspiration_current,
+        },
+        spells,
+        quick_combat: {
+          ...current.quick_combat,
+          initiative_roll: "",
+        },
+      };
+    });
+    setNotice(restType === "full" ? "Full rest reset applied." : "Short rest reset applied.");
+  }
+
+  function setQuickCombatField<K extends keyof QuickCombatState>(key: K, value: QuickCombatState[K]): void {
+    updateActiveSheetState((current) => ({
+      ...current,
+      quick_combat: {
+        ...current.quick_combat,
+        [key]: value,
+      },
+    }));
+  }
 
   return (
     <main className="app-shell">
       <header className="hero card">
         <div>
-          <h1>Phase 5 Character MVP</h1>
+          <h1>Phase 6 Kairon UI Parity</h1>
           <p>
-            Create, validate, derive, save, load, and view sheet data using API V2 contracts.
+            Create, validate, derive, save, load, and run tablet-ready in-sheet tracking against API V2 contracts.
           </p>
         </div>
         <div className="hero-meta">
@@ -1369,7 +2138,15 @@ export function App() {
                   <button
                     type="button"
                     className="primary-btn"
-                    onClick={() => void deriveCharacter(activePayloadForSheet ?? undefined, activeRecord?.id, false)}
+                    onClick={() =>
+                      void deriveCharacter(
+                        activePayloadForSheet
+                          ? buildDerivePayloadWithSheetConditions(activePayloadForSheet, activeSheetState)
+                          : undefined,
+                        activeSheetCharacterId ?? undefined,
+                        false
+                      )
+                    }
                     disabled={deriveLoading || !activePayloadForSheet}
                   >
                     {deriveLoading ? "Refreshing..." : "Refresh Derived"}
@@ -1393,13 +2170,15 @@ export function App() {
                     <article className="panel">
                       <h4>Core Stats</h4>
                       <div className="derived-grid">
-                        <div><strong>Level</strong>: {activeDerived?.total_level ?? totalLevel(activePayloadForSheet.class_levels)}</div>
-                        <div><strong>HP</strong>: {activeDerived?.hp_max ?? "-"}</div>
-                        <div><strong>AC</strong>: {activeDerived?.ac_total ?? "-"}</div>
-                        <div><strong>BAB</strong>: {activeDerived?.bab ?? "-"}</div>
-                        <div><strong>CMB</strong>: {activeDerived?.cmb ?? "-"}</div>
-                        <div><strong>CMD</strong>: {activeDerived?.cmd ?? "-"}</div>
-                        <div><strong>Init</strong>: {activeDerived?.initiative ?? "-"}</div>
+                        <div><strong>Level</strong>: {adjustedDerived?.total_level ?? totalLevel(activePayloadForSheet.class_levels)}</div>
+                        <div><strong>HP Max</strong>: {adjustedDerived?.hp_max ?? "-"}</div>
+                        <div data-testid="stat-ac"><strong>AC</strong>: {adjustedDerived?.ac_total ?? "-"}</div>
+                        <div><strong>Touch</strong>: {adjustedDerived?.ac_touch ?? "-"}</div>
+                        <div><strong>Flat</strong>: {adjustedDerived?.ac_flat_footed ?? "-"}</div>
+                        <div><strong>BAB</strong>: {adjustedDerived?.bab ?? "-"}</div>
+                        <div><strong>CMB</strong>: {adjustedDerived?.cmb ?? "-"}</div>
+                        <div><strong>CMD</strong>: {adjustedDerived?.cmd ?? "-"}</div>
+                        <div><strong>Init</strong>: {typeof adjustedDerived?.initiative === "number" ? formatSigned(adjustedDerived.initiative) : "-"}</div>
                       </div>
                       <div className="abilities-inline">
                         {ABILITY_KEYS.map((key) => (
@@ -1411,22 +2190,238 @@ export function App() {
                     </article>
 
                     <article className="panel">
+                      <h4>Resource Trackers</h4>
+                      {activeSheetState ? (
+                        <div className="tracker-stack">
+                          <div className="resource-row">
+                            <label>
+                              HP Current
+                              <input
+                                data-testid="resource-hp-current"
+                                type="number"
+                                min={0}
+                                max={activeSheetState.resources.hp_max}
+                                value={activeSheetState.resources.hp_current}
+                                onChange={(event) => setSheetResourceValue("hp_current", event.target.value)}
+                              />
+                            </label>
+                            <div className="actions">
+                              <button type="button" className="ghost-btn" data-testid="resource-hp-dec" onClick={() => adjustResource("hp_current", -1)}>
+                                -1
+                              </button>
+                              <button type="button" className="ghost-btn" data-testid="resource-hp-inc" onClick={() => adjustResource("hp_current", 1)}>
+                                +1
+                              </button>
+                            </div>
+                          </div>
+                          <div className="resource-inline">
+                            <label>
+                              Temp HP
+                              <input
+                                type="number"
+                                min={0}
+                                value={activeSheetState.resources.hp_temp}
+                                onChange={(event) => setSheetResourceValue("hp_temp", event.target.value)}
+                              />
+                            </label>
+                            <label>
+                              Nonlethal
+                              <input
+                                type="number"
+                                min={0}
+                                value={activeSheetState.resources.hp_nonlethal}
+                                onChange={(event) => setSheetResourceValue("hp_nonlethal", event.target.value)}
+                              />
+                            </label>
+                          </div>
+                          <div className="resource-row">
+                            <label>
+                              Inspiration
+                              <input
+                                data-testid="resource-inspiration-current"
+                                type="number"
+                                min={0}
+                                max={activeSheetState.resources.inspiration_max}
+                                value={activeSheetState.resources.inspiration_current}
+                                onChange={(event) => setSheetResourceValue("inspiration_current", event.target.value)}
+                              />
+                            </label>
+                            <p className="row-meta">/ {activeSheetState.resources.inspiration_max}</p>
+                            <div className="actions">
+                              <button type="button" className="ghost-btn" data-testid="resource-inspiration-dec" onClick={() => adjustResource("inspiration_current", -1)}>
+                                -1
+                              </button>
+                              <button type="button" className="ghost-btn" data-testid="resource-inspiration-inc" onClick={() => adjustResource("inspiration_current", 1)}>
+                                +1
+                              </button>
+                            </div>
+                          </div>
+                          <div className="consumables-grid">
+                            {CONSUMABLE_DEFINITIONS.map((consumable) => (
+                              <div key={consumable.key} className="consumable-item">
+                                <span className="row-title">{consumable.label}</span>
+                                <div className="actions">
+                                  <button
+                                    type="button"
+                                    className="ghost-btn"
+                                    data-testid={`resource-consumable-dec-${consumable.key}`}
+                                    onClick={() => adjustConsumable(consumable.key, -1)}
+                                  >
+                                    -
+                                  </button>
+                                  <span data-testid={`resource-consumable-${consumable.key}`}>
+                                    {activeSheetState.resources.consumables[consumable.key] ?? 0}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="ghost-btn"
+                                    data-testid={`resource-consumable-inc-${consumable.key}`}
+                                    onClick={() => adjustConsumable(consumable.key, 1)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="muted">Resource tracking is available after loading a character.</p>
+                      )}
+                    </article>
+
+                    <article className="panel">
+                      <h4>Condition Toggles</h4>
+                      {activeSheetState ? (
+                        <>
+                          <div className="condition-grid">
+                            {SHEET_CONDITIONS.map((condition) => {
+                              const enabled = Boolean(activeSheetState.conditions[condition.key]);
+                              return (
+                                <label key={condition.key} className={`condition-item ${enabled ? "active" : ""}`}>
+                                  <input
+                                    type="checkbox"
+                                    data-testid={`condition-toggle-${condition.key}`}
+                                    checked={enabled}
+                                    onChange={(event) => toggleSheetCondition(condition.key, event.target.checked)}
+                                  />
+                                  <span className="row-title">{condition.label}</span>
+                                  <span className="reason">{condition.detail}</span>
+                                  <div className="condition-flags">
+                                    {condition.extract_linked ? <span className="pill active">extract</span> : null}
+                                    {condition.requires_derive ? <span className="pill deferred">derive</span> : null}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          {conditionDelta.requires_derive ? (
+                            <p className="muted">One or more active conditions are derive-linked; the sheet refreshes derive when those toggles change.</p>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="muted">Condition toggles are available after loading a character.</p>
+                      )}
+                    </article>
+
+                    <article className="panel">
+                      <h4>Quick Combat</h4>
+                      {activeSheetState ? (
+                        <div className="tracker-stack" data-testid="quick-combat-panel">
+                          <div className="resource-inline">
+                            <label>
+                              Initiative Roll
+                              <input
+                                data-testid="combat-initiative-roll"
+                                type="number"
+                                value={activeSheetState.quick_combat.initiative_roll}
+                                onChange={(event) => setQuickCombatField("initiative_roll", event.target.value)}
+                                placeholder="d20"
+                              />
+                            </label>
+                            <p className="row-meta">
+                              Total: {typeof quickInitiativeTotal === "number" ? quickInitiativeTotal : "--"}
+                            </p>
+                          </div>
+                          <label>
+                            Attack Preset
+                            <select
+                              value={activeSheetState.quick_combat.selected_attack_index}
+                              onChange={(event) =>
+                                setQuickCombatField("selected_attack_index", Number.parseInt(event.target.value || "0", 10))
+                              }
+                            >
+                              {combatAttackLines.length === 0 ? <option value={0}>No derived attacks</option> : null}
+                              {combatAttackLines.map((attack, index) => (
+                                <option key={`${attack.name}-${index}`} value={index}>
+                                  {attack.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {selectedAttackLine ? (
+                            <p className="row-meta" data-testid="combat-selected-attack">
+                              {selectedAttackLine.name}: {formatSigned(selectedAttackLine.attack_bonus)} to hit, {selectedAttackLine.damage}
+                            </p>
+                          ) : null}
+                          <label>
+                            Damage Notes
+                            <textarea
+                              data-testid="combat-damage-notes"
+                              value={activeSheetState.quick_combat.damage_notes}
+                              onChange={(event) => setQuickCombatField("damage_notes", event.target.value)}
+                              placeholder="Track rider effects, DR, resistance, and triggers."
+                            />
+                          </label>
+                          <div>
+                            <strong>Condition Summary</strong>
+                            {conditionDelta.active_labels.length > 0 ? (
+                              <ul className="compact-list" data-testid="condition-summary">
+                                {conditionDelta.active_labels.map((label) => (
+                                  <li key={label}>
+                                    <span className="row-title">{label}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="muted" data-testid="condition-summary">No active sheet conditions.</p>
+                            )}
+                          </div>
+                          <div className="shortcut-grid">
+                            <span className="row-title">Fort {typeof adjustedDerived?.fort === "number" ? formatSigned(adjustedDerived.fort) : "--"}</span>
+                            <span className="row-title" data-testid="stat-ref">
+                              Ref {typeof adjustedDerived?.ref === "number" ? formatSigned(adjustedDerived.ref) : "--"}
+                            </span>
+                            <span className="row-title">Will {typeof adjustedDerived?.will === "number" ? formatSigned(adjustedDerived.will) : "--"}</span>
+                            {keySkillShortcuts.map((skill) => (
+                              <span key={skill.name} className="row-meta">
+                                {skill.name}: {typeof skill.value === "number" ? formatSigned(skill.value) : "--"}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="muted">Quick combat appears after loading a character.</p>
+                      )}
+                    </article>
+
+                    <article className="panel">
                       <h4>Saves</h4>
                       <div className="derived-grid">
-                        <div><strong>Fort</strong>: {activeDerived?.fort ?? "-"}</div>
-                        <div><strong>Ref</strong>: {activeDerived?.ref ?? "-"}</div>
-                        <div><strong>Will</strong>: {activeDerived?.will ?? "-"}</div>
+                        <div><strong>Fort</strong>: {typeof adjustedDerived?.fort === "number" ? formatSigned(adjustedDerived.fort) : "-"}</div>
+                        <div><strong>Ref</strong>: {typeof adjustedDerived?.ref === "number" ? formatSigned(adjustedDerived.ref) : "-"}</div>
+                        <div><strong>Will</strong>: {typeof adjustedDerived?.will === "number" ? formatSigned(adjustedDerived.will) : "-"}</div>
                       </div>
                     </article>
 
                     <article className="panel">
                       <h4>Attacks</h4>
-                      {activeDerived?.attack_lines && activeDerived.attack_lines.length > 0 ? (
+                      {adjustedDerived?.attack_lines && adjustedDerived.attack_lines.length > 0 ? (
                         <ul className="compact-list">
-                          {activeDerived.attack_lines.map((attack) => (
+                          {adjustedDerived.attack_lines.map((attack) => (
                             <li key={`${attack.name}-${attack.attack_bonus}-${attack.damage}`}>
                               <span className="row-title">{attack.name}</span>
-                              <span className="row-meta">+{attack.attack_bonus} • {attack.damage}</span>
+                              <span className="row-meta">{formatSigned(attack.attack_bonus)} • {attack.damage}</span>
                               {attack.notes ? <span className="reason">{attack.notes}</span> : null}
                             </li>
                           ))}
@@ -1438,29 +2433,16 @@ export function App() {
 
                     <article className="panel">
                       <h4>Skills</h4>
-                      {activeDerived?.skill_totals && Object.keys(activeDerived.skill_totals).length > 0 ? (
-                        <ul className="compact-list">
-                          {Object.entries(activeDerived.skill_totals)
-                            .sort(([a], [b]) => a.localeCompare(b))
-                            .map(([name, value]) => (
-                              <li key={name}>
-                                <span className="row-title">{name}</span>
-                                <span className="row-meta">{value >= 0 ? `+${value}` : value}</span>
-                              </li>
-                            ))}
-                        </ul>
-                      ) : (
-                        <ul className="compact-list">
-                          {Object.entries(activePayloadForSheet.skills)
-                            .sort(([a], [b]) => a.localeCompare(b))
-                            .map(([name, value]) => (
-                              <li key={name}>
-                                <span className="row-title">{name}</span>
-                                <span className="row-meta">{value >= 0 ? `+${value}` : value}</span>
-                              </li>
-                            ))}
-                        </ul>
-                      )}
+                      <ul className="compact-list">
+                        {Object.entries(displaySkillTotals)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([name, value]) => (
+                            <li key={name}>
+                              <span className="row-title">{name}</span>
+                              <span className="row-meta">{formatSigned(value)}</span>
+                            </li>
+                          ))}
+                      </ul>
                     </article>
 
                     <article className="panel">
@@ -1504,17 +2486,52 @@ export function App() {
                     </article>
 
                     <article className="panel">
-                      <h4>Spells / Extracts</h4>
-                      {activeDerived?.spell_slots && Object.keys(activeDerived.spell_slots).length > 0 ? (
-                        <ul className="compact-list">
-                          {Object.entries(activeDerived.spell_slots)
-                            .sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
-                            .map(([level, slots]) => (
-                              <li key={level}>
-                                <span className="row-title">Level {level}</span>
-                                <span className="row-meta">Slots: {slots}</span>
-                              </li>
-                            ))}
+                      <div className="section-head">
+                        <h4>Spells / Extracts</h4>
+                        <div className="actions">
+                          <button type="button" className="ghost-btn" data-testid="rest-short" onClick={() => applyRest("short")}>
+                            Short Rest
+                          </button>
+                          <button type="button" className="ghost-btn" data-testid="rest-full" onClick={() => applyRest("full")}>
+                            Full Rest
+                          </button>
+                        </div>
+                      </div>
+                      {activeSheetState && spellLevels.length > 0 ? (
+                        <ul className="compact-list" data-testid="spell-trackers">
+                          {spellLevels.map(([level, tracker]) => (
+                            <li key={level}>
+                              <span className="row-title">Level {level}</span>
+                              <div className="spell-counter-grid">
+                                <span className="row-meta">Known</span>
+                                <button type="button" className="ghost-btn" onClick={() => adjustSpellTracker(level, "known", -1)}>-</button>
+                                <span>{tracker.known}</span>
+                                <button type="button" className="ghost-btn" onClick={() => adjustSpellTracker(level, "known", 1)}>+</button>
+                                <span className="row-meta">Prepared</span>
+                                <button type="button" className="ghost-btn" onClick={() => adjustSpellTracker(level, "prepared", -1)}>-</button>
+                                <span>{tracker.prepared}</span>
+                                <button type="button" className="ghost-btn" onClick={() => adjustSpellTracker(level, "prepared", 1)}>+</button>
+                                <span className="row-meta">Used</span>
+                                <button
+                                  type="button"
+                                  className="ghost-btn"
+                                  data-testid={`spell-used-dec-${level}`}
+                                  onClick={() => adjustSpellTracker(level, "used", -1)}
+                                >
+                                  -
+                                </button>
+                                <span data-testid={`spell-used-${level}`}>{tracker.used}</span>
+                                <button
+                                  type="button"
+                                  className="ghost-btn"
+                                  data-testid={`spell-used-inc-${level}`}
+                                  onClick={() => adjustSpellTracker(level, "used", 1)}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </li>
+                          ))}
                         </ul>
                       ) : (
                         <p className="muted">No spell/extract slots derived.</p>

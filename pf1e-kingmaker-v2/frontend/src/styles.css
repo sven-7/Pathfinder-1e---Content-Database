@@ -390,13 +390,112 @@ textarea {
   padding: 3px 8px;
 }
 
+.tracker-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.resource-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.resource-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+.consumables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.consumable-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  background: #fff;
+  display: grid;
+  gap: 6px;
+}
+
+.consumable-item .actions {
+  align-items: center;
+}
+
+.condition-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.condition-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.condition-item.active {
+  border-color: #84b3ff;
+  background: #edf4ff;
+}
+
+.condition-item input[type="checkbox"] {
+  margin: 0;
+}
+
+.condition-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.spell-counter-grid {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 62px 30px minmax(30px, auto) 30px;
+  gap: 4px;
+  align-items: center;
+}
+
+.spell-counter-grid .ghost-btn {
+  padding: 4px 6px;
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+}
+
 .footer-note {
   text-align: center;
 }
 
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    order: 2;
+  }
+
+  .main-view {
+    order: 1;
+  }
+}
+
 @media (max-width: 1080px) {
   .workspace {
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .abilities-grid {
@@ -454,5 +553,14 @@ textarea {
   .preview-panels,
   .text-grid {
     grid-template-columns: 1fr;
+  }
+
+  .resource-row,
+  .resource-inline {
+    grid-template-columns: 1fr;
+  }
+
+  .spell-counter-grid {
+    grid-template-columns: 58px 30px minmax(30px, auto) 30px;
   }
 }
