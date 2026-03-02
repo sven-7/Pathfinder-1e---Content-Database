@@ -91,3 +91,55 @@ def fetch_races_sqlite(dsn: str, *, include_deferred: bool = False) -> list[dict
             return [dict(r) for r in rows]
     except sqlite3.Error:
         return []
+
+
+def fetch_policy_summary_sqlite(dsn: str) -> dict:
+    default = {
+        "accepted_total": 0,
+        "active_total": 0,
+        "deferred_total": 0,
+        "reason_counts": {},
+        "tier_counts": {},
+    }
+    try:
+        with sqlite_conn_from_dsn(dsn) as conn:
+            totals = conn.execute(
+                """
+                SELECT
+                  COUNT(*) AS accepted_total,
+                  SUM(CASE WHEN COALESCE(ui_enabled, 1) = 1 THEN 1 ELSE 0 END) AS active_total,
+                  SUM(CASE WHEN COALESCE(ui_enabled, 1) = 0 THEN 1 ELSE 0 END) AS deferred_total
+                FROM source_records
+                WHERE parse_status = 'accepted'
+                """
+            ).fetchone()
+
+            reason_rows = conn.execute(
+                """
+                SELECT COALESCE(policy_reason, 'allowlisted') AS policy_reason, COUNT(*) AS count
+                FROM source_records
+                WHERE parse_status = 'accepted'
+                GROUP BY COALESCE(policy_reason, 'allowlisted')
+                ORDER BY count DESC, policy_reason
+                """
+            ).fetchall()
+
+            tier_rows = conn.execute(
+                """
+                SELECT COALESCE(ui_tier, 'active') AS ui_tier, COUNT(*) AS count
+                FROM source_records
+                WHERE parse_status = 'accepted'
+                GROUP BY COALESCE(ui_tier, 'active')
+                ORDER BY count DESC, ui_tier
+                """
+            ).fetchall()
+
+            return {
+                "accepted_total": int(totals["accepted_total"] or 0),
+                "active_total": int(totals["active_total"] or 0),
+                "deferred_total": int(totals["deferred_total"] or 0),
+                "reason_counts": {str(r["policy_reason"]): int(r["count"]) for r in reason_rows},
+                "tier_counts": {str(r["ui_tier"]): int(r["count"]) for r in tier_rows},
+            }
+    except sqlite3.Error:
+        return default

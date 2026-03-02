@@ -65,3 +65,85 @@ body {
   margin-top: 14px;
   border-left: 4px solid var(--brand);
 }
+
+.controls {
+  margin-top: 14px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.muted {
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.content-grid {
+  margin-top: 14px;
+}
+
+.compact-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.compact-list li {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.row-title {
+  font-weight: 700;
+}
+
+.row-meta {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.pill {
+  width: fit-content;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.pill.active {
+  color: #065f46;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.pill.deferred {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.reason {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.error {
+  color: #b91c1c;
+  margin-top: 8px;
+}

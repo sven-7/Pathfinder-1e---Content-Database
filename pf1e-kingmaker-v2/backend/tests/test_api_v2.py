@@ -218,3 +218,42 @@ def test_content_endpoints_include_deferred_with_policy_metadata(tmp_path: "Path
     assert deferred["ui_enabled"] == 0
     assert deferred["ui_tier"] == "deferred"
     assert deferred["policy_reason"] == "book_not_in_allowlist"
+
+
+def test_content_policy_summary_endpoint(tmp_path: "Path", monkeypatch: pytest.MonkeyPatch):
+    db_path = tmp_path / "content_summary.db"
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE source_records (
+              id INTEGER PRIMARY KEY,
+              parse_status TEXT,
+              ui_enabled INTEGER NOT NULL,
+              ui_tier TEXT NOT NULL,
+              policy_reason TEXT NOT NULL
+            );
+            """
+        )
+        conn.execute("INSERT INTO source_records (id, parse_status, ui_enabled, ui_tier, policy_reason) VALUES (1, 'accepted', 1, 'active', 'allowlisted')")
+        conn.execute("INSERT INTO source_records (id, parse_status, ui_enabled, ui_tier, policy_reason) VALUES (2, 'accepted', 0, 'deferred', 'book_not_in_allowlist')")
+        conn.execute("INSERT INTO source_records (id, parse_status, ui_enabled, ui_tier, policy_reason) VALUES (3, 'accepted', 0, 'deferred', 'book_not_in_allowlist')")
+        conn.execute("INSERT INTO source_records (id, parse_status, ui_enabled, ui_tier, policy_reason) VALUES (4, 'rejected', 0, 'deferred', 'class_not_in_allowlist')")
+        conn.commit()
+    finally:
+        conn.close()
+
+    monkeypatch.setattr(content_api, "settings", SimpleNamespace(database_url=f"sqlite:///{db_path}"))
+
+    client = TestClient(app)
+    response = client.get("/api/v2/content/policy-summary")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["accepted_total"] == 3
+    assert payload["active_total"] == 1
+    assert payload["deferred_total"] == 2
+    assert payload["tier_counts"]["active"] == 1
+    assert payload["tier_counts"]["deferred"] == 2
+    assert payload["reason_counts"]["book_not_in_allowlist"] == 2
+    assert payload["reason_counts"]["allowlisted"] == 1
+    assert "class_not_in_allowlist" not in payload["reason_counts"]
