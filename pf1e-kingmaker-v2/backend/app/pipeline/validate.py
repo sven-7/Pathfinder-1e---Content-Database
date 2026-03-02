@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.pipeline.utils import read_jsonl, write_json, write_jsonl
+from app.pipeline.extract import _APPROVED_CLASS_SET
 
 
 _BANNED_FEAT_NAMES = {
@@ -43,6 +44,7 @@ _REQUIRED_ENTITIES = {
     "spell": {"haste"},
     "equipment": {"rapier", "studded leather"},
 }
+_CLASS_SCOPED_TYPES = {"class", "class_progression", "class_feature"}
 
 
 def run_validate(run_path: Path) -> Path:
@@ -70,6 +72,15 @@ def run_validate(run_path: Path) -> Path:
             feat_name = str(data.get("name", "")).strip().lower()
             if feat_name in _BANNED_FEAT_NAMES:
                 reason = "junk feat/header row"
+
+        if not reason and ctype in _CLASS_SCOPED_TYPES:
+            class_name = ""
+            if ctype == "class":
+                class_name = str(data.get("name", "")).strip()
+            else:
+                class_name = str(data.get("class_name", "")).strip()
+            if class_name and class_name.lower() not in _APPROVED_CLASS_SET:
+                reason = f"class not approved: {class_name}"
 
         if ctype == "race" and data.get("name"):
             races.add(str(data["name"]).strip())

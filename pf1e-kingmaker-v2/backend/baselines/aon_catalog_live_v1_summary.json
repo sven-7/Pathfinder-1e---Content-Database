@@ -7,18 +7,18 @@
       "book_not_approved": 0,
       "class_not_approved": 0
     },
-    "ingested_classes_total": 45,
+    "ingested_classes_total": 44,
     "missing_books_count": 1,
     "missing_classes_count": 0,
     "policy_counts": {
-      "book_not_in_allowlist": 17657,
-      "class_not_in_allowlist": 1,
-      "source_unresolved": 284,
-      "ui_deferred": 17406,
-      "ui_enabled": 19114
+      "book_not_in_allowlist": 1567,
+      "class_not_in_allowlist": 0,
+      "source_unresolved": 45,
+      "ui_deferred": 1315,
+      "ui_enabled": 2185
     },
-    "seen_books_total": 228,
-    "unresolved_source_books_total": 19
+    "seen_books_total": 151,
+    "unresolved_source_books_total": 13
   },
   "manifest_aon": {
     "ai_short_fallback": true,
@@ -30,10 +30,10 @@
     "timeout": 15
   },
   "mode": "aon_catalog",
-  "run_key": "20260302T031002Z_aon_catalog_live_tiered",
+  "run_key": "20260302T162657Z_aon_catalog_live_post_gate",
   "source": "aon",
   "validation": {
-    "accepted_count": 3501,
+    "accepted_count": 3500,
     "passed": true,
     "rejected_count": 0
   }

@@ -31,14 +31,30 @@ def sqlite_conn_from_dsn(dsn: str):
         conn.close()
 
 
-def fetch_feats_sqlite(dsn: str) -> list[dict]:
+def fetch_feats_sqlite(dsn: str, *, include_deferred: bool = False) -> list[dict]:
     try:
         with sqlite_conn_from_dsn(dsn) as conn:
+            if include_deferred:
+                rows = conn.execute(
+                    """
+                    SELECT f.id, f.name, f.feat_type, f.prerequisites, f.benefit, f.source_book,
+                           COALESCE(sr.ui_enabled, 1) AS ui_enabled,
+                           COALESCE(sr.ui_tier, 'active') AS ui_tier,
+                           COALESCE(sr.policy_reason, 'allowlisted') AS policy_reason
+                    FROM feats f
+                    LEFT JOIN source_records sr ON sr.id = f.source_record_id
+                    ORDER BY f.name
+                    """
+                ).fetchall()
+                return [dict(r) for r in rows]
+
             rows = conn.execute(
                 """
-                SELECT id, name, feat_type, prerequisites, benefit, source_book
-                FROM feats
-                ORDER BY name
+                SELECT f.id, f.name, f.feat_type, f.prerequisites, f.benefit, f.source_book
+                FROM feats f
+                LEFT JOIN source_records sr ON sr.id = f.source_record_id
+                WHERE COALESCE(sr.ui_enabled, 1) = 1
+                ORDER BY f.name
                 """
             ).fetchall()
             return [dict(r) for r in rows]
@@ -46,14 +62,30 @@ def fetch_feats_sqlite(dsn: str) -> list[dict]:
         return []
 
 
-def fetch_races_sqlite(dsn: str) -> list[dict]:
+def fetch_races_sqlite(dsn: str, *, include_deferred: bool = False) -> list[dict]:
     try:
         with sqlite_conn_from_dsn(dsn) as conn:
+            if include_deferred:
+                rows = conn.execute(
+                    """
+                    SELECT r.id, r.name, r.race_type, r.size, r.base_speed, r.source_book,
+                           COALESCE(sr.ui_enabled, 1) AS ui_enabled,
+                           COALESCE(sr.ui_tier, 'active') AS ui_tier,
+                           COALESCE(sr.policy_reason, 'allowlisted') AS policy_reason
+                    FROM races r
+                    LEFT JOIN source_records sr ON sr.id = r.source_record_id
+                    ORDER BY r.name
+                    """
+                ).fetchall()
+                return [dict(r) for r in rows]
+
             rows = conn.execute(
                 """
-                SELECT id, name, race_type, size, base_speed, source_book
-                FROM races
-                ORDER BY name
+                SELECT r.id, r.name, r.race_type, r.size, r.base_speed, r.source_book
+                FROM races r
+                LEFT JOIN source_records sr ON sr.id = r.source_record_id
+                WHERE COALESCE(sr.ui_enabled, 1) = 1
+                ORDER BY r.name
                 """
             ).fetchall()
             return [dict(r) for r in rows]

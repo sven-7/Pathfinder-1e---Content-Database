@@ -507,7 +507,8 @@ def _extract_heading_from_html(html_text: str) -> str:
 
 
 def _is_generic_aon_heading(value: str) -> bool:
-    lowered = value.strip().lower()
+    lowered = html.unescape(value or "").strip().lower()
+    lowered = re.sub(r"\s+", " ", lowered)
     if not lowered:
         return True
     return any(
@@ -1728,7 +1729,12 @@ def _extract_kairon_slice_aon_records(
 
     # Investigator class (with deterministic progression baseline).
     class_html = html_by_url.get(_AON_KAIRON_URLS["class_investigator"], "")
-    class_name = _extract_heading_from_html(class_html) or "Investigator"
+    class_heading = _extract_heading_from_html(class_html).strip()
+    class_name_from_url = _aon_item_name_from_url(_AON_KAIRON_URLS["class_investigator"]) or "Investigator"
+    if _is_generic_aon_heading(class_heading):
+        class_name = class_name_from_url
+    else:
+        class_name = class_heading or class_name_from_url
     records.append(
         _record(
             "class",

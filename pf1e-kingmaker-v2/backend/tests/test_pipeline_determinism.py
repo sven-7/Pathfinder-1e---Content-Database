@@ -67,6 +67,53 @@ def test_validation_rejects_junk_feats(tmp_path: Path):
     assert any("junk feat" in reason for reason in reasons)
 
 
+def test_validation_rejects_non_allowlisted_class_rows(tmp_path: Path):
+    run_dir = tmp_path / "runs"
+    input_path = tmp_path / "records_bad_class.json"
+
+    records = [
+        {
+            "content_type": "class",
+            "source_url": "https://example/class",
+            "source_book": "Unknown",
+            "license_tag": "OGL",
+            "payload": {
+                "name": "Archives of Nethys",
+                "class_type": "base",
+                "hit_die": "d8",
+                "skill_ranks_per_level": 4,
+                "bab_progression": "three_quarter",
+                "fort_progression": "good",
+                "ref_progression": "good",
+                "will_progression": "poor",
+            },
+        },
+        {
+            "content_type": "class_progression",
+            "source_url": "https://example/class",
+            "source_book": "Unknown",
+            "license_tag": "OGL",
+            "payload": {
+                "class_name": "Archives of Nethys",
+                "level": 1,
+                "bab": 0,
+                "fort_save": 2,
+                "ref_save": 2,
+                "will_save": 0,
+            },
+        },
+    ]
+    input_path.write_text(json.dumps(records), encoding="utf-8")
+
+    run = run_extract(source="psrd", run_dir=run_dir, input_path=input_path, run_key="bad_class_gate")
+    run_parse(run)
+    run_validate(run)
+
+    rejected = read_jsonl(run / "validation" / "rejected_records.jsonl")
+    reasons = [str(r.get("reject_reason", "")) for r in rejected]
+    assert any("class not approved: Archives of Nethys" in reason for reason in reasons)
+
+
 def test_load_populates_canonical_tables(tmp_path: Path):
     run_dir = tmp_path / "runs"
     run = run_extract(source="psrd", run_dir=run_dir, run_key="load_run")
@@ -258,7 +305,7 @@ def test_extract_aon_live_archives_raw_html_and_short_text(tmp_path: Path, monke
         if "Spells.aspx?Class=All" in url:
             return "<html><body>Haste - One creature/level moves faster, +1 on attack rolls, AC, and Reflex saves.</body></html>"
         if "ClassDisplay.aspx?ItemName=Investigator" in url:
-            return "<html><h1>Investigator</h1><p>Investigators solve mysteries.</p></html>"
+            return "<html><title>Archives of Nethys</title><p>Investigators solve mysteries.</p></html>"
         if "RacesDisplay.aspx?ItemName=Tiefling" in url:
             return "<html><title>Archives of Nethys</title><p>Tieflings are native outsiders.</p></html>"
         return "<html><body>ok</body></html>"
@@ -289,6 +336,9 @@ def test_extract_aon_live_archives_raw_html_and_short_text(tmp_path: Path, monke
     race_rows = [r for r in accepted if r.get("content_type") == "race"]
     assert race_rows
     assert race_rows[0]["data"]["name"] == "Tiefling"
+    class_rows = [r for r in accepted if r.get("content_type") == "class"]
+    assert class_rows
+    assert any(row["data"].get("name") == "Investigator" for row in class_rows)
 
     manifest = read_json(run / "manifest.json")
     assert manifest["source"] == "aon"

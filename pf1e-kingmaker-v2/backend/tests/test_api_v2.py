@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import sqlite3
+from types import SimpleNamespace
+
 import pytest
 
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
+import app.api.v2.content as content_api
 from app.main import app
 
 
@@ -102,3 +106,115 @@ def test_character_validate_reports_invalid_feat_chain():
     assert body["ok"] is False
     assert body["invalid_feats"][0]["feat_name"] == "Rapid Shot"
     assert "Point-Blank Shot" in body["invalid_feats"][0]["missing"]
+
+
+def test_content_endpoints_filter_deferred_by_default(tmp_path: "Path", monkeypatch: pytest.MonkeyPatch):
+    db_path = tmp_path / "content.db"
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE source_records (
+              id INTEGER PRIMARY KEY,
+              ui_enabled INTEGER NOT NULL,
+              ui_tier TEXT NOT NULL,
+              policy_reason TEXT NOT NULL
+            );
+            CREATE TABLE feats (
+              id INTEGER PRIMARY KEY,
+              name TEXT,
+              feat_type TEXT,
+              prerequisites TEXT,
+              benefit TEXT,
+              source_book TEXT,
+              source_record_id INTEGER
+            );
+            CREATE TABLE races (
+              id INTEGER PRIMARY KEY,
+              name TEXT,
+              race_type TEXT,
+              size TEXT,
+              base_speed INTEGER,
+              source_book TEXT,
+              source_record_id INTEGER
+            );
+            """
+        )
+        conn.execute("INSERT INTO source_records (id, ui_enabled, ui_tier, policy_reason) VALUES (1, 1, 'active', 'allowlisted')")
+        conn.execute("INSERT INTO source_records (id, ui_enabled, ui_tier, policy_reason) VALUES (2, 0, 'deferred', 'book_not_in_allowlist')")
+        conn.execute(
+            "INSERT INTO feats (id, name, feat_type, prerequisites, benefit, source_book, source_record_id) VALUES (1, 'Power Attack', 'combat', '', '', 'Core Rulebook', 1)"
+        )
+        conn.execute(
+            "INSERT INTO feats (id, name, feat_type, prerequisites, benefit, source_book, source_record_id) VALUES (2, 'Psionic Focus', 'general', '', '', 'Occult Adventures', 2)"
+        )
+        conn.execute(
+            "INSERT INTO races (id, name, race_type, size, base_speed, source_book, source_record_id) VALUES (1, 'Human', 'featured', 'Medium', 30, 'Core Rulebook', 1)"
+        )
+        conn.execute(
+            "INSERT INTO races (id, name, race_type, size, base_speed, source_book, source_record_id) VALUES (2, 'Aasimar', 'featured', 'Medium', 30, 'Blood of Angels', 2)"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    monkeypatch.setattr(content_api, "settings", SimpleNamespace(database_url=f"sqlite:///{db_path}"))
+
+    client = TestClient(app)
+
+    feats_default = client.get("/api/v2/content/feats")
+    assert feats_default.status_code == 200
+    assert [r["name"] for r in feats_default.json()] == ["Power Attack"]
+    assert "ui_enabled" not in feats_default.json()[0]
+
+    races_default = client.get("/api/v2/content/races")
+    assert races_default.status_code == 200
+    assert [r["name"] for r in races_default.json()] == ["Human"]
+
+
+def test_content_endpoints_include_deferred_with_policy_metadata(tmp_path: "Path", monkeypatch: pytest.MonkeyPatch):
+    db_path = tmp_path / "content_with_deferred.db"
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE source_records (
+              id INTEGER PRIMARY KEY,
+              ui_enabled INTEGER NOT NULL,
+              ui_tier TEXT NOT NULL,
+              policy_reason TEXT NOT NULL
+            );
+            CREATE TABLE feats (
+              id INTEGER PRIMARY KEY,
+              name TEXT,
+              feat_type TEXT,
+              prerequisites TEXT,
+              benefit TEXT,
+              source_book TEXT,
+              source_record_id INTEGER
+            );
+            """
+        )
+        conn.execute("INSERT INTO source_records (id, ui_enabled, ui_tier, policy_reason) VALUES (1, 1, 'active', 'allowlisted')")
+        conn.execute("INSERT INTO source_records (id, ui_enabled, ui_tier, policy_reason) VALUES (2, 0, 'deferred', 'book_not_in_allowlist')")
+        conn.execute(
+            "INSERT INTO feats (id, name, feat_type, prerequisites, benefit, source_book, source_record_id) VALUES (1, 'Power Attack', 'combat', '', '', 'Core Rulebook', 1)"
+        )
+        conn.execute(
+            "INSERT INTO feats (id, name, feat_type, prerequisites, benefit, source_book, source_record_id) VALUES (2, 'Psionic Focus', 'general', '', '', 'Occult Adventures', 2)"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    monkeypatch.setattr(content_api, "settings", SimpleNamespace(database_url=f"sqlite:///{db_path}"))
+
+    client = TestClient(app)
+    feats = client.get("/api/v2/content/feats?include_deferred=true")
+    assert feats.status_code == 200
+    body = feats.json()
+    assert [row["name"] for row in body] == ["Power Attack", "Psionic Focus"]
+    deferred = next(row for row in body if row["name"] == "Psionic Focus")
+    assert deferred["ui_enabled"] == 0
+    assert deferred["ui_tier"] == "deferred"
+    assert deferred["policy_reason"] == "book_not_in_allowlist"

@@ -67,6 +67,10 @@ Two-tier policy behavior in `aon_catalog`:
   - `policy_reason` (for example `allowlisted`, `book_not_in_allowlist`, `class_not_in_allowlist`)
 - Canonical tables link back via `source_record_id`, so UI/API layers can gate deferred content without losing data.
 
+API usage for tiered content:
+- `/api/v2/content/feats` and `/api/v2/content/races` default to `include_deferred=false` and only return active (`ui_enabled=true`) rows.
+- Pass `include_deferred=true` to include deferred rows with policy metadata (`ui_enabled`, `ui_tier`, `policy_reason`).
+
 Fixture mode (CI/local quick checks without source databases):
 
 ```bash
@@ -81,5 +85,6 @@ python3 -m app.pipeline.cli extract --source psrd --mode kairon_fixture --run-di
 - `/api/v2/characters/validate` returns prereq validation with explicit invalid feat reasons.
 - Source strategy target is `AONPRD primary + d20 fallback` (see decision profile in `docs/decision_profile_2026_03_01.md`).
 - `aon_live` mode archives raw HTML snapshots under `runs/<run>/raw/html/*.html` and logs fetch metadata in `aon_fetch_log.jsonl`.
+- Validation now rejects non-allowlisted class-scope rows (`class`, `class_progression`, `class_feature`) to block junk class entries.
 - Baseline snapshot summary for the first full live catalog run is stored in `backend/baselines/aon_catalog_live_v1_summary.json`.
 - If `OPENAI_API_KEY` is not available, short-description generation falls back to deterministic first-sentence heuristics.
