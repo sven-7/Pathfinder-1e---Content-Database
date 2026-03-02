@@ -144,7 +144,44 @@ type DeriveResponseV2 = {
   derived: DerivedStatsV2;
 };
 
-type ViewMode = "creator" | "library" | "sheet";
+type CampaignRowV1 = {
+  id: string;
+  name: string;
+  owner_id: string;
+  description?: string | null;
+  status: "draft" | "active" | "paused" | "archived";
+  gm_id?: string | null;
+  player_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PartyMemberRowV1 = {
+  id: string;
+  party_id: string;
+  display_name: string;
+  role: "pc" | "npc" | "companion" | "guest";
+  character_id?: string | null;
+  owner_id?: string | null;
+  gm_id?: string | null;
+  player_id?: string | null;
+  created_at: string;
+};
+
+type PartyRowV1 = {
+  id: string;
+  campaign_id: string;
+  name: string;
+  owner_id: string;
+  notes?: string | null;
+  gm_id?: string | null;
+  player_id?: string | null;
+  members: PartyMemberRowV1[];
+  created_at: string;
+  updated_at: string;
+};
+
+type ViewMode = "creator" | "library" | "sheet" | "dm";
 type StorageMode = "unknown" | "server" | "local";
 type CharacterSource = "server" | "local";
 type FormErrors = Partial<Record<"name" | "race" | "class_name" | "class_level" | "abilities", string>>;
@@ -995,6 +1032,15 @@ export function App() {
   const [searchText, setSearchText] = useState<string>("");
   const [raceFilter, setRaceFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
+  const [dmCampaigns, setDmCampaigns] = useState<CampaignRowV1[]>([]);
+  const [dmCampaignName, setDmCampaignName] = useState<string>("Stolen Lands");
+  const [dmCampaignOwnerId, setDmCampaignOwnerId] = useState<string>("owner-stephen");
+  const [dmLoading, setDmLoading] = useState<boolean>(true);
+  const [dmError, setDmError] = useState<string>("");
+  const [dmNotice, setDmNotice] = useState<string>("");
+  const [dmSelectedCampaignId, setDmSelectedCampaignId] = useState<string | null>(null);
+  const [dmParties, setDmParties] = useState<PartyRowV1[]>([]);
+  const [dmPartiesLoading, setDmPartiesLoading] = useState<boolean>(false);
 
   useEffect(() => {
     fetch(`${base}/health`)
@@ -1199,6 +1245,130 @@ export function App() {
       return matchesText && matchesRace && matchesClass;
     });
   }, [characters, classFilter, raceFilter, searchText]);
+
+  const selectedDmCampaign = useMemo(() => {
+    if (!dmSelectedCampaignId) {
+      return null;
+    }
+    return dmCampaigns.find((campaign) => campaign.id === dmSelectedCampaignId) ?? null;
+  }, [dmCampaigns, dmSelectedCampaignId]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDmCampaigns(): Promise<void> {
+      setDmLoading(true);
+      setDmError("");
+
+      try {
+        const response = await fetch(`${base}/api/v2/campaigns`);
+        if (!response.ok) {
+          throw new Error(`campaigns_${response.status}`);
+        }
+
+        const rows = await parseJsonResponse<CampaignRowV1[]>(response);
+        if (!active) {
+          return;
+        }
+
+        const campaigns = Array.isArray(rows) ? rows : [];
+        setDmCampaigns(campaigns);
+
+        if (campaigns.length > 0) {
+          setDmSelectedCampaignId((prev) => prev ?? campaigns[0].id);
+        } else {
+          setDmSelectedCampaignId(null);
+          setDmParties([]);
+        }
+      } catch {
+        if (!active) {
+          return;
+        }
+        setDmCampaigns([]);
+        setDmParties([]);
+        setDmSelectedCampaignId(null);
+        setDmError("Unable to load campaign endpoints.");
+      } finally {
+        if (active) {
+          setDmLoading(false);
+        }
+      }
+    }
+
+    void loadDmCampaigns();
+
+    return () => {
+      active = false;
+    };
+  }, [base]);
+
+  useEffect(() => {
+    if (!dmSelectedCampaignId) {
+      return;
+    }
+    void loadDmParties(dmSelectedCampaignId);
+  }, [dmSelectedCampaignId]);
+
+  async function loadDmParties(campaignId: string): Promise<void> {
+    setDmPartiesLoading(true);
+    setDmError("");
+
+    try {
+      const response = await fetch(`${base}/api/v2/parties?campaign_id=${encodeURIComponent(campaignId)}`);
+      if (!response.ok) {
+        throw new Error(`parties_${response.status}`);
+      }
+      const rows = await parseJsonResponse<PartyRowV1[]>(response);
+      setDmParties(Array.isArray(rows) ? rows : []);
+    } catch {
+      setDmParties([]);
+      setDmError("Unable to load party roster for selected campaign.");
+    } finally {
+      setDmPartiesLoading(false);
+    }
+  }
+
+  async function openDmCampaign(campaignId: string): Promise<void> {
+    setDmSelectedCampaignId(campaignId);
+    await loadDmParties(campaignId);
+  }
+
+  async function createDmCampaign(): Promise<void> {
+    setDmError("");
+    setDmNotice("");
+
+    const name = dmCampaignName.trim();
+    const ownerId = dmCampaignOwnerId.trim();
+    if (name.length === 0 || ownerId.length === 0) {
+      setDmError("Campaign name and owner id are required.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${base}/api/v2/campaigns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          owner_id: ownerId,
+          status: "active",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`campaign_create_${response.status}`);
+      }
+
+      const created = await parseJsonResponse<CampaignRowV1>(response);
+      setDmCampaigns((prev) =>
+        [...prev, created].sort((a, b) => a.created_at.localeCompare(b.created_at))
+      );
+      setDmNotice(`Campaign "${created.name}" created.`);
+      await openDmCampaign(created.id);
+    } catch {
+      setDmError("Unable to create campaign.");
+    }
+  }
 
   function upsertCharacterSheetState(characterId: string, payload: CharacterV2, derived: DerivedStatsV2 | null): void {
     setSheetStateByCharacterId((prev) => ({
@@ -1788,6 +1958,14 @@ export function App() {
         >
           Sheet
         </button>
+        <button
+          type="button"
+          data-testid="tab-dm"
+          className={view === "dm" ? "tab active" : "tab"}
+          onClick={() => setView("dm")}
+        >
+          DM
+        </button>
       </section>
 
       <div className="workspace">
@@ -2120,6 +2298,111 @@ export function App() {
                   ))}
                 </div>
               )}
+            </section>
+          ) : null}
+
+          {view === "dm" ? (
+            <section className="card" data-testid="dm-view">
+              <div className="section-head">
+                <h2>DM Campaign Foundations</h2>
+              </div>
+
+              {dmNotice ? <p className="notice">{dmNotice}</p> : null}
+              {dmError ? <p className="error">{dmError}</p> : null}
+
+              <div className="dm-layout">
+                <article className="panel">
+                  <h3>Create Campaign</h3>
+                  <div className="form-grid">
+                    <label>
+                      Campaign Name
+                      <input
+                        data-testid="dm-campaign-name"
+                        value={dmCampaignName}
+                        onChange={(event) => setDmCampaignName(event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Owner ID
+                      <input
+                        data-testid="dm-campaign-owner"
+                        value={dmCampaignOwnerId}
+                        onChange={(event) => setDmCampaignOwnerId(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="actions">
+                    <button
+                      type="button"
+                      data-testid="dm-create-campaign"
+                      className="primary-btn"
+                      onClick={() => void createDmCampaign()}
+                    >
+                      Create Campaign
+                    </button>
+                  </div>
+                </article>
+
+                <article className="panel">
+                  <h3>Campaign List</h3>
+                  {dmLoading ? <p className="muted">Loading campaigns...</p> : null}
+                  {!dmLoading && dmCampaigns.length === 0 ? <p className="muted">No campaigns yet.</p> : null}
+                  <ul className="compact-list">
+                    {dmCampaigns.map((campaign) => (
+                      <li key={campaign.id}>
+                        <span className="row-title">{campaign.name}</span>
+                        <span className="row-meta">{campaign.status} • owner {campaign.owner_id}</span>
+                        <div className="actions">
+                          <button
+                            type="button"
+                            className="ghost-btn"
+                            data-testid={`dm-open-campaign-${campaign.id}`}
+                            onClick={() => void openDmCampaign(campaign.id)}
+                          >
+                            Open
+                          </button>
+                          {dmSelectedCampaignId === campaign.id ? <span className="pill active">open</span> : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              </div>
+
+              <article className="panel" data-testid="dm-party-roster">
+                <h3>Party Roster (Read)</h3>
+                {selectedDmCampaign ? (
+                  <p className="row-meta">
+                    Campaign: <strong>{selectedDmCampaign.name}</strong>
+                  </p>
+                ) : (
+                  <p className="muted">Open a campaign to load parties.</p>
+                )}
+                {dmPartiesLoading ? <p className="muted">Loading party roster...</p> : null}
+                {!dmPartiesLoading && selectedDmCampaign && dmParties.length === 0 ? (
+                  <p className="muted">No parties found for this campaign.</p>
+                ) : null}
+                <div className="card-grid">
+                  {dmParties.map((party) => (
+                    <article key={party.id} className="library-card">
+                      <h4>{party.name}</h4>
+                      <p className="row-meta">Owner: {party.owner_id}</p>
+                      {party.members.length === 0 ? (
+                        <p className="muted">No members in roster.</p>
+                      ) : (
+                        <ul className="compact-list">
+                          {party.members.map((member) => (
+                            <li key={member.id}>
+                              <span className="row-title">{member.display_name}</span>
+                              <span className="row-meta">{member.role}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </article>
             </section>
           ) : null}
 

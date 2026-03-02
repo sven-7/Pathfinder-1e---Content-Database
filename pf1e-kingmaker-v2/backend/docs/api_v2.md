@@ -12,6 +12,15 @@ This backend exposes OpenAPI for V2 at:
 - `GET /api/v2/content/policy-summary`
 - `POST /api/v2/characters/validate`
 - `POST /api/v2/rules/derive`
+- `GET/POST /api/v2/campaigns`
+- `GET /api/v2/campaigns/{campaign_id}`
+- `GET/POST /api/v2/parties`
+- `GET /api/v2/parties/{party_id}`
+- `GET/POST /api/v2/sessions`
+- `GET /api/v2/sessions/{session_id}`
+- `GET/POST /api/v2/campaigns/rule-overrides/global`
+- `GET/POST /api/v2/campaigns/{campaign_id}/rule-overrides`
+- `GET /api/v2/campaigns/{campaign_id}/rule-overrides/resolve`
 
 ## Example curl Calls
 
@@ -75,3 +84,24 @@ curl -sS -X POST "http://localhost:8000/api/v2/rules/derive" \
   }' | jq '.derived | {bab,fort,ref,will,ac_total,attack_lines,feat_prereq_results,breakdown}'
 ```
 
+```bash
+curl -sS -X POST "http://localhost:8000/api/v2/campaigns" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Stolen Lands","owner_id":"owner-stephen","status":"active","gm_id":"gm-stephen"}' | jq
+```
+
+```bash
+curl -sS -X POST "http://localhost:8000/api/v2/parties" \
+  -H "Content-Type: application/json" \
+  -d '{"campaign_id":"<campaign_id>","name":"Heroes of Restov","owner_id":"owner-stephen","members":[{"display_name":"Kairon","role":"pc"}]}' | jq
+```
+
+```bash
+curl -sS -X POST "http://localhost:8000/api/v2/campaigns/rule-overrides/global" \
+  -H "Content-Type: application/json" \
+  -d '{"key":"ac_total","operation":"add","value":1,"source":"global-house-rule"}' | jq
+curl -sS -X POST "http://localhost:8000/api/v2/campaigns/<campaign_id>/rule-overrides" \
+  -H "Content-Type: application/json" \
+  -d '{"key":"ac_total","operation":"set","value":16,"source":"campaign-setting"}' | jq
+curl -sS "http://localhost:8000/api/v2/campaigns/<campaign_id>/rule-overrides/resolve?character_id=char-kairon" | jq
+```

@@ -274,6 +274,9 @@ def test_openapi_exposes_v2_paths_and_contract_schemas():
     assert "/api/v2/content/policy-summary" in payload["paths"]
     assert "/api/v2/characters/validate" in payload["paths"]
     assert "/api/v2/rules/derive" in payload["paths"]
+    assert "/api/v2/campaigns" in payload["paths"]
+    assert "/api/v2/parties" in payload["paths"]
+    assert "/api/v2/sessions" in payload["paths"]
 
     schemas = payload["components"]["schemas"]
     for expected in (
@@ -284,6 +287,12 @@ def test_openapi_exposes_v2_paths_and_contract_schemas():
         "ContentFeatV2",
         "ContentRaceV2",
         "PolicySummaryV2",
+        "CampaignV1",
+        "PartyV1",
+        "SessionV1",
+        "EncounterV1",
+        "RuleOverrideRecordV1",
+        "RuleOverrideResolutionV1",
     ):
         assert expected in schemas
 
