@@ -19,9 +19,16 @@ CREATE TABLE IF NOT EXISTS source_records (
   parse_status TEXT NOT NULL CHECK (parse_status IN ('accepted', 'rejected')),
   reject_reason TEXT,
   content_type TEXT NOT NULL,
+  ui_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  ui_tier TEXT NOT NULL DEFAULT 'active',
+  policy_reason TEXT NOT NULL DEFAULT 'allowlisted',
   raw_payload JSONB,
   UNIQUE (ingestion_run_id, raw_hash)
 );
+
+ALTER TABLE source_records ADD COLUMN IF NOT EXISTS ui_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE source_records ADD COLUMN IF NOT EXISTS ui_tier TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE source_records ADD COLUMN IF NOT EXISTS policy_reason TEXT NOT NULL DEFAULT 'allowlisted';
 
 CREATE TABLE IF NOT EXISTS classes (
   id BIGSERIAL PRIMARY KEY,
@@ -101,7 +108,9 @@ CREATE TABLE IF NOT EXISTS feats (
   name TEXT NOT NULL UNIQUE,
   feat_type TEXT,
   prerequisites TEXT,
+  short_description TEXT,
   benefit TEXT,
+  description TEXT,
   ingestion_run_id BIGINT NOT NULL REFERENCES ingestion_runs(id),
   source_record_id BIGINT NOT NULL REFERENCES source_records(id),
   source_book TEXT,
@@ -125,6 +134,7 @@ CREATE TABLE IF NOT EXISTS spells (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   school TEXT,
+  short_description TEXT,
   description TEXT,
   ingestion_run_id BIGINT NOT NULL REFERENCES ingestion_runs(id),
   source_record_id BIGINT NOT NULL REFERENCES source_records(id),

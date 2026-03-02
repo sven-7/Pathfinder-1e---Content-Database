@@ -260,7 +260,7 @@ def test_extract_aon_live_archives_raw_html_and_short_text(tmp_path: Path, monke
         if "ClassDisplay.aspx?ItemName=Investigator" in url:
             return "<html><h1>Investigator</h1><p>Investigators solve mysteries.</p></html>"
         if "RacesDisplay.aspx?ItemName=Tiefling" in url:
-            return "<html><h1>Tiefling</h1><p>Tieflings are native outsiders.</p></html>"
+            return "<html><title>Archives of Nethys</title><p>Tieflings are native outsiders.</p></html>"
         return "<html><body>ok</body></html>"
 
     monkeypatch.setattr(extract_module, "_fetch_url_text", fake_fetch)
@@ -286,8 +286,254 @@ def test_extract_aon_live_archives_raw_html_and_short_text(tmp_path: Path, monke
     spell_rows = [r for r in accepted if r.get("content_type") == "spell" and r["data"].get("name") == "Haste"]
     assert spell_rows
     assert spell_rows[0]["data"].get("short_description")
+    race_rows = [r for r in accepted if r.get("content_type") == "race"]
+    assert race_rows
+    assert race_rows[0]["data"]["name"] == "Tiefling"
 
     manifest = read_json(run / "manifest.json")
     assert manifest["source"] == "aon"
     assert manifest["mode"] == "aon_live"
     assert manifest["aon"]["failed_pages"] == 0
+
+
+def test_extract_aon_catalog_adds_index_discovered_records(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def fake_fetch(url: str, timeout: int = 20) -> str:
+        if "Feats.aspx" in url:
+            return (
+                '<html><body>'
+                '<a href="FeatDisplay.aspx?ItemName=Power%20Attack">Power Attack</a> - Trade melee accuracy for damage.'
+                '</body></html>'
+            )
+        if "Spells.aspx?Class=All" in url:
+            return (
+                '<html><body>'
+                '<a href="SpellDisplay.aspx?ItemName=Fireball">Fireball</a> - A burst of fire that deals 1d6/level.'
+                '</body></html>'
+            )
+        if "FeatDisplay.aspx?ItemName=Power%20Attack" in url:
+            return (
+                "<html><h1>Power Attack</h1>"
+                "<p>Prerequisite: Str 13.</p>"
+                "<p>Benefit: Take a penalty on melee attacks for bonus damage.</p>"
+                "</html>"
+            )
+        if "SpellDisplay.aspx?ItemName=Fireball" in url:
+            return (
+                "<html><h1>Fireball</h1>"
+                "<p>School evocation [fire]; Level sorcerer/wizard 3.</p>"
+                "<p>A fireball deals 1d6 points of fire damage per caster level.</p>"
+                "</html>"
+            )
+        if "ClassDisplay.aspx?ItemName=Alchemist" in url:
+            return "<html><h1>Alchemist</h1><p>Hit Die d8.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Weapon%20Finesse" in url:
+            return "<html><h1>Weapon Finesse</h1><p>Prerequisites: Base attack bonus +1.</p><p>Benefit: Use Dexterity.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Weapon%20Focus" in url:
+            return "<html><h1>Weapon Focus</h1><p>Prerequisite: Base attack bonus +1.</p><p>Benefit: +1 attack.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Rapid%20Shot" in url:
+            return "<html><h1>Rapid Shot</h1><p>Prerequisites: Dex 13, Point-Blank Shot.</p><p>Benefit: extra attack.</p></html>"
+        if "TraitDisplay.aspx?ItemName=Reactionary" in url:
+            return "<html><h1>Reactionary</h1><p>Benefit: +2 initiative.</p></html>"
+        if "SpellDisplay.aspx?ItemName=Haste" in url:
+            return "<html><h1>Haste</h1><p>School transmutation; Level alchemist 3.</p></html>"
+        if "ClassDisplay.aspx?ItemName=Investigator" in url:
+            return "<html><h1>Investigator</h1><p>Hit Die d8.</p></html>"
+        if "RacesDisplay.aspx?ItemName=Tiefling" in url:
+            return "<html><h1>Tiefling</h1><p>Darkvision.</p></html>"
+        return "<html><body>ok</body></html>"
+
+    monkeypatch.setattr(extract_module, "_fetch_url_text", fake_fetch)
+
+    run = run_extract(
+        source="aon",
+        run_dir=tmp_path / "runs",
+        run_key="aon_catalog",
+        mode="aon_catalog",
+        catalog_kind="all",
+        catalog_limit=1,
+    )
+    run_parse(run)
+    run_validate(run)
+
+    accepted = read_jsonl(run / "validation" / "accepted_records.jsonl")
+    feat_names = {r["data"]["name"] for r in accepted if r.get("content_type") == "feat"}
+    spell_names = {r["data"]["name"] for r in accepted if r.get("content_type") == "spell"}
+    assert "Power Attack" in feat_names
+    assert "Fireball" in spell_names
+
+    resolution = read_jsonl(run / "raw" / "aon_source_resolution.jsonl")
+    assert resolution
+    coverage = read_json(run / "raw" / "aon_coverage_report.json")
+    assert "missing_classes" in coverage
+    assert "missing_books" in coverage
+
+
+def test_aon_url_normalization_handles_spaces_and_apostrophes():
+    raw_href = "/SpellDisplay.aspx?ItemName=Abadar's Truthtelling"
+    normalized = extract_module._aon_absolute_url(raw_href)
+    assert normalized == "https://aonprd.com/SpellDisplay.aspx?ItemName=Abadar%27s%20Truthtelling"
+
+
+def test_aon_catalog_d20_fallback_fills_unknown_source_book(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    d20_root = tmp_path / "d20"
+    parsed = d20_root / "parsed"
+    parsed.mkdir(parents=True)
+    (parsed / "classes.json").write_text(
+        json.dumps(
+            [
+                {
+                    "name": "Alchemist",
+                    "source": "Advanced Player's Guide",
+                    "hit_die": "d8",
+                    "skill_ranks_per_level": 4,
+                    "description": "Alchemy class description.",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (parsed / "traits.json").write_text("[]", encoding="utf-8")
+
+    def fake_fetch(url: str, timeout: int = 20) -> str:
+        if "ClassDisplay.aspx?ItemName=Alchemist" in url:
+            return "<html><h1>Alchemist</h1><p>Hit Die d8.</p></html>"
+        if "ClassDisplay.aspx?ItemName=Investigator" in url:
+            return "<html><h1>Investigator</h1><p>Hit Die d8.</p></html>"
+        if "RacesDisplay.aspx?ItemName=Tiefling" in url:
+            return "<html><h1>Tiefling</h1></html>"
+        if "FeatDisplay.aspx?ItemName=Weapon%20Finesse" in url:
+            return "<html><h1>Weapon Finesse</h1><p>Prerequisites: Base attack bonus +1.</p><p>Benefit: Use Dexterity.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Weapon%20Focus" in url:
+            return "<html><h1>Weapon Focus</h1><p>Prerequisite: Base attack bonus +1.</p><p>Benefit: +1 attack.</p></html>"
+        if "FeatDisplay.aspx?ItemName=Rapid%20Shot" in url:
+            return "<html><h1>Rapid Shot</h1><p>Prerequisites: Dex 13, Point-Blank Shot.</p><p>Benefit: extra attack.</p></html>"
+        if "TraitDisplay.aspx?ItemName=Reactionary" in url:
+            return "<html><h1>Reactionary</h1><p>Benefit: +2 initiative.</p></html>"
+        if "SpellDisplay.aspx?ItemName=Haste" in url:
+            return "<html><h1>Haste</h1><p>School transmutation; Level alchemist 3.</p></html>"
+        return "<html><body>ok</body></html>"
+
+    monkeypatch.setattr(extract_module, "_fetch_url_text", fake_fetch)
+
+    run = run_extract(
+        source="aon",
+        run_dir=tmp_path / "runs",
+        run_key="aon_d20_fallback",
+        mode="aon_catalog",
+        catalog_kind="classes",
+        catalog_limit=1,
+        d20_root=d20_root,
+    )
+    run_parse(run)
+    run_validate(run)
+
+    accepted = read_jsonl(run / "validation" / "accepted_records.jsonl")
+    alchemist = next((r for r in accepted if r.get("content_type") == "class" and r["data"].get("name") == "Alchemist"), None)
+    assert alchemist is not None
+    assert alchemist.get("source_book") == "Advanced Player's Guide"
+
+    coverage = read_json(run / "raw" / "aon_coverage_report.json")
+    assert "d20_fallback_counts" in coverage
+    assert coverage["d20_fallback_counts"]["class"] >= 0
+
+
+def test_allowlist_keeps_approved_class_scope_rows_with_non_allowlist_book():
+    rows = [
+        {
+            "content_type": "class",
+            "source_url": "https://aonprd.com/ClassDisplay.aspx?ItemName=Psychic",
+            "source_book": "Occult Adventures",
+            "payload": {"name": "Psychic"},
+        },
+        {
+            "content_type": "class_progression",
+            "source_url": "https://aonprd.com/ClassDisplay.aspx?ItemName=Psychic",
+            "source_book": "Occult Adventures",
+            "payload": {"class_name": "Psychic", "level": 1},
+        },
+        {
+            "content_type": "feat",
+            "source_url": "https://aonprd.com/FeatDisplay.aspx?ItemName=Psychic%20Sensitivity",
+            "source_book": "Occult Adventures",
+            "payload": {"name": "Psychic Sensitivity"},
+        },
+    ]
+
+    filtered, policy_logs, coverage = extract_module._apply_allowlist_filters(rows)
+    by_type = {row["content_type"]: row for row in filtered}
+
+    assert set(by_type.keys()) == {"class", "class_progression", "feat"}
+    assert by_type["class"]["ui_enabled"] is True
+    assert by_type["class"]["ui_tier"] == "active"
+    assert by_type["class_progression"]["ui_enabled"] is True
+    assert by_type["feat"]["ui_enabled"] is False
+    assert by_type["feat"]["ui_tier"] == "deferred"
+    assert "book_not_in_allowlist" in by_type["feat"]["policy_reason"]
+    assert coverage["policy_counts"]["ui_enabled"] >= 2
+    assert coverage["policy_counts"]["ui_deferred"] >= 1
+    assert coverage["dropped_counts"]["book_not_approved"] == 0
+    assert any(row.get("ui_tier") == "deferred" for row in policy_logs)
+
+
+def test_source_book_normalization_strips_page_suffix_and_noise():
+    assert extract_module._canonical_book_name("Advanced Player's Guide pg. 28") == "Advanced Player's Guide"
+    assert extract_module._canonical_book_name("Source: Core Rulebook, pg 131") == "Core Rulebook"
+    assert extract_module._canonical_book_name(" , it takes an additional 1d6 points of fire damage as its flesh burns") is None
+
+
+def test_load_persists_ui_policy_flags(tmp_path: Path):
+    run_dir = tmp_path / "runs"
+    input_path = tmp_path / "policy_records.json"
+    records = [
+        {
+            "content_type": "class",
+            "source_url": "https://example/class",
+            "source_book": "Occult Adventures",
+            "license_tag": "OGL",
+            "ui_enabled": False,
+            "ui_tier": "deferred",
+            "policy_reason": "book_not_in_allowlist",
+            "payload": {
+                "name": "Psychic Adept",
+                "class_type": "base",
+                "hit_die": "d6",
+                "skill_ranks_per_level": 2,
+                "bab_progression": "half",
+                "fort_progression": "poor",
+                "ref_progression": "poor",
+                "will_progression": "good",
+            },
+        },
+    ]
+    input_path.write_text(json.dumps(records), encoding="utf-8")
+
+    run = run_extract(source="psrd", run_dir=run_dir, input_path=input_path, run_key="policy_load")
+    run_parse(run)
+    run_validate(run)
+    dsn = f"sqlite:///{tmp_path / 'policy.db'}"
+    run_load(run, dsn)
+
+    conn = sqlite3.connect(str(tmp_path / "policy.db"))
+    try:
+        row = conn.execute(
+            "SELECT ui_enabled, ui_tier, policy_reason FROM source_records WHERE content_type = 'class' ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        assert row is not None
+        assert int(row[0]) == 0
+        assert row[1] == "deferred"
+        assert row[2] == "book_not_in_allowlist"
+    finally:
+        conn.close()
+
+
+def test_baseline_summary_fixture_is_present_and_well_formed():
+    baseline_path = Path(__file__).resolve().parents[1] / "baselines" / "aon_catalog_live_v1_summary.json"
+    payload = json.loads(baseline_path.read_text(encoding="utf-8"))
+
+    assert payload["baseline_name"] == "aon_catalog_live_v1"
+    assert payload["source"] == "aon"
+    assert payload["mode"] == "aon_catalog"
+    assert payload["validation"]["passed"] is True
+    assert payload["validation"]["accepted_count"] >= 3000
+    assert payload["coverage"]["approved_classes_total"] == 44
+    assert payload["coverage"]["ingested_classes_total"] >= 44

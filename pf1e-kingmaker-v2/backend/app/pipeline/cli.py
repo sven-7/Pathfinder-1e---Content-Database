@@ -24,6 +24,8 @@ def _cmd_extract(args: argparse.Namespace) -> None:
         aon_max_retries=args.aon_max_retries,
         ai_short_fallback=args.ai_short_fallback,
         aon_offline_html_dir=Path(args.aon_offline_html_dir) if args.aon_offline_html_dir else None,
+        catalog_kind=args.catalog_kind,
+        catalog_limit=args.catalog_limit,
     )
     print(f"extract completed: {run_path}")
 
@@ -56,9 +58,9 @@ def _build_parser() -> argparse.ArgumentParser:
     p_extract.add_argument("--run-key", default=None)
     p_extract.add_argument(
         "--mode",
-        choices=["aon_live", "kairon_slice", "kairon_fixture"],
+        choices=["aon_live", "aon_catalog", "kairon_slice", "kairon_fixture"],
         default="kairon_slice",
-        help="aon_live fetches and snapshots AON pages; kairon_slice reads source data roots; kairon_fixture uses built-in fixtures",
+        help="aon_live fetches Kairon slice AON pages; aon_catalog expands AON catalog; kairon_slice reads source data roots; kairon_fixture uses built-in fixtures",
     )
     p_extract.add_argument("--psrd-root", default=None, help="Path to PSRD sqlite book-*.db directory")
     p_extract.add_argument("--d20-root", default=None, help="Path to d20pfsrd data directory")
@@ -73,6 +75,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "--aon-offline-html-dir",
         default=None,
         help="Directory with pre-cached AON HTML files named by URL SHA256, for offline deterministic runs",
+    )
+    p_extract.add_argument(
+        "--catalog-kind",
+        choices=["all", "classes", "feats", "spells"],
+        default="all",
+        help="When mode=aon_catalog, choose which catalog families to expand",
+    )
+    p_extract.add_argument(
+        "--catalog-limit",
+        type=int,
+        default=0,
+        help="When mode=aon_catalog, cap number of fetched detail pages per family (0 = no cap)",
     )
     p_extract.set_defaults(func=_cmd_extract)
 

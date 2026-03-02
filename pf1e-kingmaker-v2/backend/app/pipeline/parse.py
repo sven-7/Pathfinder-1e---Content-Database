@@ -62,6 +62,9 @@ def run_parse(run_path: Path) -> Path:
                 "source_url": row.get("source_url", ""),
                 "source_book": row.get("source_book", "Unknown"),
                 "license_tag": row.get("license_tag", "OGL"),
+                "ui_enabled": bool(row.get("ui_enabled", True)),
+                "ui_tier": str(row.get("ui_tier", "active")),
+                "policy_reason": str(row.get("policy_reason", "allowlisted")),
                 "content_type": content_type,
                 "data": _normalize_payload(content_type, row.get("payload", {})),
             }

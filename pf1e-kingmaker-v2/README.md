@@ -53,6 +53,20 @@ python3 -m app.pipeline.cli validate --run ./runs/<run_id>
 python3 -m app.pipeline.cli load --run ./runs/<run_id> --dsn sqlite:///./runs/dev_v2.db
 ```
 
+Catalog expansion (approved classes/feats/spells from AON indexes):
+
+```bash
+python3 -m app.pipeline.cli extract --source aon --mode aon_catalog --catalog-kind all --catalog-limit 0 --ai-short-fallback --run-dir ./runs
+```
+
+Two-tier policy behavior in `aon_catalog`:
+- Records are no longer dropped by allowlist checks.
+- Each record is tagged in `source_records` with:
+  - `ui_enabled` (`true/false`)
+  - `ui_tier` (`active` or `deferred`)
+  - `policy_reason` (for example `allowlisted`, `book_not_in_allowlist`, `class_not_in_allowlist`)
+- Canonical tables link back via `source_record_id`, so UI/API layers can gate deferred content without losing data.
+
 Fixture mode (CI/local quick checks without source databases):
 
 ```bash
@@ -67,4 +81,5 @@ python3 -m app.pipeline.cli extract --source psrd --mode kairon_fixture --run-di
 - `/api/v2/characters/validate` returns prereq validation with explicit invalid feat reasons.
 - Source strategy target is `AONPRD primary + d20 fallback` (see decision profile in `docs/decision_profile_2026_03_01.md`).
 - `aon_live` mode archives raw HTML snapshots under `runs/<run>/raw/html/*.html` and logs fetch metadata in `aon_fetch_log.jsonl`.
+- Baseline snapshot summary for the first full live catalog run is stored in `backend/baselines/aon_catalog_live_v1_summary.json`.
 - If `OPENAI_API_KEY` is not available, short-description generation falls back to deterministic first-sentence heuristics.

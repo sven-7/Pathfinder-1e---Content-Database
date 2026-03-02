@@ -1,0 +1,40 @@
+{
+  "baseline_name": "aon_catalog_live_v1",
+  "coverage": {
+    "approved_books_total": 9,
+    "approved_classes_total": 44,
+    "dropped_counts": {
+      "book_not_approved": 0,
+      "class_not_approved": 0
+    },
+    "ingested_classes_total": 45,
+    "missing_books_count": 1,
+    "missing_classes_count": 0,
+    "policy_counts": {
+      "book_not_in_allowlist": 17657,
+      "class_not_in_allowlist": 1,
+      "source_unresolved": 284,
+      "ui_deferred": 17406,
+      "ui_enabled": 19114
+    },
+    "seen_books_total": 228,
+    "unresolved_source_books_total": 19
+  },
+  "manifest_aon": {
+    "ai_short_fallback": true,
+    "catalog_kind": "all",
+    "catalog_limit": 0,
+    "failed_pages": 0,
+    "fetched_pages": 6425,
+    "max_retries": 1,
+    "timeout": 15
+  },
+  "mode": "aon_catalog",
+  "run_key": "20260302T031002Z_aon_catalog_live_tiered",
+  "source": "aon",
+  "validation": {
+    "accepted_count": 3501,
+    "passed": true,
+    "rejected_count": 0
+  }
+}

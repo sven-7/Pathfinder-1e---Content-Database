@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS source_records (
   parse_status TEXT,
   reject_reason TEXT,
   content_type TEXT,
+  ui_enabled INTEGER NOT NULL DEFAULT 1,
+  ui_tier TEXT NOT NULL DEFAULT 'active',
+  policy_reason TEXT NOT NULL DEFAULT 'allowlisted',
   raw_payload TEXT,
   UNIQUE(ingestion_run_id, raw_hash)
 );
@@ -115,7 +118,9 @@ CREATE TABLE IF NOT EXISTS feats (
   name TEXT NOT NULL UNIQUE,
   feat_type TEXT,
   prerequisites TEXT,
+  short_description TEXT,
   benefit TEXT,
+  description TEXT,
   ingestion_run_id INTEGER,
   source_record_id INTEGER,
   source_book TEXT,
@@ -139,6 +144,7 @@ CREATE TABLE IF NOT EXISTS spells (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   school TEXT,
+  short_description TEXT,
   description TEXT,
   ingestion_run_id INTEGER,
   source_record_id INTEGER,
@@ -216,6 +222,13 @@ def _open_sqlite(dsn: str) -> sqlite3.Connection:
 
 def _bootstrap_sqlite(conn: sqlite3.Connection) -> None:
     conn.executescript(_SQLITE_SCHEMA)
+    existing_cols = {str(row[1]) for row in conn.execute("PRAGMA table_info(source_records)").fetchall()}
+    if "ui_enabled" not in existing_cols:
+        conn.execute("ALTER TABLE source_records ADD COLUMN ui_enabled INTEGER NOT NULL DEFAULT 1")
+    if "ui_tier" not in existing_cols:
+        conn.execute("ALTER TABLE source_records ADD COLUMN ui_tier TEXT NOT NULL DEFAULT 'active'")
+    if "policy_reason" not in existing_cols:
+        conn.execute("ALTER TABLE source_records ADD COLUMN policy_reason TEXT NOT NULL DEFAULT 'allowlisted'")
     conn.commit()
 
 
@@ -223,8 +236,8 @@ def _insert_source_record_sqlite(conn: sqlite3.Connection, run_id: int, row: dic
     cur = conn.execute(
         """
         INSERT OR IGNORE INTO source_records
-        (ingestion_run_id, source_url, source_book, raw_hash, parse_status, reject_reason, content_type, raw_payload)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (ingestion_run_id, source_url, source_book, raw_hash, parse_status, reject_reason, content_type, ui_enabled, ui_tier, policy_reason, raw_payload)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             run_id,
@@ -234,6 +247,9 @@ def _insert_source_record_sqlite(conn: sqlite3.Connection, run_id: int, row: dic
             parse_status,
             row.get("reject_reason"),
             row.get("content_type"),
+            1 if row.get("ui_enabled", True) else 0,
+            row.get("ui_tier", "active"),
+            row.get("policy_reason", "allowlisted"),
             json.dumps(row.get("data", {}), sort_keys=True),
         ),
     )
@@ -338,11 +354,19 @@ def _insert_content_sqlite(conn: sqlite3.Connection, run_id: int, source_record_
         conn.execute(
             """
             INSERT OR REPLACE INTO feats
-            (name, feat_type, prerequisites, benefit,
+            (name, feat_type, prerequisites, short_description, benefit, description,
              ingestion_run_id, source_record_id, source_book, license_tag)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (data.get("name"), data.get("feat_type"), data.get("prerequisites"), data.get("benefit"), *provenance),
+            (
+                data.get("name"),
+                data.get("feat_type"),
+                data.get("prerequisites"),
+                data.get("short_description"),
+                data.get("benefit"),
+                data.get("description"),
+                *provenance,
+            ),
         )
     elif ctype == "trait":
         conn.execute(
@@ -365,11 +389,11 @@ def _insert_content_sqlite(conn: sqlite3.Connection, run_id: int, source_record_
         conn.execute(
             """
             INSERT OR REPLACE INTO spells
-            (name, school, description,
+            (name, school, short_description, description,
              ingestion_run_id, source_record_id, source_book, license_tag)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (data.get("name"), data.get("school"), data.get("description"), *provenance),
+            (data.get("name"), data.get("school"), data.get("short_description"), data.get("description"), *provenance),
         )
     elif ctype == "spell_class_level":
         conn.execute(
@@ -485,12 +509,15 @@ def _insert_source_record_postgres(cur, run_id: int, row: dict, parse_status: st
     cur.execute(
         """
         INSERT INTO source_records
-        (ingestion_run_id, source_url, source_book, raw_hash, parse_status, reject_reason, content_type, raw_payload)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+        (ingestion_run_id, source_url, source_book, raw_hash, parse_status, reject_reason, content_type, ui_enabled, ui_tier, policy_reason, raw_payload)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
         ON CONFLICT (ingestion_run_id, raw_hash)
         DO UPDATE SET
           parse_status = EXCLUDED.parse_status,
-          reject_reason = EXCLUDED.reject_reason
+          reject_reason = EXCLUDED.reject_reason,
+          ui_enabled = EXCLUDED.ui_enabled,
+          ui_tier = EXCLUDED.ui_tier,
+          policy_reason = EXCLUDED.policy_reason
         RETURNING id
         """,
         (
@@ -501,6 +528,9 @@ def _insert_source_record_postgres(cur, run_id: int, row: dict, parse_status: st
             parse_status,
             row.get("reject_reason"),
             row.get("content_type"),
+            bool(row.get("ui_enabled", True)),
+            row.get("ui_tier", "active"),
+            row.get("policy_reason", "allowlisted"),
             json.dumps(row.get("data", {}), sort_keys=True),
         ),
     )
@@ -643,18 +673,28 @@ def _insert_content_postgres(cur, run_id: int, source_record_id: int, row: dict)
         cur.execute(
             """
             INSERT INTO feats
-            (name, feat_type, prerequisites, benefit, ingestion_run_id, source_record_id, source_book, license_tag)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            (name, feat_type, prerequisites, short_description, benefit, description, ingestion_run_id, source_record_id, source_book, license_tag)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (name) DO UPDATE SET
               feat_type = EXCLUDED.feat_type,
               prerequisites = EXCLUDED.prerequisites,
+              short_description = EXCLUDED.short_description,
               benefit = EXCLUDED.benefit,
+              description = EXCLUDED.description,
               ingestion_run_id = EXCLUDED.ingestion_run_id,
               source_record_id = EXCLUDED.source_record_id,
               source_book = EXCLUDED.source_book,
               license_tag = EXCLUDED.license_tag
             """,
-            (data.get("name"), data.get("feat_type"), data.get("prerequisites"), data.get("benefit"), *provenance),
+            (
+                data.get("name"),
+                data.get("feat_type"),
+                data.get("prerequisites"),
+                data.get("short_description"),
+                data.get("benefit"),
+                data.get("description"),
+                *provenance,
+            ),
         )
     elif ctype == "trait":
         cur.execute(
@@ -685,17 +725,18 @@ def _insert_content_postgres(cur, run_id: int, source_record_id: int, row: dict)
         cur.execute(
             """
             INSERT INTO spells
-            (name, school, description, ingestion_run_id, source_record_id, source_book, license_tag)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (name, school, short_description, description, ingestion_run_id, source_record_id, source_book, license_tag)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (name) DO UPDATE SET
               school = EXCLUDED.school,
+              short_description = EXCLUDED.short_description,
               description = EXCLUDED.description,
               ingestion_run_id = EXCLUDED.ingestion_run_id,
               source_record_id = EXCLUDED.source_record_id,
               source_book = EXCLUDED.source_book,
               license_tag = EXCLUDED.license_tag
             """,
-            (data.get("name"), data.get("school"), data.get("description"), *provenance),
+            (data.get("name"), data.get("school"), data.get("short_description"), data.get("description"), *provenance),
         )
     elif ctype == "spell_class_level":
         cur.execute(

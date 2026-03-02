@@ -19,6 +19,7 @@ Expand from Kairon slice to approved PF1e catalog using AON primary and d20 fall
 3. Resolve missing/partial fields from d20 with fallback logs.
 4. Build incremental pack ingestion (`book_pack` argument) for staged rollout.
 5. Run validation and emit missing-item reports per content family.
+6. Use CLI mode `aon_catalog` with per-family limits during staged rollout.
 
 ## Required Outputs
 - Per-table row counts.
