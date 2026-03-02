@@ -2,36 +2,38 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.config import settings
-from app.db import fetch_feats_sqlite, fetch_policy_summary_sqlite, fetch_races_sqlite, is_sqlite_dsn
+from app.models.contracts import ContentFeatV2, ContentRaceV2, PolicySummaryV2
+from app.repositories.content_v2 import ContentRepositoryV2
+from app.services.content_v2 import ContentServiceV2
 
 router = APIRouter(prefix="/content", tags=["content-v2"])
 
 
-@router.get("/feats")
-def list_feats(_: Request, include_deferred: bool = Query(default=False)):
-    if not is_sqlite_dsn(settings.database_url):
-        return []
-    return fetch_feats_sqlite(settings.database_url, include_deferred=include_deferred)
+def get_content_service() -> ContentServiceV2:
+    return ContentServiceV2(ContentRepositoryV2(settings.database_url))
 
 
-@router.get("/races")
-def list_races(_: Request, include_deferred: bool = Query(default=False)):
-    if not is_sqlite_dsn(settings.database_url):
-        return []
-    return fetch_races_sqlite(settings.database_url, include_deferred=include_deferred)
+@router.get("/feats", response_model=list[ContentFeatV2], response_model_exclude_none=True)
+def list_feats(
+    _: Request,
+    include_deferred: bool = Query(default=False, description="Include deferred content rows with policy metadata."),
+    service: ContentServiceV2 = Depends(get_content_service),
+) -> list[ContentFeatV2]:
+    return service.list_feats(include_deferred=include_deferred)
 
 
-@router.get("/policy-summary")
-def policy_summary(_: Request):
-    if not is_sqlite_dsn(settings.database_url):
-        return {
-            "accepted_total": 0,
-            "active_total": 0,
-            "deferred_total": 0,
-            "reason_counts": {},
-            "tier_counts": {},
-        }
-    return fetch_policy_summary_sqlite(settings.database_url)
+@router.get("/races", response_model=list[ContentRaceV2], response_model_exclude_none=True)
+def list_races(
+    _: Request,
+    include_deferred: bool = Query(default=False, description="Include deferred content rows with policy metadata."),
+    service: ContentServiceV2 = Depends(get_content_service),
+) -> list[ContentRaceV2]:
+    return service.list_races(include_deferred=include_deferred)
+
+
+@router.get("/policy-summary", response_model=PolicySummaryV2)
+def policy_summary(_: Request, service: ContentServiceV2 = Depends(get_content_service)) -> PolicySummaryV2:
+    return service.policy_summary()
