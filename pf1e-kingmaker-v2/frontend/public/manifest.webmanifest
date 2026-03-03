@@ -1,9 +1,24 @@
 {
-  "name": "PF1e Kingmaker V2",
-  "short_name": "PF1e V2",
+  "name": "PF1e Kingmaker Character MVP",
+  "short_name": "PF1e Sheet",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f6f7fb",
-  "theme_color": "#0f172a",
-  "icons": []
+  "orientation": "portrait-primary",
+  "background_color": "#edf2fb",
+  "theme_color": "#1a4dcb",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

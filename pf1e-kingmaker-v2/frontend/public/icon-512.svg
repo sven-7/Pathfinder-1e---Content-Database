@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PF1e Character Icon Large">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a4dcb" />
+      <stop offset="100%" stop-color="#132d7d" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)" />
+  <path d="M142 388V124h228v48H200v52h142v46H200v118H142z" fill="#f8fbff" />
+  <circle cx="368" cy="368" r="72" fill="#f8fbff" opacity="0.92" />
+  <path d="M368 322v46M346 344h44" stroke="#1742a4" stroke-width="16" stroke-linecap="round" />
+</svg>
