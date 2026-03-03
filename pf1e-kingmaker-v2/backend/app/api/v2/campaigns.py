@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 from app.models.campaigns_v1 import (
     CampaignCreateV1,
@@ -11,14 +12,15 @@ from app.models.campaigns_v1 import (
     RuleOverrideRecordV1,
     RuleOverrideResolutionV1,
 )
-from app.repositories.campaigns_v1 import get_campaign_repository
+from app.persistence.database import get_db_session
+from app.repositories.campaigns_v1 import CampaignRepositoryV1
 from app.services.campaigns_v1 import CampaignServiceV1
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns-v2"])
 
 
-def get_campaign_service() -> CampaignServiceV1:
-    return CampaignServiceV1(get_campaign_repository())
+def get_campaign_service(db: Session = Depends(get_db_session)) -> CampaignServiceV1:
+    return CampaignServiceV1(CampaignRepositoryV1(db))
 
 
 @router.get("", response_model=list[CampaignV1])
@@ -94,3 +96,4 @@ def resolve_campaign_rule_overrides(
     if service.get_campaign(campaign_id) is None:
         raise HTTPException(status_code=404, detail=f"Campaign '{campaign_id}' was not found.")
     return service.resolve_overrides(campaign_id=campaign_id, character_id=character_id)
+

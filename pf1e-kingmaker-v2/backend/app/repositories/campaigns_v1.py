@@ -1,10 +1,12 @@
-"""In-memory repository for campaign domain V1 scaffolding."""
+"""SQLAlchemy repository for campaign domain V1 APIs."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from threading import Lock
 from uuid import uuid4
+
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.campaigns_v1 import (
     CampaignCreateV1,
@@ -19,6 +21,14 @@ from app.models.campaigns_v1 import (
     SessionCreateV1,
     SessionV1,
 )
+from app.persistence.models import (
+    CampaignRecord,
+    EncounterRecord,
+    PartyMemberRecord,
+    PartyRecord,
+    RuleOverrideRecord,
+    SessionRecord,
+)
 
 
 def _utc_now() -> datetime:
@@ -26,177 +36,236 @@ def _utc_now() -> datetime:
 
 
 class CampaignRepositoryV1:
-    def __init__(self) -> None:
-        self._lock = Lock()
-        self._campaigns: dict[str, CampaignV1] = {}
-        self._parties: dict[str, PartyV1] = {}
-        self._party_members_by_party: dict[str, dict[str, PartyMemberV1]] = {}
-        self._sessions: dict[str, SessionV1] = {}
-        self._encounters_by_session: dict[str, dict[str, EncounterV1]] = {}
-        self._rule_overrides: dict[str, RuleOverrideRecordV1] = {}
+    """DB-backed repository for campaign domain entities."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
 
     def reset(self) -> None:
-        with self._lock:
-            self._campaigns.clear()
-            self._parties.clear()
-            self._party_members_by_party.clear()
-            self._sessions.clear()
-            self._encounters_by_session.clear()
-            self._rule_overrides.clear()
+        self._session.execute(delete(RuleOverrideRecord))
+        self._session.execute(delete(EncounterRecord))
+        self._session.execute(delete(SessionRecord))
+        self._session.execute(delete(PartyMemberRecord))
+        self._session.execute(delete(PartyRecord))
+        self._session.execute(delete(CampaignRecord))
+        self._session.commit()
 
     def create_campaign(self, payload: CampaignCreateV1) -> CampaignV1:
-        with self._lock:
-            now = _utc_now()
-            campaign = CampaignV1(
-                id=str(uuid4()),
-                created_at=now,
-                updated_at=now,
-                **payload.model_dump(),
-            )
-            self._campaigns[campaign.id] = campaign
-            return campaign.model_copy(deep=True)
+        now = _utc_now()
+        row = CampaignRecord(
+            id=str(uuid4()),
+            created_at=now,
+            updated_at=now,
+            **payload.model_dump(),
+        )
+        self._session.add(row)
+        self._session.commit()
+        self._session.refresh(row)
+        return self._to_campaign(row)
 
     def list_campaigns(self, owner_id: str | None = None) -> list[CampaignV1]:
-        with self._lock:
-            values = self._campaigns.values()
-            if owner_id:
-                values = [campaign for campaign in values if campaign.owner_id == owner_id]
-            ordered = sorted(values, key=lambda item: (item.created_at, item.id))
-            return [campaign.model_copy(deep=True) for campaign in ordered]
+        stmt = select(CampaignRecord)
+        if owner_id is not None:
+            stmt = stmt.where(CampaignRecord.owner_id == owner_id)
+        stmt = stmt.order_by(CampaignRecord.created_at, CampaignRecord.id)
+        rows = self._session.scalars(stmt).all()
+        return [self._to_campaign(row) for row in rows]
 
     def get_campaign(self, campaign_id: str) -> CampaignV1 | None:
-        with self._lock:
-            campaign = self._campaigns.get(campaign_id)
-            return campaign.model_copy(deep=True) if campaign else None
+        row = self._session.get(CampaignRecord, campaign_id)
+        if row is None:
+            return None
+        return self._to_campaign(row)
 
     def create_party(self, payload: PartyCreateV1) -> PartyV1:
-        with self._lock:
-            if payload.campaign_id not in self._campaigns:
-                raise KeyError(payload.campaign_id)
+        campaign = self._session.get(CampaignRecord, payload.campaign_id)
+        if campaign is None:
+            raise KeyError(payload.campaign_id)
 
-            now = _utc_now()
-            party_id = str(uuid4())
-            party = PartyV1(
-                id=party_id,
-                campaign_id=payload.campaign_id,
-                name=payload.name,
-                owner_id=payload.owner_id,
-                notes=payload.notes,
-                gm_id=payload.gm_id,
-                player_id=payload.player_id,
-                created_at=now,
-                updated_at=now,
-                members=[],
+        now = _utc_now()
+        party = PartyRecord(
+            id=str(uuid4()),
+            campaign_id=payload.campaign_id,
+            name=payload.name,
+            owner_id=payload.owner_id,
+            notes=payload.notes,
+            gm_id=payload.gm_id,
+            player_id=payload.player_id,
+            created_at=now,
+            updated_at=now,
+        )
+        self._session.add(party)
+
+        for member in payload.members:
+            self._session.add(
+                PartyMemberRecord(
+                    id=str(uuid4()),
+                    party_id=party.id,
+                    display_name=member.display_name,
+                    role=member.role,
+                    character_id=member.character_id,
+                    owner_id=member.owner_id,
+                    gm_id=member.gm_id,
+                    player_id=member.player_id,
+                    created_at=now,
+                )
             )
-            self._parties[party_id] = party
-            self._party_members_by_party.setdefault(party_id, {})
 
-            for member_payload in payload.members:
-                self._add_party_member_locked(party_id, member_payload, now)
-
-            return self._party_with_members_locked(party_id)
+        self._session.commit()
+        return self._get_party_required(party.id)
 
     def list_parties(self, campaign_id: str | None = None) -> list[PartyV1]:
-        with self._lock:
-            parties = self._parties.values()
-            if campaign_id:
-                parties = [party for party in parties if party.campaign_id == campaign_id]
-            ordered = sorted(parties, key=lambda item: (item.created_at, item.id))
-            return [self._party_with_members_locked(party.id) for party in ordered]
+        stmt = select(PartyRecord).options(selectinload(PartyRecord.members))
+        if campaign_id is not None:
+            stmt = stmt.where(PartyRecord.campaign_id == campaign_id)
+        stmt = stmt.order_by(PartyRecord.created_at, PartyRecord.id)
+        rows = self._session.scalars(stmt).all()
+        return [self._to_party(row) for row in rows]
 
     def get_party(self, party_id: str) -> PartyV1 | None:
-        with self._lock:
-            if party_id not in self._parties:
-                return None
-            return self._party_with_members_locked(party_id)
+        row = self._session.scalar(
+            select(PartyRecord).options(selectinload(PartyRecord.members)).where(PartyRecord.id == party_id)
+        )
+        if row is None:
+            return None
+        return self._to_party(row)
 
     def add_party_member(self, party_id: str, payload: PartyMemberCreateV1) -> PartyMemberV1:
-        with self._lock:
-            if party_id not in self._parties:
-                raise KeyError(party_id)
-            now = _utc_now()
-            member = self._add_party_member_locked(party_id, payload, now)
-            return member.model_copy(deep=True)
+        party = self._session.get(PartyRecord, party_id)
+        if party is None:
+            raise KeyError(party_id)
+
+        now = _utc_now()
+        member = PartyMemberRecord(
+            id=str(uuid4()),
+            party_id=party_id,
+            display_name=payload.display_name,
+            role=payload.role,
+            character_id=payload.character_id,
+            owner_id=payload.owner_id,
+            gm_id=payload.gm_id,
+            player_id=payload.player_id,
+            created_at=now,
+        )
+        party.updated_at = now
+        self._session.add(member)
+        self._session.commit()
+        self._session.refresh(member)
+        return self._to_party_member(member)
 
     def list_party_members(self, party_id: str) -> list[PartyMemberV1]:
-        with self._lock:
-            if party_id not in self._parties:
-                raise KeyError(party_id)
-            members = self._party_members_by_party.get(party_id, {})
-            ordered = sorted(members.values(), key=lambda item: (item.created_at, item.id))
-            return [member.model_copy(deep=True) for member in ordered]
+        party = self._session.get(PartyRecord, party_id)
+        if party is None:
+            raise KeyError(party_id)
+
+        rows = self._session.scalars(
+            select(PartyMemberRecord)
+            .where(PartyMemberRecord.party_id == party_id)
+            .order_by(PartyMemberRecord.created_at, PartyMemberRecord.id)
+        ).all()
+        return [self._to_party_member(row) for row in rows]
 
     def create_session(self, payload: SessionCreateV1) -> SessionV1:
-        with self._lock:
-            if payload.campaign_id not in self._campaigns:
-                raise KeyError(payload.campaign_id)
+        campaign = self._session.get(CampaignRecord, payload.campaign_id)
+        if campaign is None:
+            raise KeyError(payload.campaign_id)
 
-            now = _utc_now()
-            session_id = str(uuid4())
-            session = SessionV1(
-                id=session_id,
-                campaign_id=payload.campaign_id,
-                name=payload.name,
-                owner_id=payload.owner_id,
-                scheduled_for=payload.scheduled_for,
-                status=payload.status,
-                notes=payload.notes,
-                gm_id=payload.gm_id,
-                player_id=payload.player_id,
-                encounters=[],
-                created_at=now,
-                updated_at=now,
-            )
-            self._sessions[session_id] = session
-            self._encounters_by_session.setdefault(session_id, {})
-            return session.model_copy(deep=True)
+        now = _utc_now()
+        row = SessionRecord(
+            id=str(uuid4()),
+            campaign_id=payload.campaign_id,
+            name=payload.name,
+            owner_id=payload.owner_id,
+            scheduled_for=payload.scheduled_for,
+            status=payload.status,
+            notes=payload.notes,
+            gm_id=payload.gm_id,
+            player_id=payload.player_id,
+            created_at=now,
+            updated_at=now,
+        )
+        self._session.add(row)
+        self._session.commit()
+        return self._get_session_required(row.id)
 
     def list_sessions(self, campaign_id: str | None = None) -> list[SessionV1]:
-        with self._lock:
-            sessions = self._sessions.values()
-            if campaign_id:
-                sessions = [session for session in sessions if session.campaign_id == campaign_id]
-            ordered = sorted(sessions, key=lambda item: (item.created_at, item.id))
-            return [self._session_with_encounters_locked(session.id) for session in ordered]
+        stmt = select(SessionRecord).options(selectinload(SessionRecord.encounters))
+        if campaign_id is not None:
+            stmt = stmt.where(SessionRecord.campaign_id == campaign_id)
+        stmt = stmt.order_by(SessionRecord.created_at, SessionRecord.id)
+        rows = self._session.scalars(stmt).all()
+        return [self._to_session(row) for row in rows]
 
     def get_session(self, session_id: str) -> SessionV1 | None:
-        with self._lock:
-            if session_id not in self._sessions:
-                return None
-            return self._session_with_encounters_locked(session_id)
+        row = self._session.scalar(
+            select(SessionRecord).options(selectinload(SessionRecord.encounters)).where(SessionRecord.id == session_id)
+        )
+        if row is None:
+            return None
+        return self._to_session(row)
 
     def create_encounter(self, session_id: str, payload: EncounterCreateV1) -> EncounterV1:
-        with self._lock:
-            if session_id not in self._sessions:
-                raise KeyError(session_id)
+        session_row = self._session.get(SessionRecord, session_id)
+        if session_row is None:
+            raise KeyError(session_id)
 
-            now = _utc_now()
-            encounter = EncounterV1(
-                id=str(uuid4()),
-                session_id=session_id,
-                created_at=now,
-                updated_at=now,
-                **payload.model_dump(),
-            )
-            by_session = self._encounters_by_session.setdefault(session_id, {})
-            by_session[encounter.id] = encounter
-            return encounter.model_copy(deep=True)
+        now = _utc_now()
+        row = EncounterRecord(
+            id=str(uuid4()),
+            session_id=session_id,
+            name=payload.name,
+            owner_id=payload.owner_id,
+            status=payload.status,
+            notes=payload.notes,
+            gm_id=payload.gm_id,
+            player_id=payload.player_id,
+            created_at=now,
+            updated_at=now,
+        )
+        session_row.updated_at = now
+        self._session.add(row)
+        self._session.commit()
+        self._session.refresh(row)
+        return self._to_encounter(row)
 
     def list_encounters(self, session_id: str) -> list[EncounterV1]:
-        with self._lock:
-            if session_id not in self._sessions:
-                raise KeyError(session_id)
-            encounters = self._encounters_by_session.get(session_id, {})
-            ordered = sorted(encounters.values(), key=lambda item: (item.created_at, item.id))
-            return [encounter.model_copy(deep=True) for encounter in ordered]
+        session_row = self._session.get(SessionRecord, session_id)
+        if session_row is None:
+            raise KeyError(session_id)
+
+        rows = self._session.scalars(
+            select(EncounterRecord)
+            .where(EncounterRecord.session_id == session_id)
+            .order_by(EncounterRecord.created_at, EncounterRecord.id)
+        ).all()
+        return [self._to_encounter(row) for row in rows]
 
     def create_rule_override(self, payload: RuleOverrideRecordV1) -> RuleOverrideRecordV1:
-        with self._lock:
-            if payload.scope in {"campaign", "character"} and payload.campaign_id not in self._campaigns:
-                raise KeyError(payload.campaign_id or "")
-            record = payload.model_copy(deep=True)
-            self._rule_overrides[record.id] = record
-            return record.model_copy(deep=True)
+        if payload.scope in {"campaign", "character"}:
+            if payload.campaign_id is None:
+                raise KeyError("")
+            campaign = self._session.get(CampaignRecord, payload.campaign_id)
+            if campaign is None:
+                raise KeyError(payload.campaign_id)
+
+        row = RuleOverrideRecord(
+            id=payload.id,
+            scope=payload.scope,
+            campaign_id=payload.campaign_id,
+            key=payload.key,
+            operation=payload.operation,
+            value=float(payload.value),
+            source=payload.source,
+            owner_id=payload.owner_id,
+            character_id=payload.character_id,
+            gm_id=payload.gm_id,
+            player_id=payload.player_id,
+            created_at=payload.created_at,
+        )
+        self._session.add(row)
+        self._session.commit()
+        self._session.refresh(row)
+        return self._to_rule_override(row)
 
     def list_rule_overrides(
         self,
@@ -205,51 +274,122 @@ class CampaignRepositoryV1:
         campaign_id: str | None = None,
         character_id: str | None = None,
     ) -> list[RuleOverrideRecordV1]:
-        with self._lock:
-            rows = list(self._rule_overrides.values())
-            if scope:
-                rows = [row for row in rows if row.scope == scope]
-            if campaign_id is not None:
-                rows = [row for row in rows if row.campaign_id == campaign_id]
-            if character_id is not None:
-                rows = [row for row in rows if row.character_id == character_id]
-            ordered = sorted(rows, key=lambda item: (item.created_at, item.id))
-            return [row.model_copy(deep=True) for row in ordered]
+        stmt = select(RuleOverrideRecord)
+        if scope is not None:
+            stmt = stmt.where(RuleOverrideRecord.scope == scope)
+        if campaign_id is not None:
+            stmt = stmt.where(RuleOverrideRecord.campaign_id == campaign_id)
+        if character_id is not None:
+            stmt = stmt.where(RuleOverrideRecord.character_id == character_id)
+        stmt = stmt.order_by(RuleOverrideRecord.created_at, RuleOverrideRecord.id)
+        rows = self._session.scalars(stmt).all()
+        return [self._to_rule_override(row) for row in rows]
 
-    def _add_party_member_locked(
-        self,
-        party_id: str,
-        payload: PartyMemberCreateV1,
-        created_at: datetime,
-    ) -> PartyMemberV1:
-        member = PartyMemberV1(
-            id=str(uuid4()),
-            party_id=party_id,
-            created_at=created_at,
-            **payload.model_dump(),
+    def _get_party_required(self, party_id: str) -> PartyV1:
+        row = self._session.scalar(
+            select(PartyRecord).options(selectinload(PartyRecord.members)).where(PartyRecord.id == party_id)
         )
-        members = self._party_members_by_party.setdefault(party_id, {})
-        members[member.id] = member
+        if row is None:
+            raise KeyError(party_id)
+        return self._to_party(row)
 
-        party = self._parties[party_id]
-        self._parties[party_id] = party.model_copy(update={"updated_at": created_at})
-        return member
+    def _get_session_required(self, session_id: str) -> SessionV1:
+        row = self._session.scalar(
+            select(SessionRecord).options(selectinload(SessionRecord.encounters)).where(SessionRecord.id == session_id)
+        )
+        if row is None:
+            raise KeyError(session_id)
+        return self._to_session(row)
 
-    def _party_with_members_locked(self, party_id: str) -> PartyV1:
-        party = self._parties[party_id]
-        members = self._party_members_by_party.get(party_id, {})
-        ordered_members = sorted(members.values(), key=lambda item: (item.created_at, item.id))
-        return party.model_copy(update={"members": [member.model_copy(deep=True) for member in ordered_members]}, deep=True)
+    @staticmethod
+    def _to_campaign(row: CampaignRecord) -> CampaignV1:
+        return CampaignV1(
+            id=row.id,
+            name=row.name,
+            owner_id=row.owner_id,
+            description=row.description,
+            status=row.status,
+            gm_id=row.gm_id,
+            player_id=row.player_id,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
 
-    def _session_with_encounters_locked(self, session_id: str) -> SessionV1:
-        session = self._sessions[session_id]
-        encounters = self._encounters_by_session.get(session_id, {})
-        ordered = sorted(encounters.values(), key=lambda item: (item.created_at, item.id))
-        return session.model_copy(update={"encounters": [enc.model_copy(deep=True) for enc in ordered]}, deep=True)
+    def _to_party(self, row: PartyRecord) -> PartyV1:
+        members = sorted(row.members, key=lambda item: (item.created_at, item.id))
+        return PartyV1(
+            id=row.id,
+            campaign_id=row.campaign_id,
+            name=row.name,
+            owner_id=row.owner_id,
+            notes=row.notes,
+            gm_id=row.gm_id,
+            player_id=row.player_id,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            members=[self._to_party_member(member) for member in members],
+        )
 
+    @staticmethod
+    def _to_party_member(row: PartyMemberRecord) -> PartyMemberV1:
+        return PartyMemberV1(
+            id=row.id,
+            party_id=row.party_id,
+            display_name=row.display_name,
+            role=row.role,
+            character_id=row.character_id,
+            owner_id=row.owner_id,
+            gm_id=row.gm_id,
+            player_id=row.player_id,
+            created_at=row.created_at,
+        )
 
-_REPOSITORY = CampaignRepositoryV1()
+    def _to_session(self, row: SessionRecord) -> SessionV1:
+        encounters = sorted(row.encounters, key=lambda item: (item.created_at, item.id))
+        return SessionV1(
+            id=row.id,
+            campaign_id=row.campaign_id,
+            name=row.name,
+            owner_id=row.owner_id,
+            scheduled_for=row.scheduled_for,
+            status=row.status,
+            notes=row.notes,
+            gm_id=row.gm_id,
+            player_id=row.player_id,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            encounters=[self._to_encounter(encounter) for encounter in encounters],
+        )
 
+    @staticmethod
+    def _to_encounter(row: EncounterRecord) -> EncounterV1:
+        return EncounterV1(
+            id=row.id,
+            session_id=row.session_id,
+            name=row.name,
+            owner_id=row.owner_id,
+            status=row.status,
+            notes=row.notes,
+            gm_id=row.gm_id,
+            player_id=row.player_id,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
 
-def get_campaign_repository() -> CampaignRepositoryV1:
-    return _REPOSITORY
+    @staticmethod
+    def _to_rule_override(row: RuleOverrideRecord) -> RuleOverrideRecordV1:
+        return RuleOverrideRecordV1(
+            id=row.id,
+            scope=row.scope,
+            campaign_id=row.campaign_id,
+            key=row.key,
+            operation=row.operation,
+            value=row.value,
+            source=row.source,
+            owner_id=row.owner_id,
+            character_id=row.character_id,
+            gm_id=row.gm_id,
+            player_id=row.player_id,
+            created_at=row.created_at,
+        )
+

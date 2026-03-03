@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 from app.models.campaigns_v1 import EncounterCreateV1, EncounterV1, SessionCreateV1, SessionV1
-from app.repositories.campaigns_v1 import get_campaign_repository
+from app.persistence.database import get_db_session
+from app.repositories.campaigns_v1 import CampaignRepositoryV1
 from app.services.campaigns_v1 import CampaignServiceV1
 
 router = APIRouter(prefix="/sessions", tags=["sessions-v2"])
 
 
-def get_campaign_service() -> CampaignServiceV1:
-    return CampaignServiceV1(get_campaign_repository())
+def get_campaign_service(db: Session = Depends(get_db_session)) -> CampaignServiceV1:
+    return CampaignServiceV1(CampaignRepositoryV1(db))
 
 
 @router.get("", response_model=list[SessionV1])
@@ -66,3 +68,4 @@ def create_session_encounter(
         return service.create_encounter(session_id, payload)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' was not found.") from exc
+

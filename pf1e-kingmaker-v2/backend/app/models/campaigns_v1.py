@@ -139,3 +139,4 @@ class RuleOverrideResolutionV1(BaseModel):
     merge_order: Literal["global->campaign->character"] = "global->campaign->character"
     ordered_overrides: list[RuleOverrideRecordV1] = Field(default_factory=list)
     effective_values: dict[str, int | float] = Field(default_factory=dict)
+

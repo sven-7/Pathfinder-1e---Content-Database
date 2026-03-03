@@ -3,22 +3,10 @@ from __future__ import annotations
 import pytest
 
 fastapi = pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient
-
-from app.main import app
-from app.repositories.campaigns_v1 import get_campaign_repository
 
 
-@pytest.fixture(autouse=True)
-def _reset_campaign_repo() -> None:
-    repo = get_campaign_repository()
-    repo.reset()
-    yield
-    repo.reset()
-
-
-def test_campaign_party_session_foundations_flow() -> None:
-    client = TestClient(app)
+def test_campaign_party_session_foundations_flow(isolated_db_client) -> None:
+    client = isolated_db_client
 
     campaign_resp = client.post(
         "/api/v2/campaigns",
@@ -90,8 +78,8 @@ def test_campaign_party_session_foundations_flow() -> None:
     assert payload["encounters"][0]["id"] == encounter_id
 
 
-def test_rule_override_resolution_api_order() -> None:
-    client = TestClient(app)
+def test_rule_override_resolution_api_order(isolated_db_client) -> None:
+    client = isolated_db_client
 
     campaign_resp = client.post(
         "/api/v2/campaigns",
@@ -141,3 +129,4 @@ def test_rule_override_resolution_api_order() -> None:
     character_payload = character_resolved.json()
     assert character_payload["effective_values"]["ac_total"] == 18
     assert [row["scope"] for row in character_payload["ordered_overrides"]] == ["global", "campaign", "character"]
+

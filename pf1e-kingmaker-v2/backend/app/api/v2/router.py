@@ -18,3 +18,4 @@ router.include_router(rules_router)
 router.include_router(campaigns_router)
 router.include_router(parties_router)
 router.include_router(sessions_router)
+

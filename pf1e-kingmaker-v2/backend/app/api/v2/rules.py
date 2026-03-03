@@ -14,11 +14,7 @@ def get_rules_service() -> RulesServiceV2:
     return RulesServiceV2()
 
 
-@router.post(
-    "/derive",
-    response_model=DeriveResponseV2,
-    summary="Derive deterministic PF1e stats and an explainable breakdown trace.",
-)
+@router.post("/derive", response_model=DeriveResponseV2)
 def derive(
     character: CharacterV2 = Body(
         ...,
@@ -32,3 +28,4 @@ def derive(
     service: RulesServiceV2 = Depends(get_rules_service),
 ) -> DeriveResponseV2:
     return service.derive(character)
+

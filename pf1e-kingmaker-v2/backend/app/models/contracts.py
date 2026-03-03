@@ -1,8 +1,12 @@
 """Versioned contracts for character and derived stats."""
 
+from __future__ import annotations
+
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+ScoreValue = int
 
 
 class ClassLevelV2(BaseModel):
@@ -37,14 +41,12 @@ class EquipmentSelectionV2(BaseModel):
 
 
 class AbilityScoresV2(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    str_score: int = Field(alias="str", serialization_alias="str", ge=1)
-    dex: int = Field(ge=1)
-    con: int = Field(ge=1)
-    int_score: int = Field(alias="int", serialization_alias="int", ge=1)
-    wis: int = Field(ge=1)
-    cha: int = Field(ge=1)
+    str: ScoreValue = Field(ge=1)
+    dex: ScoreValue = Field(ge=1)
+    con: ScoreValue = Field(ge=1)
+    int: ScoreValue = Field(ge=1)
+    wis: ScoreValue = Field(ge=1)
+    cha: ScoreValue = Field(ge=1)
 
 
 class RuleOverrideV2(BaseModel):

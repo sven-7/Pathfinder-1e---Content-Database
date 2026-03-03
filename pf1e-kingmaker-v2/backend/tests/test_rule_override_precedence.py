@@ -9,8 +9,8 @@ from app.repositories.campaigns_v1 import CampaignRepositoryV1
 from app.services.campaigns_v1 import CampaignServiceV1
 
 
-def test_override_precedence_is_global_then_campaign_then_character() -> None:
-    repo = CampaignRepositoryV1()
+def test_override_precedence_is_global_then_campaign_then_character(isolated_db_session) -> None:
+    repo = CampaignRepositoryV1(isolated_db_session)
     service = CampaignServiceV1(repo)
 
     campaign = service.create_campaign(CampaignCreateV1(name="Test Campaign", owner_id="owner-a"))
@@ -42,8 +42,8 @@ def test_override_precedence_is_global_then_campaign_then_character() -> None:
     assert [row.scope for row in with_character.ordered_overrides] == ["global", "campaign", "character"]
 
 
-def test_override_merge_is_deterministic_with_multiple_keys() -> None:
-    repo = CampaignRepositoryV1()
+def test_override_merge_is_deterministic_with_multiple_keys(isolated_db_session) -> None:
+    repo = CampaignRepositoryV1(isolated_db_session)
     service = CampaignServiceV1(repo)
     campaign = service.create_campaign(CampaignCreateV1(name="Deterministic", owner_id="owner-a"))
 
@@ -63,4 +63,5 @@ def test_override_merge_is_deterministic_with_multiple_keys() -> None:
     )
 
     resolved = service.resolve_overrides(campaign.id, character_id="char-2")
-    assert resolved.effective_values == {"hp_max": 20, "initiative": 3}
+    assert resolved.effective_values == {"hp_max": 20.0, "initiative": 3.0}
+
