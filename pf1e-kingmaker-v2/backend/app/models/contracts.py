@@ -1,7 +1,5 @@
 """Versioned contracts for character and derived stats."""
 
-from __future__ import annotations
-
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,14 +37,14 @@ class EquipmentSelectionV2(BaseModel):
 
 
 class AbilityScoresV2(BaseModel):
-    model_config = ConfigDict(serialize_by_alias=True)
+    model_config = ConfigDict(populate_by_name=True)
 
-    strength: int = Field(alias="str", ge=1)
-    dexterity: int = Field(alias="dex", ge=1)
-    constitution: int = Field(alias="con", ge=1)
-    intelligence: int = Field(alias="int", ge=1)
-    wisdom: int = Field(alias="wis", ge=1)
-    charisma: int = Field(alias="cha", ge=1)
+    str_score: int = Field(alias="str", serialization_alias="str", ge=1)
+    dex: int = Field(ge=1)
+    con: int = Field(ge=1)
+    int_score: int = Field(alias="int", serialization_alias="int", ge=1)
+    wis: int = Field(ge=1)
+    cha: int = Field(ge=1)
 
 
 class RuleOverrideV2(BaseModel):

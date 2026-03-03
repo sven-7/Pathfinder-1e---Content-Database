@@ -10,6 +10,7 @@ from app.models.contracts import (
     CharacterV2,
     DerivedStatsV2,
     FeatPrereqResultV2,
+    RuleOverrideV2,
 )
 
 
@@ -264,12 +265,12 @@ def _class_rule_or_default(class_name: str) -> ClassRule:
 def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     scores = character.ability_scores
     mods = {
-        "str": _mod(scores.strength),
-        "dex": _mod(scores.dexterity),
-        "con": _mod(scores.constitution),
-        "int": _mod(scores.intelligence),
-        "wis": _mod(scores.wisdom),
-        "cha": _mod(scores.charisma),
+        "str": _mod(scores.str_score),
+        "dex": _mod(scores.dex),
+        "con": _mod(scores.con),
+        "int": _mod(scores.int_score),
+        "wis": _mod(scores.wis),
+        "cha": _mod(scores.cha),
     }
     breakdown: list[BreakdownLineV2] = []
 
@@ -435,6 +436,8 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
     for source_name, delta, source_key in ac_effect_lines:
         _add_breakdown_line(breakdown, key="AC:misc", value=delta, source=f"{source_name} ({source_key})")
     _add_breakdown_line(breakdown, key="AC:total", value=ac_total, source="10 + armor + DEX + misc")
+    # Keep the legacy key for contract/backward compatibility with existing consumers.
+    _add_breakdown_line(breakdown, key="AC(total)", value=ac_total, source="10 + armor + DEX + misc")
     _add_breakdown_line(breakdown, key="AC:touch", value=ac_touch, source="10 + DEX + misc")
     _add_breakdown_line(breakdown, key="AC:flat_footed", value=ac_flat_footed, source="10 + armor + misc")
 
@@ -596,7 +599,8 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
         "cmd": cmd,
         "initiative": initiative,
     }
-    for override in character.overrides:
+    for raw_override in character.overrides:
+        override = raw_override if isinstance(raw_override, RuleOverrideV2) else RuleOverrideV2.model_validate(raw_override)
         key = _norm(override.key)
         if key not in override_targets:
             continue
