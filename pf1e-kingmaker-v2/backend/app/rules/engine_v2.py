@@ -10,6 +10,7 @@ from app.models.contracts import (
     CharacterV2,
     DerivedStatsV2,
     FeatPrereqResultV2,
+    RuleOverrideV2,
 )
 
 
@@ -423,7 +424,12 @@ def derive_stats(character: CharacterV2) -> DerivedStatsV2:
         "cmd": cmd,
         "initiative": initiative,
     }
-    for override in character.overrides:
+    for raw_override in character.overrides:
+        override = (
+            raw_override
+            if isinstance(raw_override, RuleOverrideV2)
+            else RuleOverrideV2.model_validate(raw_override)
+        )
         key = _norm(override.key)
         if key not in override_targets:
             continue
