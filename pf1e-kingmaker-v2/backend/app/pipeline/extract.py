@@ -771,6 +771,16 @@ def _normalize_book_key(value: str) -> str:
     return lowered
 
 
+def _book_key_candidates(normalized: str) -> list[str]:
+    keys = [normalized]
+    for prefix in ("pathfinder roleplaying game ", "pathfinder rpg ", "prpg "):
+        if normalized.startswith(prefix):
+            trimmed = normalized[len(prefix) :].strip()
+            if trimmed and trimmed not in keys:
+                keys.append(trimmed)
+    return keys
+
+
 def _clean_source_book_text(value: str) -> str:
     cleaned = html.unescape(value or "").strip()
     if not cleaned:
@@ -780,7 +790,13 @@ def _clean_source_book_text(value: str) -> str:
 
     # Keep only the first source segment when a page lists multiple semicolon/pipe-delimited references.
     cleaned = re.split(r"\s*[;|]\s*", cleaned, maxsplit=1)[0].strip()
-    cleaned = re.split(r"\s+\b(?:and|or)\b\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+    and_or_parts = re.split(r"\s+\b(?:and|or)\b\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
+    if len(and_or_parts) == 2:
+        left = and_or_parts[0].strip()
+        left_key = _normalize_book_key(left)
+        left_candidates = _book_key_candidates(left_key)
+        if any(candidate in _BOOK_ALIAS_MAP or candidate in _APPROVED_BOOK_SET for candidate in left_candidates):
+            cleaned = left
 
     # Remove trailing page references and parenthetical edition labels.
     cleaned = re.sub(r"\s*\((?:pfrpg|pathfinder[^)]*)\)\s*$", "", cleaned, flags=re.IGNORECASE).strip()
@@ -817,17 +833,21 @@ def _canonical_book_name(value: str) -> str | None:
     if not cleaned_source:
         return None
     normalized = _normalize_book_key(cleaned_source)
-    if normalized in _BOOK_ALIAS_MAP:
-        return _BOOK_ALIAS_MAP[normalized]
-    if normalized in _APPROVED_BOOK_SET:
-        # canonical exact-ish title case from source string
-        for book in _APPROVED_BOOKS:
-            if book.lower() == normalized:
-                return book
+    candidates = _book_key_candidates(normalized)
+    for candidate in candidates:
+        if candidate in _BOOK_ALIAS_MAP:
+            return _BOOK_ALIAS_MAP[candidate]
+    for candidate in candidates:
+        if candidate in _APPROVED_BOOK_SET:
+            # canonical exact-ish title case from source string
+            for book in _APPROVED_BOOKS:
+                if book.lower() == candidate:
+                    return book
     # Loose contains matching for common patterns like "Core Rulebook pg. 123".
-    for key, canonical in _BOOK_ALIAS_MAP.items():
-        if key in normalized:
-            return canonical
+    for candidate in candidates:
+        for key, canonical in _BOOK_ALIAS_MAP.items():
+            if key in candidate:
+                return canonical
     if _looks_like_book_title(cleaned_source):
         return cleaned_source
     return None

@@ -528,6 +528,13 @@ def test_allowlist_keeps_approved_class_scope_rows_with_non_allowlist_book():
 def test_source_book_normalization_strips_page_suffix_and_noise():
     assert extract_module._canonical_book_name("Advanced Player's Guide pg. 28") == "Advanced Player's Guide"
     assert extract_module._canonical_book_name("Source: Core Rulebook, pg 131") == "Core Rulebook"
+    assert extract_module._canonical_book_name("Pathfinder RPG Core Rulebook pg. 131") == "Core Rulebook"
+    assert extract_module._canonical_book_name("PRPG Advanced Class Guide p. 10") == "Advanced Class Guide"
+    assert extract_module._canonical_book_name("Pathfinder Roleplaying Game Ultimate Combat") == "Ultimate Combat"
+    assert (
+        extract_module._canonical_book_name("Pathfinder #102: Breaking the Bones of Hell pg")
+        == "Pathfinder #102: Breaking the Bones of Hell"
+    )
     assert extract_module._canonical_book_name(" , it takes an additional 1d6 points of fire damage as its flesh burns") is None
 
 
