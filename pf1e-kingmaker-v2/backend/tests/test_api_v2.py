@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -75,6 +76,9 @@ def test_derive_kairon_slice_baseline():
     assert derived["skill_totals"]["Perception"] == 16
     assert derived["attack_lines"][0]["name"] == "Rapier"
     assert derived["attack_lines"][0]["attack_bonus"] == 11
+    assert len(derived["breakdown"]) > 0
+    assert any(line["key"] == "AC:total" for line in derived["breakdown"])
+    assert all(line["source"] for line in derived["breakdown"])
 
     feat_results = {item["feat_name"]: item for item in derived["feat_prereq_results"]}
     assert feat_results["Weapon Finesse"]["valid"] is True
@@ -257,3 +261,51 @@ def test_content_policy_summary_endpoint(tmp_path: "Path", monkeypatch: pytest.M
     assert payload["reason_counts"]["book_not_in_allowlist"] == 2
     assert payload["reason_counts"]["allowlisted"] == 1
     assert "class_not_in_allowlist" not in payload["reason_counts"]
+
+
+def test_openapi_exposes_v2_paths_and_contract_schemas():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert "/api/v2/content/feats" in payload["paths"]
+    assert "/api/v2/content/races" in payload["paths"]
+    assert "/api/v2/content/policy-summary" in payload["paths"]
+    assert "/api/v2/characters/validate" in payload["paths"]
+    assert "/api/v2/rules/derive" in payload["paths"]
+
+    schemas = payload["components"]["schemas"]
+    assert "CharacterV2" in schemas or (
+        "CharacterV2-Input" in schemas and "CharacterV2-Output" in schemas
+    )
+    for expected in (
+        "DerivedStatsV2",
+        "DeriveResponseV2",
+        "CharacterValidationResponseV2",
+        "ContentFeatV2",
+        "ContentRaceV2",
+        "PolicySummaryV2",
+    ):
+        assert expected in schemas
+
+    derive_post = payload["paths"]["/api/v2/rules/derive"]["post"]
+    derive_examples = derive_post["requestBody"]["content"]["application/json"]["examples"]
+    assert "kairon" in derive_examples
+    assert derive_examples["kairon"]["value"]["name"] == "Kairon"
+
+    validate_post = payload["paths"]["/api/v2/characters/validate"]["post"]
+    validate_examples = validate_post["requestBody"]["content"]["application/json"]["examples"]
+    assert "kairon" in validate_examples
+    assert validate_examples["kairon"]["value"]["race"] == "Tiefling"
+
+
+def test_route_handlers_do_not_contain_sql_literals():
+    route_dir = Path(__file__).resolve().parents[1] / "app" / "api" / "v2"
+    for route_file in ("content.py", "characters.py", "rules.py"):
+        text = (route_dir / route_file).read_text(encoding="utf-8").lower()
+        assert "sqlite3" not in text
+        assert "select " not in text
+        assert "insert " not in text
+        assert "update " not in text
+        assert "delete " not in text

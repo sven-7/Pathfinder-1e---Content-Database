@@ -4,7 +4,15 @@ import pytest
 
 pytest.importorskip("pydantic")
 
-from app.models.contracts import AbilityScoresV2, CharacterV2, ClassLevelV2, EquipmentSelectionV2, FeatSelectionV2, TraitSelectionV2
+from app.models.contracts import (
+    AbilityScoresV2,
+    CharacterV2,
+    ClassLevelV2,
+    EquipmentSelectionV2,
+    FeatSelectionV2,
+    RuleOverrideV2,
+    TraitSelectionV2,
+)
 from app.rules.engine_v2 import derive_stats, evaluate_feat_prerequisites
 
 
@@ -36,6 +44,14 @@ def _base_kairon() -> CharacterV2:
     )
 
 
+def _breakdown_key_values(character: CharacterV2) -> dict[str, list[int | float]]:
+    derived = derive_stats(character)
+    out: dict[str, list[int | float]] = {}
+    for line in derived.breakdown:
+        out.setdefault(line.key, []).append(line.value)
+    return out
+
+
 def test_kairon_level_9_golden_stats():
     character = _base_kairon()
     derived = derive_stats(character)
@@ -57,6 +73,37 @@ def test_kairon_level_9_golden_stats():
     rapier = next(a for a in derived.attack_lines if a.name == "Rapier")
     assert rapier.attack_bonus == 11
     assert rapier.damage == "1d6+1"
+    assert "iterative +11/+6" in rapier.notes
+
+    breakdown_by_key = _breakdown_key_values(character)
+    assert breakdown_by_key["BAB:class:Investigator"] == [6]
+    assert breakdown_by_key["BAB:total"] == [6]
+    assert breakdown_by_key["Fort:base"] == [3]
+    assert breakdown_by_key["Fort:ability"] == [1]
+    assert breakdown_by_key["Fort:total"] == [4]
+    assert breakdown_by_key["Ref:total"] == [10]
+    assert breakdown_by_key["Will:total"] == [10]
+    assert breakdown_by_key["HP:hit_die"] == [48]
+    assert breakdown_by_key["HP:con"] == [9]
+    assert breakdown_by_key["HP:total"] == [57]
+    assert breakdown_by_key["AC:armor"] == [3]
+    assert breakdown_by_key["AC:dex"] == [4]
+    assert breakdown_by_key["AC:total"] == [17]
+    assert breakdown_by_key["AC:touch"] == [14]
+    assert breakdown_by_key["AC:flat_footed"] == [13]
+    assert breakdown_by_key["CMB:total"] == [7]
+    assert breakdown_by_key["CMD:total"] == [21]
+    assert breakdown_by_key["Initiative:misc"] == [2]
+    assert breakdown_by_key["Initiative:total"] == [6]
+    assert breakdown_by_key["Skill:Perception:ranks"] == [9]
+    assert breakdown_by_key["Skill:Perception:ability"] == [4]
+    assert breakdown_by_key["Skill:Perception:class"] == [3]
+    assert breakdown_by_key["Skill:Perception:total"] == [16]
+    assert breakdown_by_key["Attack:Rapier:total"] == [11]
+    assert breakdown_by_key["Attack:Rapier:damage_bonus"] == [1]
+    assert breakdown_by_key["FeatPrereq:Rapid Shot"] == [0]
+    assert breakdown_by_key["Result:ac_total"] == [17]
+    assert breakdown_by_key["Result:initiative"] == [6]
 
 
 def test_prerequisite_evaluator_flags_invalid_and_accepts_valid_chain():
@@ -71,15 +118,30 @@ def test_prerequisite_evaluator_flags_invalid_and_accepts_valid_chain():
     assert valid_results["Rapid Shot"].valid is True
 
 
+def test_prerequisite_chain_requires_prereq_before_dependent_feat():
+    character = _base_kairon()
+    character.feats = [
+        FeatSelectionV2(name="Rapid Shot", level_gained=1, method="general"),
+        FeatSelectionV2(name="Point-Blank Shot", level_gained=3, method="general"),
+    ]
+    results = {r.feat_name: r for r in evaluate_feat_prerequisites(character)}
+
+    assert results["Rapid Shot"].valid is False
+    assert "Point-Blank Shot" in results["Rapid Shot"].missing
+    assert results["Point-Blank Shot"].valid is True
+
+
 def test_house_rule_overrides_apply_deterministically():
     character = _base_kairon()
     character.overrides = [
-        {"key": "ac_total", "operation": "add", "value": 1, "source": "Campaign house rule"},
-        {"key": "initiative", "operation": "set", "value": 8, "source": "Table ruling"},
+        RuleOverrideV2(key="ac_total", operation="add", value=1, source="Campaign house rule"),
+        RuleOverrideV2(key="initiative", operation="set", value=8, source="Table ruling"),
     ]
 
     derived = derive_stats(character)
     assert derived.ac_total == 18
     assert derived.initiative == 8
-    assert any(line.key == "Override:ac_total" for line in derived.breakdown)
-    assert any(line.key == "Override:initiative" for line in derived.breakdown)
+    assert any(line.key == "Override:ac_total" and line.value == 1 for line in derived.breakdown)
+    assert any(line.key == "Override:initiative" and line.value == 8 for line in derived.breakdown)
+    assert any(line.key == "Result:ac_total" and line.value == 18 for line in derived.breakdown)
+    assert any(line.key == "Result:initiative" and line.value == 8 for line in derived.breakdown)
