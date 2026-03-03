@@ -41,12 +41,14 @@ class EquipmentSelectionV2(BaseModel):
 
 
 class AbilityScoresV2(BaseModel):
-    str: ScoreValue = Field(ge=1)
-    dex: ScoreValue = Field(ge=1)
-    con: ScoreValue = Field(ge=1)
-    int: ScoreValue = Field(ge=1)
-    wis: ScoreValue = Field(ge=1)
-    cha: ScoreValue = Field(ge=1)
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    strength: ScoreValue = Field(alias="str", ge=1)
+    dexterity: ScoreValue = Field(alias="dex", ge=1)
+    constitution: ScoreValue = Field(alias="con", ge=1)
+    intelligence: ScoreValue = Field(alias="int", ge=1)
+    wisdom: ScoreValue = Field(alias="wis", ge=1)
+    charisma: ScoreValue = Field(alias="cha", ge=1)
 
 
 class RuleOverrideV2(BaseModel):
